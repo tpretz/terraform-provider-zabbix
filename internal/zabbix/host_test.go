@@ -53,6 +53,13 @@ func TestHosts(t *testing.T) {
 	host.GroupIds = nil
 	host.Interfaces = nil
 
+	newName := fmt.Sprintf("%s-%d", getHost(), rand.Int())
+	host.Host = newName
+	err = api.HostsUpdate(Hosts{*host})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	host2, err := api.HostGetByHost(host.Host)
 	if err != nil {
 		t.Fatal(err)
