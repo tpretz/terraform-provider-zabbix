@@ -27,8 +27,9 @@ type Host struct {
 	Status    StatusType    `json:"status"`
 
 	// Fields below used only when creating hosts
-	GroupIds   HostGroupIds   `json:"groups,omitempty"`
-	Interfaces HostInterfaces `json:"interfaces,omitempty"`
+	GroupIds    HostGroupIds   `json:"groups,omitempty"`
+	Interfaces  HostInterfaces `json:"interfaces,omitempty"`
+	TemplateIds TemplateIds    `json:"templates,omitempty"`
 }
 
 type Hosts []Host
