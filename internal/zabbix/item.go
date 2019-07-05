@@ -2,6 +2,7 @@ package zabbix
 
 import (
 	"fmt"
+
 	"github.com/AlekSi/reflector"
 )
 
@@ -49,20 +50,21 @@ const (
 
 // https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/definitions
 type Item struct {
-	ItemId      string    `json:"itemid,omitempty"`
-	Delay       int       `json:"delay"`
-	HostId      string    `json:"hostid"`
-	InterfaceId string    `json:"interfaceid,omitempty"`
-	Key         string    `json:"key_"`
-	Name        string    `json:"name"`
-	Type        ItemType  `json:"type"`
-	ValueType   ValueType `json:"value_type"`
-	DataType    DataType  `json:"data_type"`
-	Delta       DeltaType `json:"delta"`
-	Description string    `json:"description"`
-	Error       string    `json:"error"`
-	History     int       `json:"history,omitempty"`
-	Trends      int       `json:"trends,omitempty"`
+	ItemId       string    `json:"itemid,omitempty"`
+	Delay        int       `json:"delay"`
+	HostId       string    `json:"hostid"`
+	InterfaceId  string    `json:"interfaceid,omitempty"`
+	Key          string    `json:"key_"`
+	Name         string    `json:"name"`
+	Type         ItemType  `json:"type"`
+	ValueType    ValueType `json:"value_type"`
+	DataType     DataType  `json:"data_type"`
+	Delta        DeltaType `json:"delta"`
+	Description  string    `json:"description"`
+	Error        string    `json:"error"`
+	History      string    `json:"history,omitempty"`
+	Trends       string    `json:"trends,omitempty"`
+	TrapperHosts string    `json:"trapper_hosts,omitempty"`
 
 	// Fields below used only when creating applications
 	ApplicationIds []string `json:"applications,omitempty"`
