@@ -1,17 +1,18 @@
 package zabbix_test
 
 import (
-	. "."
 	"testing"
+
+	. "."
 )
 
 func CreateItem(app *Application, t *testing.T) *Item {
 	items := Items{{
-		HostId:         app.HostId,
+		HostID:         app.HostID,
 		Key:            "key.lala.laa",
 		Name:           "name for key",
 		Type:           ZabbixTrapper,
-		ApplicationIds: []string{app.ApplicationId},
+		ApplicationIds: []string{app.ApplicationID},
 	}}
 	err := getAPI(t).ItemsCreate(items)
 	if err != nil {
@@ -39,7 +40,7 @@ func TestItems(t *testing.T) {
 	app := CreateApplication(host, t)
 	defer DeleteApplication(app, t)
 
-	items, err := api.ItemsGetByApplicationId(app.ApplicationId)
+	items, err := api.ItemsGetByApplicationID(app.ApplicationID)
 	if err != nil {
 		t.Fatal(err)
 	}

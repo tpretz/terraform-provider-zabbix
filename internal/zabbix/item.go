@@ -7,53 +7,106 @@ import (
 )
 
 type (
-	ItemType  int
+	// ItemType type of the item
+	ItemType int
+	// ValueType type of information of the item
 	ValueType int
-	DataType  int
+	// DataType data type of the item
+	DataType int
+	// DeltaType value that will be stored
 	DeltaType int
 )
 
 const (
-	ZabbixAgent       ItemType = 0
-	SNMPv1Agent       ItemType = 1
-	ZabbixTrapper     ItemType = 2
-	SimpleCheck       ItemType = 3
-	SNMPv2Agent       ItemType = 4
-	ZabbixInternal    ItemType = 5
-	SNMPv3Agent       ItemType = 6
+	// Different item type, see :
+	// - "type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+	// - https://www.zabbix.com/documentation/3.2/manual/config/items/itemtypes
+
+	// ZabbixAgent type
+	ZabbixAgent ItemType = 0
+	// SNMPv1Agent type
+	SNMPv1Agent ItemType = 1
+	// ZabbixTrapper type
+	ZabbixTrapper ItemType = 2
+	// SimpleCheck type
+	SimpleCheck ItemType = 3
+	// SNMPv2Agent type
+	SNMPv2Agent ItemType = 4
+	// ZabbixInternal type
+	ZabbixInternal ItemType = 5
+	// SNMPv3Agent type
+	SNMPv3Agent ItemType = 6
+	// ZabbixAgentActive type
 	ZabbixAgentActive ItemType = 7
-	ZabbixAggregate   ItemType = 8
-	WebItem           ItemType = 9
-	ExternalCheck     ItemType = 10
-	DatabaseMonitor   ItemType = 11
-	IPMIAgent         ItemType = 12
-	SSHAgent          ItemType = 13
-	TELNETAgent       ItemType = 14
-	Calculated        ItemType = 15
-	JMXAgent          ItemType = 16
+	// ZabbixAggregate type
+	ZabbixAggregate ItemType = 8
+	// WebItem type
+	WebItem ItemType = 9
+	// ExternalCheck type
+	ExternalCheck ItemType = 10
+	// DatabaseMonitor type
+	DatabaseMonitor ItemType = 11
+	//IPMIAgent type
+	IPMIAgent ItemType = 12
+	// SSHAgent type
+	SSHAgent ItemType = 13
+	// TELNETAgent type
+	TELNETAgent ItemType = 14
+	// Calculated type
+	Calculated ItemType = 15
+	// JMXAgent type
+	JMXAgent ItemType = 16
+)
 
-	Float     ValueType = 0
+const (
+	// Type of information of the item
+	// see "value_type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+
+	// Float value
+	Float ValueType = 0
+	// Character value
 	Character ValueType = 1
-	Log       ValueType = 2
-	Unsigned  ValueType = 3
-	Text      ValueType = 4
+	// Log value
+	Log ValueType = 2
+	// Unsigned value
+	Unsigned ValueType = 3
+	// Text value
+	Text ValueType = 4
+)
 
-	Decimal     DataType = 0
-	Octal       DataType = 1
+const (
+	// Data type of the item
+	// see "data_type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+
+	// Decimal data (default)
+	Decimal DataType = 0
+	// Octal data
+	Octal DataType = 1
+	// Hexadecimal data
 	Hexadecimal DataType = 2
-	Boolean     DataType = 3
+	// Boolean data
+	Boolean DataType = 3
+)
 
-	AsIs  DeltaType = 0
+const (
+	// Value that will be stored
+	// see "delta" in https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
+
+	// AsIs as is (default)
+	AsIs DeltaType = 0
+	// Speed speed per second
 	Speed DeltaType = 1
+	// Delta simple change
 	Delta DeltaType = 2
 )
 
-// https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/definitions
+// Item represent Zabbix item object
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type Item struct {
-	ItemId       string    `json:"itemid,omitempty"`
+	ItemID       string    `json:"itemid,omitempty"`
 	Delay        int       `json:"delay"`
-	HostId       string    `json:"hostid"`
-	InterfaceId  string    `json:"interfaceid,omitempty"`
+	HostID       string    `json:"hostid"`
+	InterfaceID  string    `json:"interfaceid,omitempty"`
 	Key          string    `json:"key_"`
 	Name         string    `json:"name"`
 	Type         ItemType  `json:"type"`
@@ -70,9 +123,10 @@ type Item struct {
 	ApplicationIds []string `json:"applications,omitempty"`
 }
 
+// Items is an array of Item
 type Items []Item
 
-// Converts slice to map by key. Panics if there are duplicate keys.
+// ByKey Converts slice to map by key. Panics if there are duplicate keys.
 func (items Items) ByKey() (res map[string]Item) {
 	res = make(map[string]Item, len(items))
 	for _, i := range items {
@@ -85,7 +139,8 @@ func (items Items) ByKey() (res map[string]Item) {
 	return
 }
 
-// Wrapper for item.get https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/get
+// ItemsGet Wrapper for item.get
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/get
 func (api *API) ItemsGet(params Params) (res Items, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
@@ -99,12 +154,13 @@ func (api *API) ItemsGet(params Params) (res Items, err error) {
 	return
 }
 
-// Gets items by application Id.
-func (api *API) ItemsGetByApplicationId(id string) (res Items, err error) {
+// ItemsGetByApplicationID Gets items by application Id.
+func (api *API) ItemsGetByApplicationID(id string) (res Items, err error) {
 	return api.ItemsGet(Params{"applicationids": id})
 }
 
-// Wrapper for item.create: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/create
+// ItemsCreate Wrapper for item.create
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
 func (api *API) ItemsCreate(items Items) (err error) {
 	response, err := api.CallWithError("item.create", items)
 	if err != nil {
@@ -114,29 +170,31 @@ func (api *API) ItemsCreate(items Items) (err error) {
 	result := response.Result.(map[string]interface{})
 	itemids := result["itemids"].([]interface{})
 	for i, id := range itemids {
-		items[i].ItemId = id.(string)
+		items[i].ItemID = id.(string)
 	}
 	return
 }
 
-// Wrapper for item.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/delete
+// ItemsDelete Wrapper for item.delete
 // Cleans ItemId in all items elements if call succeed.
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
 func (api *API) ItemsDelete(items Items) (err error) {
 	ids := make([]string, len(items))
 	for i, item := range items {
-		ids[i] = item.ItemId
+		ids[i] = item.ItemID
 	}
 
 	err = api.ItemsDeleteByIds(ids)
 	if err == nil {
 		for i := range items {
-			items[i].ItemId = ""
+			items[i].ItemID = ""
 		}
 	}
 	return
 }
 
-// Wrapper for item.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/delete
+// ItemsDeleteByIds Wrapper for item.delete
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
 func (api *API) ItemsDeleteByIds(ids []string) (err error) {
 	response, err := api.CallWithError("item.delete", ids)
 	if err != nil {

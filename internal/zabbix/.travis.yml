@@ -1,20 +1,49 @@
 sudo: required
-dist: precise
+dist: xenial
 language: go
 
 go:
   - 1.6.2
-  - tip
+
+services:
+  - mysql
 
 env:
   global:
-    - TEST_ZABBIX_URL=http://localhost:80/zabbix/api_jsonrpc.php
     - TEST_ZABBIX_USER=Admin
     - TEST_ZABBIX_PASSWORD=zabbix
-    - TEST_ZABBIX_VERBOSE=1
+    - TEST_ZABBIX_HOST=localhost
+    - TEST_ZABBIX_URL=http://${TEST_ZABBIX_HOST}/api_jsonrpc.php
   matrix:
-    - ZABBIX_VERSION=2.0
-    - ZABBIX_VERSION=2.2
-    - ZABBIX_VERSION=2.4
+    - TEST_ZABBIX_VERSION=3.2
 
-before_install: sudo hostname travis && sudo -E ./setup.rb
+before_install:
+  - sudo hostname $TEST_ZABBIX_HOST && echo "127.0.1.1    $TEST_ZABBIX_HOST" | sudo tee -a /etc/hosts
+  - sudo apt update -q
+  - sudo apt install -y software-properties-common jq
+  - sudo apt-add-repository --yes --update ppa:ansible/ansible
+  - sudo apt install -y ansible
+  - ansible-galaxy install dj-wasabi.zabbix-server
+  - ansible-galaxy install dj-wasabi.zabbix-web
+  - |
+    cat <<-EOF | head -n -2 > deploy.yml
+    - hosts: $TEST_ZABBIX_HOST
+      become: yes
+      roles:
+        - { role: geerlingguy.apache }
+        - { role: dj-wasabi.zabbix-server }
+        - { role: dj-wasabi.zabbix-web }
+      vars:
+        - database_type: mysql
+        - database_type_long: mysql
+        - zabbix_server_database: mysql
+        - zabbix_server_database_long: mysql
+        - zabbix_server_dbport: 3306
+        - zabbix_server_mysql_login_host: $TEST_ZABBIX_HOST
+        - zabbix_server_mysql_login_user: root
+        - zabbix_url: $TEST_ZABBIX_HOST
+        - zabbix_version: $TEST_ZABBIX_VERSION
+    EOF
+  - ansible-playbook -c local -i "${TEST_ZABBIX_HOST}," deploy.yml
+  - bash -x tests.sh
+  - go install github.com/claranet/go-zabbix-api

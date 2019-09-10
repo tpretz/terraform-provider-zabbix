@@ -1,11 +1,12 @@
 package zabbix_test
 
 import (
-	. "."
 	"fmt"
 	"math/rand"
 	"reflect"
 	"testing"
+
+	. "."
 )
 
 func CreateHostGroup(t *testing.T) *HostGroup {
@@ -33,11 +34,11 @@ func TestHostGroups(t *testing.T) {
 	}
 
 	hostGroup := CreateHostGroup(t)
-	if hostGroup.GroupId == "" || hostGroup.Name == "" {
+	if hostGroup.GroupID == "" || hostGroup.Name == "" {
 		t.Errorf("Something is empty: %#v", hostGroup)
 	}
 
-	hostGroup2, err := api.HostGroupGetById(hostGroup.GroupId)
+	hostGroup2, err := api.HostGroupGetByID(hostGroup.GroupID)
 	if err != nil {
 		t.Fatal(err)
 	}

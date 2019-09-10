@@ -1,32 +1,52 @@
 package zabbix
 
 import (
-	//"fmt"
 	"github.com/AlekSi/reflector"
 )
 
 type (
+	// SeverityType of a trigger
+	// Zabbix severity see : https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/object
 	SeverityType int
 )
 
 const (
+	// Different severity see : https://www.zabbix.com/documentation/3.2/manual/config/triggers/severity
+
+	// NotClassified is Not classified severity
 	NotClassified SeverityType = 0
-	Information   SeverityType = 1
-	Warning       SeverityType = 2
-	Average       SeverityType = 3
-	High          SeverityType = 4
-	Critical      SeverityType = 5
+	// Information is Information severity
+	Information SeverityType = 1
+	// Warning is Warning severity
+	Warning SeverityType = 2
+	// Average is Average severity
+	Average SeverityType = 3
+	// High is high severity
+	High SeverityType = 4
+	// Critical is critical severity
+	Critical SeverityType = 5
+)
 
-	Enabled  StatusType = 0
+const (
+	// Enabled trigger status enabled
+	Enabled StatusType = 0
+	// Disabled trigger status disabled
 	Disabled StatusType = 1
+)
 
-	OK      ValueType = 0
+const (
+	// Trigger value see : https://www.zabbix.com/documentation/3.2/manual/config/triggers
+
+	// OK trigger value ok
+	OK ValueType = 0
+	// Problem trigger value probleme
 	Problem ValueType = 1
 )
 
-// https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/definitions
+// Trigger represent Zabbix trigger object
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/object
 type Trigger struct {
-	TriggerId   string `json:"triggerid,omitempty"`
+	TriggerID   string `json:"triggerid,omitempty"`
 	Description string `json:"description"`
 	Expression  string `json:"expression"`
 	Comments    string `json:"comments"`
@@ -37,9 +57,11 @@ type Trigger struct {
 	Status   StatusType   `json:"status"`
 }
 
+// Triggers is an array of Trigger
 type Triggers []Trigger
 
-// Wrapper for item.get https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/get
+// TriggersGet Wrapper for trigger.get
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/get
 func (api *API) TriggersGet(params Params) (res Triggers, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
@@ -53,7 +75,8 @@ func (api *API) TriggersGet(params Params) (res Triggers, err error) {
 	return
 }
 
-// Wrapper for item.create: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/create
+// TriggersCreate Wrapper for trigger.create
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/create
 func (api *API) TriggersCreate(triggers Triggers) (err error) {
 	response, err := api.CallWithError("trigger.create", triggers)
 	if err != nil {
@@ -63,29 +86,31 @@ func (api *API) TriggersCreate(triggers Triggers) (err error) {
 	result := response.Result.(map[string]interface{})
 	triggerids := result["triggerids"].([]interface{})
 	for i, id := range triggerids {
-		triggers[i].TriggerId = id.(string)
+		triggers[i].TriggerID = id.(string)
 	}
 	return
 }
 
-// Wrapper for item.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/delete
-// Cleans ItemId in all items elements if call succeed.
+// TriggersDelete Wrapper for trigger.delete
+// Cleans ItemId in all triggers elements if call succeed.
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/delete
 func (api *API) TriggersDelete(triggers Triggers) (err error) {
 	ids := make([]string, len(triggers))
 	for i, trigger := range triggers {
-		ids[i] = trigger.TriggerId
+		ids[i] = trigger.TriggerID
 	}
 
 	err = api.TriggersDeleteByIds(ids)
 	if err == nil {
 		for i := range triggers {
-			triggers[i].TriggerId = ""
+			triggers[i].TriggerID = ""
 		}
 	}
 	return
 }
 
-// Wrapper for item.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/item/delete
+// TriggersDeleteByIds Wrapper for trigger.delete
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/delete
 func (api *API) TriggersDeleteByIds(ids []string) (err error) {
 	response, err := api.CallWithError("trigger.delete", ids)
 	if err != nil {

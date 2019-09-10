@@ -1,7 +1,9 @@
-zabbix [![GoDoc](https://godoc.org/github.com/AlekSi/zabbix?status.svg)](https://godoc.org/github.com/AlekSi/zabbix) [![Build Status](https://travis-ci.org/AlekSi/zabbix.svg?branch=master)](https://travis-ci.org/AlekSi/zabbix??branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/AlekSi/zabbix)](https://goreportcard.com/report/github.com/AlekSi/zabbix)
+go zabbix api[![GoDoc](https://godoc.org/github.com/AlekSi/zabbix?status.svg)](https://godoc.org/github.com/AlekSi/zabbix) [![Build Status](https://travis-ci.org/claranet/go-zabbix-api.svg?branch=master)](https://travis-ci.org/AlekSi/zabbix??branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/AlekSi/zabbix)](https://goreportcard.com/report/github.com/AlekSi/zabbix)
 ======
 
 This Go package provides access to Zabbix API. Tested on Zabbix 2.0, 2.2, 2.4.
+
+This package aim to support : trigger, application, host group, host, item, template
 
 Install it: `go get github.com/AlekSi/zabbix`
 

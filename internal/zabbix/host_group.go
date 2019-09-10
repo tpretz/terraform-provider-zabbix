@@ -5,30 +5,39 @@ import (
 )
 
 type (
+	// InternalType (readonly) Whether the group is used internally by the system. An internal group cannot be deleted.
+	// see "internal" in https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/object
 	InternalType int
 )
 
 const (
+	// NotInternal (default) not internal
 	NotInternal InternalType = 0
-	Internal    InternalType = 1
+	// Internal internal
+	Internal InternalType = 1
 )
 
-// https://www.zabbix.com/documentation/2.2/manual/appendix/api/hostgroup/definitions
+// HostGroup represent Zabbix host group object
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/object
 type HostGroup struct {
-	GroupId  string       `json:"groupid,omitempty"`
+	GroupID  string       `json:"groupid,omitempty"`
 	Name     string       `json:"name"`
 	Internal InternalType `json:"internal,omitempty"`
 }
 
+// HostGroups is an array of HostGroup
 type HostGroups []HostGroup
 
-type HostGroupId struct {
-	GroupId string `json:"groupid"`
+// HostGroupID represent Zabbix GroupID
+type HostGroupID struct {
+	GroupID string `json:"groupid"`
 }
 
-type HostGroupIds []HostGroupId
+// HostGroupIDs is an array of HostGroupId
+type HostGroupIDs []HostGroupID
 
-// Wrapper for hostgroup.get: https://www.zabbix.com/documentation/2.2/manual/appendix/api/hostgroup/get
+// HostGroupsGet Wrapper for hostgroup.get
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/get
 func (api *API) HostGroupsGet(params Params) (res HostGroups, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
@@ -42,8 +51,8 @@ func (api *API) HostGroupsGet(params Params) (res HostGroups, err error) {
 	return
 }
 
-// Gets host group by Id only if there is exactly 1 matching host group.
-func (api *API) HostGroupGetById(id string) (res *HostGroup, err error) {
+// HostGroupGetByID Gets host group by Id only if there is exactly 1 matching host group.
+func (api *API) HostGroupGetByID(id string) (res *HostGroup, err error) {
 	groups, err := api.HostGroupsGet(Params{"groupids": id})
 	if err != nil {
 		return
@@ -58,7 +67,8 @@ func (api *API) HostGroupGetById(id string) (res *HostGroup, err error) {
 	return
 }
 
-// Wrapper for hostgroup.create: https://www.zabbix.com/documentation/2.2/manual/appendix/api/hostgroup/create
+// HostGroupsCreate Wrapper for hostgroup.create
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/create
 func (api *API) HostGroupsCreate(hostGroups HostGroups) (err error) {
 	response, err := api.CallWithError("hostgroup.create", hostGroups)
 	if err != nil {
@@ -68,35 +78,38 @@ func (api *API) HostGroupsCreate(hostGroups HostGroups) (err error) {
 	result := response.Result.(map[string]interface{})
 	groupids := result["groupids"].([]interface{})
 	for i, id := range groupids {
-		hostGroups[i].GroupId = id.(string)
+		hostGroups[i].GroupID = id.(string)
 	}
 	return
 }
 
-// Wrapper for hostgroup.update: https://www.zabbix.com/documentation/2.2/manual/api/reference/hostgroup/update
+// HostGroupsUpdate Wrapper for hostgroup.update
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/update
 func (api *API) HostGroupsUpdate(hostGroups HostGroups) (err error) {
 	_, err = api.CallWithError("hostgroup.update", hostGroups)
 	return
 }
 
-// Wrapper for hostgroup.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/hostgroup/delete
+// HostGroupsDelete Wrapper for hostgroup.delete
 // Cleans GroupId in all hostGroups elements if call succeed.
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/delete
 func (api *API) HostGroupsDelete(hostGroups HostGroups) (err error) {
 	ids := make([]string, len(hostGroups))
 	for i, group := range hostGroups {
-		ids[i] = group.GroupId
+		ids[i] = group.GroupID
 	}
 
 	err = api.HostGroupsDeleteByIds(ids)
 	if err == nil {
 		for i := range hostGroups {
-			hostGroups[i].GroupId = ""
+			hostGroups[i].GroupID = ""
 		}
 	}
 	return
 }
 
-// Wrapper for hostgroup.delete: https://www.zabbix.com/documentation/2.2/manual/appendix/api/hostgroup/delete
+// HostGroupsDeleteByIds Wrapper for hostgroup.delete
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/delete
 func (api *API) HostGroupsDeleteByIds(ids []string) (err error) {
 	response, err := api.CallWithError("hostgroup.delete", ids)
 	if err != nil {

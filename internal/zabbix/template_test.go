@@ -1,8 +1,9 @@
 package zabbix_test
 
 import (
-	. "."
 	"testing"
+
+	. "."
 )
 
 func TestTemplates(t *testing.T) {
@@ -16,4 +17,11 @@ func TestTemplates(t *testing.T) {
 	if len(templates) == 0 {
 		t.Fatal("No templates were obtained")
 	}
+
+	template := CreateTemplate(hostGroup, t)
+	if template.TemplateID == "" {
+		t.Errorf("Template id is empty %#v", template)
+	}
+
+	DeleteTemplate(template, t)
 }
