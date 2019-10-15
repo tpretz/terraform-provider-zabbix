@@ -3,15 +3,15 @@ package zabbix_test
 import (
 	"testing"
 
-	. "."
+	dd "github.com/claranet/go-zabbix-api"
 )
 
-func CreateItem(app *Application, t *testing.T) *Item {
-	items := Items{{
+func CreateItem(app *dd.Application, t *testing.T) *dd.Item {
+	items := dd.Items{{
 		HostID:         app.HostID,
 		Key:            "key.lala.laa",
 		Name:           "name for key",
-		Type:           ZabbixTrapper,
+		Type:           dd.ZabbixTrapper,
 		ApplicationIds: []string{app.ApplicationID},
 	}}
 	err := getAPI(t).ItemsCreate(items)
@@ -21,8 +21,8 @@ func CreateItem(app *Application, t *testing.T) *Item {
 	return &items[0]
 }
 
-func DeleteItem(item *Item, t *testing.T) {
-	err := getAPI(t).ItemsDelete(Items{*item})
+func DeleteItem(item *dd.Item, t *testing.T) {
+	err := getAPI(t).ItemsDelete(dd.Items{*item})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,5 +49,17 @@ func TestItems(t *testing.T) {
 	}
 
 	item := CreateItem(app, t)
+
+	_, err = api.ItemGetByID(item.ItemID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	item.Name = "another name"
+	err = api.ItemsUpdate(dd.Items{*item})
+	if err != nil {
+		t.Error(err)
+	}
+
 	DeleteItem(item, t)
 }
