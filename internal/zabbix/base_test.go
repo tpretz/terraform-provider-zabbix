@@ -1,7 +1,6 @@
 package zabbix_test
 
 import (
-	. "."
 	"log"
 	"math/rand"
 	"net/http"
@@ -9,11 +8,13 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	dd "github.com/claranet/go-zabbix-api"
 )
 
 var (
 	_host string
-	_api  *API
+	_api  *dd.API
 )
 
 func init() {
@@ -35,13 +36,13 @@ func getHost() string {
 	return _host
 }
 
-func getAPI(t *testing.T) *API {
+func getAPI(t *testing.T) *dd.API {
 	if _api != nil {
 		return _api
 	}
 
 	url, user, password := os.Getenv("TEST_ZABBIX_URL"), os.Getenv("TEST_ZABBIX_USER"), os.Getenv("TEST_ZABBIX_PASSWORD")
-	_api = NewAPI(url)
+	_api = dd.NewAPI(url)
 	_api.SetClient(http.DefaultClient)
 	v := os.Getenv("TEST_ZABBIX_VERBOSE")
 	if v != "" && v != "0" {
@@ -85,8 +86,8 @@ func TestVersion(t *testing.T) {
 }
 
 func ExampleAPI_Call() {
-	api := NewAPI("http://host/api_jsonrpc.php")
+	api := dd.NewAPI("http://host/api_jsonrpc.php")
 	api.Login("user", "password")
-	res, _ := api.Call("item.get", Params{"itemids": "23970", "output": "extend"})
+	res, _ := api.Call("item.get", dd.Params{"itemids": "23970", "output": "extend"})
 	log.Print(res)
 }

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	. "."
+	dd "github.com/claranet/go-zabbix-api"
 )
 
-func CreateTrigger(item *Item, host *Host, t *testing.T) *Trigger {
+func CreateTrigger(item *dd.Item, host *dd.Host, t *testing.T) *dd.Trigger {
 	expression := fmt.Sprintf("{%s:%s.last()}=0", host.Host, item.Key)
-	triggers := Triggers{{
+	triggers := dd.Triggers{{
 		Description: "trigger description",
 		Expression:  expression,
 	}}
@@ -20,8 +20,8 @@ func CreateTrigger(item *Item, host *Host, t *testing.T) *Trigger {
 	return &triggers[0]
 }
 
-func DeleteTrigger(trigger *Trigger, t *testing.T) {
-	err := getAPI(t).TriggersDelete(Triggers{*trigger})
+func DeleteTrigger(trigger *dd.Trigger, t *testing.T) {
+	err := getAPI(t).TriggersDelete(dd.Triggers{*trigger})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestTrigger(t *testing.T) {
 	item := CreateItem(app, t)
 	defer DeleteItem(item, t)
 
-	triggerParam := Params{"hostids": host.HostID}
+	triggerParam := dd.Params{"hostids": host.HostID}
 	res, err := api.TriggersGet(triggerParam)
 	if err != nil {
 		t.Fatal(err)
