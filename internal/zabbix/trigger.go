@@ -43,6 +43,17 @@ const (
 	Problem ValueType = 1
 )
 
+// TriggerFunction The function objects represents the functions used in the trigger expression
+type TriggerFunction struct {
+	FunctionID string `json:"functionid"`
+	ItemID     string `json:"itemid"`
+	Function   string `json:"function"`
+	Parameter  string `json:"parameter"`
+}
+
+// TriggerFunctions is an array of TriggerFunction
+type TriggerFunctions []TriggerFunction
+
 // Trigger represent Zabbix trigger object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/object
 type Trigger struct {
@@ -53,8 +64,14 @@ type Trigger struct {
 	//TemplateId  string    `json:"templateid"`
 	Value ValueType `json:""`
 
-	Priority SeverityType `json:"priority"`
-	Status   StatusType   `json:"status"`
+	Priority     SeverityType     `json:"priority"`
+	Status       StatusType       `json:"status"`
+	Dependencies Triggers         `json:"dependencies,omitempty"`
+	Functions    TriggerFunctions `json:"functions,omitempty"`
+	// Items contained by the trigger in the items property.
+	ContainedItems Items `json:"items,omitempty"`
+	// Hosts that the trigger belongs to in the hosts property.
+	TriggerParent Hosts `json:"hosts,omitempty"`
 }
 
 // Triggers is an array of Trigger
@@ -72,6 +89,38 @@ func (api *API) TriggersGet(params Params) (res Triggers, err error) {
 	}
 
 	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
+	parseArray := response.Result.([]interface{})
+	for i := range parseArray {
+		parseResult := parseArray[i].(map[string]interface{})
+		if _, present := parseResult["dependencies"]; present {
+			reflector.MapsToStructs2(parseResult["dependencies"].([]interface{}), &(res[i].Dependencies), reflector.Strconv, "json")
+		}
+		if _, present := parseResult["functions"]; present {
+			reflector.MapsToStructs2(parseResult["functions"].([]interface{}), &(res[i].Functions), reflector.Strconv, "json")
+		}
+		if _, present := parseResult["items"]; present {
+			reflector.MapsToStructs2(parseResult["items"].([]interface{}), &(res[i].ContainedItems), reflector.Strconv, "json")
+		}
+		if _, present := parseResult["hosts"]; present {
+			reflector.MapsToStructs2(parseResult["hosts"].([]interface{}), &(res[i].TriggerParent), reflector.Strconv, "json")
+		}
+	}
+	return
+}
+
+// TriggerGetByID Gets trigger by Id only if there is exactly 1 matching host.
+func (api *API) TriggerGetByID(id string) (res *Trigger, err error) {
+	triggers, err := api.TriggersGet(Params{"triggerids": id})
+	if err != nil {
+		return
+	}
+
+	if len(triggers) != 1 {
+		e := ExpectedOneResult(len(triggers))
+		err = &e
+		return
+	}
+	res = &triggers[0]
 	return
 }
 
@@ -88,6 +137,13 @@ func (api *API) TriggersCreate(triggers Triggers) (err error) {
 	for i, id := range triggerids {
 		triggers[i].TriggerID = id.(string)
 	}
+	return
+}
+
+// TriggersUpdate Wrapper for trigger.update
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/update
+func (api *API) TriggersUpdate(triggers Triggers) (err error) {
+	_, err = api.CallWithError("trigger.update", triggers)
 	return
 }
 
@@ -127,6 +183,27 @@ func (api *API) TriggersDeleteByIds(ids []string) (err error) {
 	}
 	if len(ids) != l {
 		err = &ExpectedMore{len(ids), l}
+	}
+	return
+}
+
+// TriggersDeleteNoError Wrapper for trigger.delete
+// return the id of the deleted trigger
+func (api *API) TriggersDeleteNoError(ids []string) (triggerids []interface{}, err error) {
+	response, err := api.CallWithError("trigger.delete", ids)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	triggerids1, ok := result["triggerids"].([]interface{})
+	if !ok {
+		triggerids2 := result["triggerids"].(map[string]interface{})
+		for _, id := range triggerids2 {
+			triggerids = append(triggerids, id)
+		}
+	} else {
+		triggerids = triggerids1
 	}
 	return
 }
