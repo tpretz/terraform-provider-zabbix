@@ -52,5 +52,12 @@ func TestTrigger(t *testing.T) {
 	}
 
 	trigger := CreateTrigger(item, host, t)
+
+	trigger.Description = "new trigger name"
+	err = api.TriggersUpdate(dd.Triggers{*trigger})
+	if err != nil {
+		t.Error(err)
+	}
+
 	DeleteTrigger(trigger, t)
 }
