@@ -102,7 +102,7 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	}
 	req.ContentLength = int64(len(b))
 	req.Header.Add("Content-Type", "application/json-rpc")
-	req.Header.Add("User-Agent", "github.com/AlekSi/zabbix")
+	req.Header.Add("User-Agent", "github.com/claranet/zabbix")
 
 	res, err := api.c.Do(req)
 	if err != nil {
