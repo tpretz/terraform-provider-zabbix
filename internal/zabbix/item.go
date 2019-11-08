@@ -121,6 +121,8 @@ type Item struct {
 
 	// Fields below used only when creating applications
 	ApplicationIds []string `json:"applications,omitempty"`
+
+	ItemParent Hosts `json:"hosts"`
 }
 
 // Items is an array of Item
@@ -151,6 +153,29 @@ func (api *API) ItemsGet(params Params) (res Items, err error) {
 	}
 
 	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
+	parseArray := response.Result.([]interface{})
+	for i := range parseArray {
+		parseResult := parseArray[i].(map[string]interface{})
+		if _, present := parseResult["hosts"]; present {
+			reflector.MapsToStructs2(parseResult["hosts"].([]interface{}), &(res[i].ItemParent), reflector.Strconv, "json")
+		}
+	}
+	return
+}
+
+// ItemGetByID Gets item by Id only if there is exactly 1 matching host.
+func (api *API) ItemGetByID(id string) (res *Item, err error) {
+	items, err := api.ItemsGet(Params{"itemids": id})
+	if err != nil {
+		return
+	}
+
+	if len(items) != 1 {
+		e := ExpectedOneResult(len(items))
+		err = &e
+		return
+	}
+	res = &items[0]
 	return
 }
 
@@ -172,6 +197,13 @@ func (api *API) ItemsCreate(items Items) (err error) {
 	for i, id := range itemids {
 		items[i].ItemID = id.(string)
 	}
+	return
+}
+
+// ItemsUpdate Wrapper for item.update
+// https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
+func (api *API) ItemsUpdate(items Items) (err error) {
+	_, err = api.CallWithError("item.update", items)
 	return
 }
 
@@ -211,6 +243,27 @@ func (api *API) ItemsDeleteByIds(ids []string) (err error) {
 	}
 	if len(ids) != l {
 		err = &ExpectedMore{len(ids), l}
+	}
+	return
+}
+
+// ItemsDeleteNoError Wrapper for item.delete
+// Delete the item and return the id of the deleted item
+func (api *API) ItemsDeleteNoError(ids []string) (itemids []interface{}, err error) {
+	response, err := api.CallWithError("item.delete", ids)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	itemids1, ok := result["itemids"].([]interface{})
+	if !ok {
+		itemids2 := result["itemids"].(map[string]interface{})
+		for _, id := range itemids2 {
+			itemids = append(itemids, id)
+		}
+	} else {
+		itemids = itemids1
 	}
 	return
 }
