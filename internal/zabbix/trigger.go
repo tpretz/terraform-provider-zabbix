@@ -62,8 +62,8 @@ type Trigger struct {
 
 	Priority     SeverityType     `json:"priority,string"`
 	Status       StatusType       `json:"status,string"`
-	Dependencies Triggers         `json:"dependencies,omitempty,string"`
-	Functions    TriggerFunctions `json:"functions,omitempty,string"`
+	Dependencies Triggers         `json:"dependencies,omitempty"`
+	Functions    TriggerFunctions `json:"functions,omitempty"`
 	// Items contained by the trigger in the items property.
 	ContainedItems Items `json:"items,omitempty"`
 	// Hosts that the trigger belongs to in the hosts property.
@@ -143,28 +143,20 @@ func (api *API) TriggersDelete(triggers Triggers) (err error) {
 // TriggersDeleteByIds Wrapper for trigger.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/delete
 func (api *API) TriggersDeleteByIds(ids []string) (err error) {
-	response, err := api.CallWithError("trigger.delete", ids)
+	deleteIds, err := api.TriggersDeleteID(ids)
 	if err != nil {
 		return
 	}
-
-	result := response.Result.(map[string]interface{})
-	triggerids1, ok := result["triggerids"].([]interface{})
-	l := len(triggerids1)
-	if !ok {
-		// some versions actually return map there
-		triggerids2 := result["triggerids"].(map[string]interface{})
-		l = len(triggerids2)
-	}
+	l := len(deleteIds)
 	if len(ids) != l {
 		err = &ExpectedMore{len(ids), l}
 	}
 	return
 }
 
-// TriggersDeleteNoError Wrapper for trigger.delete
+// TriggersDeleteID Wrapper for trigger.delete
 // return the id of the deleted trigger
-func (api *API) TriggersDeleteNoError(ids []string) (triggerids []interface{}, err error) {
+func (api *API) TriggersDeleteID(ids []string) (triggerids []interface{}, err error) {
 	response, err := api.CallWithError("trigger.delete", ids)
 	if err != nil {
 		return
