@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	dd "github.com/claranet/go-zabbix-api"
+	zapi "github.com/claranet/go-zabbix-api"
 )
 
-func CreateApplication(host *dd.Host, t *testing.T) *dd.Application {
-	apps := dd.Applications{{HostID: host.HostID, Name: fmt.Sprintf("App %d for %s", rand.Int(), host.Host)}}
+func CreateApplication(host *zapi.Host, t *testing.T) *zapi.Application {
+	apps := zapi.Applications{{HostID: host.HostID, Name: fmt.Sprintf("App %d for %s", rand.Int(), host.Host)}}
 	err := getAPI(t).ApplicationsCreate(apps)
 	if err != nil {
 		t.Fatal(err)
@@ -18,8 +18,8 @@ func CreateApplication(host *dd.Host, t *testing.T) *dd.Application {
 	return &apps[0]
 }
 
-func DeleteApplication(app *dd.Application, t *testing.T) {
-	err := getAPI(t).ApplicationsDelete(dd.Applications{*app})
+func DeleteApplication(app *zapi.Application, t *testing.T) {
+	err := getAPI(t).ApplicationsDelete(zapi.Applications{*app})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestApplications(t *testing.T) {
 		t.Errorf("Apps are equal:\n%#v\n%#v", app, app2)
 	}
 
-	apps, err := api.ApplicationsGet(dd.Params{"hostids": host.HostID})
+	apps, err := api.ApplicationsGet(zapi.Params{"hostids": host.HostID})
 	if err != nil {
 		t.Fatal(err)
 	}

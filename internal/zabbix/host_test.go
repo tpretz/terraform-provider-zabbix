@@ -6,17 +6,17 @@ import (
 	"reflect"
 	"testing"
 
-	dd "github.com/claranet/go-zabbix-api"
+	zapi "github.com/claranet/go-zabbix-api"
 )
 
-func CreateHost(group *dd.HostGroup, t *testing.T) *dd.Host {
+func CreateHost(group *zapi.HostGroup, t *testing.T) *zapi.Host {
 	name := fmt.Sprintf("%s-%d", getHost(), rand.Int())
-	iface := dd.HostInterface{DNS: name, Port: "42", Type: dd.Agent, UseIP: 0, Main: 1}
-	hosts := dd.Hosts{{
+	iface := zapi.HostInterface{DNS: name, Port: "42", Type: zapi.Agent, UseIP: 0, Main: 1}
+	hosts := zapi.Hosts{{
 		Host:       name,
 		Name:       "Name for " + name,
-		GroupIds:   dd.HostGroupIDs{{group.GroupID}},
-		Interfaces: dd.HostInterfaces{iface},
+		GroupIds:   zapi.HostGroupIDs{{group.GroupID}},
+		Interfaces: zapi.HostInterfaces{iface},
 	}}
 
 	err := getAPI(t).HostsCreate(hosts)
@@ -26,8 +26,8 @@ func CreateHost(group *dd.HostGroup, t *testing.T) *dd.Host {
 	return &hosts[0]
 }
 
-func DeleteHost(host *dd.Host, t *testing.T) {
-	err := getAPI(t).HostsDelete(dd.Hosts{*host})
+func DeleteHost(host *zapi.Host, t *testing.T) {
+	err := getAPI(t).HostsDelete(zapi.Hosts{*host})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestHosts(t *testing.T) {
 	group := CreateHostGroup(t)
 	defer DeleteHostGroup(group, t)
 
-	hosts, err := api.HostsGetByHostGroups(dd.HostGroups{*group})
+	hosts, err := api.HostsGetByHostGroups(zapi.HostGroups{*group})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestHosts(t *testing.T) {
 
 	newName := fmt.Sprintf("%s-%d", getHost(), rand.Int())
 	host.Host = newName
-	err = api.HostsUpdate(dd.Hosts{*host})
+	err = api.HostsUpdate(zapi.Hosts{*host})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestHosts(t *testing.T) {
 		t.Errorf("Hosts are not equal:\n%#v\n%#v", host, host2)
 	}
 
-	hosts, err = api.HostsGetByHostGroups(dd.HostGroups{*group})
+	hosts, err = api.HostsGetByHostGroups(zapi.HostGroups{*group})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestHosts(t *testing.T) {
 
 	DeleteHost(host, t)
 
-	hosts, err = api.HostsGetByHostGroups(dd.HostGroups{*group})
+	hosts, err = api.HostsGetByHostGroups(zapi.HostGroups{*group})
 	if err != nil {
 		t.Fatal(err)
 	}

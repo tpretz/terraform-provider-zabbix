@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	dd "github.com/claranet/go-zabbix-api"
+	zapi "github.com/claranet/go-zabbix-api"
 )
 
-func CreateTrigger(item *dd.Item, host *dd.Host, t *testing.T) *dd.Trigger {
+func CreateTrigger(item *zapi.Item, host *zapi.Host, t *testing.T) *zapi.Trigger {
 	expression := fmt.Sprintf("{%s:%s.last()}=0", host.Host, item.Key)
-	triggers := dd.Triggers{{
+	triggers := zapi.Triggers{{
 		Description: "trigger description",
 		Expression:  expression,
 	}}
@@ -20,8 +20,8 @@ func CreateTrigger(item *dd.Item, host *dd.Host, t *testing.T) *dd.Trigger {
 	return &triggers[0]
 }
 
-func DeleteTrigger(trigger *dd.Trigger, t *testing.T) {
-	err := getAPI(t).TriggersDelete(dd.Triggers{*trigger})
+func DeleteTrigger(trigger *zapi.Trigger, t *testing.T) {
+	err := getAPI(t).TriggersDelete(zapi.Triggers{*trigger})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestTrigger(t *testing.T) {
 	item := CreateItem(app, t)
 	defer DeleteItem(item, t)
 
-	triggerParam := dd.Params{"hostids": host.HostID}
+	triggerParam := zapi.Params{"hostids": host.HostID}
 	res, err := api.TriggersGet(triggerParam)
 	if err != nil {
 		t.Fatal(err)
@@ -54,7 +54,7 @@ func TestTrigger(t *testing.T) {
 	trigger := CreateTrigger(item, host, t)
 
 	trigger.Description = "new trigger name"
-	err = api.TriggersUpdate(dd.Triggers{*trigger})
+	err = api.TriggersUpdate(zapi.Triggers{*trigger})
 	if err != nil {
 		t.Error(err)
 	}

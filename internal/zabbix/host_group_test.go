@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	dd "github.com/claranet/go-zabbix-api"
+	zapi "github.com/claranet/go-zabbix-api"
 )
 
-func CreateHostGroup(t *testing.T) *dd.HostGroup {
-	hostGroups := dd.HostGroups{{Name: fmt.Sprintf("zabbix-testing-%d", rand.Int())}}
+func CreateHostGroup(t *testing.T) *zapi.HostGroup {
+	hostGroups := zapi.HostGroups{{Name: fmt.Sprintf("zabbix-testing-%d", rand.Int())}}
 	err := getAPI(t).HostGroupsCreate(hostGroups)
 	if err != nil {
 		t.Fatal(err)
@@ -18,8 +18,8 @@ func CreateHostGroup(t *testing.T) *dd.HostGroup {
 	return &hostGroups[0]
 }
 
-func DeleteHostGroup(hostGroup *dd.HostGroup, t *testing.T) {
-	err := getAPI(t).HostGroupsDelete(dd.HostGroups{*hostGroup})
+func DeleteHostGroup(hostGroup *zapi.HostGroup, t *testing.T) {
+	err := getAPI(t).HostGroupsDelete(zapi.HostGroups{*hostGroup})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func DeleteHostGroup(hostGroup *dd.HostGroup, t *testing.T) {
 func TestHostGroups(t *testing.T) {
 	api := getAPI(t)
 
-	groups, err := api.HostGroupsGet(dd.Params{})
+	groups, err := api.HostGroupsGet(zapi.Params{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestHostGroups(t *testing.T) {
 		t.Errorf("Error getting group.\nOld group: %#v\nNew group: %#v", hostGroup, hostGroup2)
 	}
 
-	groups2, err := api.HostGroupsGet(dd.Params{})
+	groups2, err := api.HostGroupsGet(zapi.Params{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestHostGroups(t *testing.T) {
 
 	DeleteHostGroup(hostGroup, t)
 
-	groups2, err = api.HostGroupsGet(dd.Params{})
+	groups2, err = api.HostGroupsGet(zapi.Params{})
 	if err != nil {
 		t.Fatal(err)
 	}
