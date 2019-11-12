@@ -1,9 +1,5 @@
 package zabbix
 
-import (
-	"github.com/AlekSi/reflector"
-)
-
 type (
 	// InternalType (readonly) Whether the group is used internally by the system. An internal group cannot be deleted.
 	// see "internal" in https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/object
@@ -22,7 +18,7 @@ const (
 type HostGroup struct {
 	GroupID  string       `json:"groupid,omitempty"`
 	Name     string       `json:"name"`
-	Internal InternalType `json:"internal,omitempty"`
+	Internal InternalType `json:"internal,omitempty,string"`
 }
 
 // HostGroups is an array of HostGroup
@@ -42,12 +38,7 @@ func (api *API) HostGroupsGet(params Params) (res HostGroups, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("hostgroup.get", params)
-	if err != nil {
-		return
-	}
-
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
+	err = api.CallWithErrorParse("hostgroup.get", params, &res)
 	return
 }
 

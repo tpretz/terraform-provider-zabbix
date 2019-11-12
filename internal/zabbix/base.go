@@ -135,6 +135,26 @@ func (api *API) CallWithError(method string, params interface{}) (response Respo
 	return
 }
 
+// CallWithErrorParse Calls specified API method.
+// Parse the response of the api in the result variable.
+func (api *API) CallWithErrorParse(method string, params interface{}, result interface{}) (err error) {
+	var rawResult templ
+
+	response, err := api.callBytes(method, params)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(response, &rawResult)
+	if err != nil {
+		return
+	}
+	if rawResult.Error != nil {
+		return rawResult.Error
+	}
+	err = json.Unmarshal(rawResult.Result, &result)
+	return
+}
+
 // Login Calls "user.login" API method and fills api.Auth field.
 // This method modifies API structure and should not be called concurrently with other methods.
 func (api *API) Login(user, password string) (auth string, err error) {

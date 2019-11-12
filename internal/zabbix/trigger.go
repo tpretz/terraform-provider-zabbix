@@ -1,9 +1,5 @@
 package zabbix
 
-import (
-	"github.com/AlekSi/reflector"
-)
-
 type (
 	// SeverityType of a trigger
 	// Zabbix severity see : https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/object
@@ -64,10 +60,10 @@ type Trigger struct {
 	//TemplateId  string    `json:"templateid"`
 	Value ValueType `json:""`
 
-	Priority     SeverityType     `json:"priority"`
-	Status       StatusType       `json:"status"`
-	Dependencies Triggers         `json:"dependencies,omitempty"`
-	Functions    TriggerFunctions `json:"functions,omitempty"`
+	Priority     SeverityType     `json:"priority,string"`
+	Status       StatusType       `json:"status,string"`
+	Dependencies Triggers         `json:"dependencies,omitempty,string"`
+	Functions    TriggerFunctions `json:"functions,omitempty,string"`
 	// Items contained by the trigger in the items property.
 	ContainedItems Items `json:"items,omitempty"`
 	// Hosts that the trigger belongs to in the hosts property.
@@ -83,28 +79,7 @@ func (api *API) TriggersGet(params Params) (res Triggers, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("trigger.get", params)
-	if err != nil {
-		return
-	}
-
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
-	parseArray := response.Result.([]interface{})
-	for i := range parseArray {
-		parseResult := parseArray[i].(map[string]interface{})
-		if _, present := parseResult["dependencies"]; present {
-			reflector.MapsToStructs2(parseResult["dependencies"].([]interface{}), &(res[i].Dependencies), reflector.Strconv, "json")
-		}
-		if _, present := parseResult["functions"]; present {
-			reflector.MapsToStructs2(parseResult["functions"].([]interface{}), &(res[i].Functions), reflector.Strconv, "json")
-		}
-		if _, present := parseResult["items"]; present {
-			reflector.MapsToStructs2(parseResult["items"].([]interface{}), &(res[i].ContainedItems), reflector.Strconv, "json")
-		}
-		if _, present := parseResult["hosts"]; present {
-			reflector.MapsToStructs2(parseResult["hosts"].([]interface{}), &(res[i].TriggerParent), reflector.Strconv, "json")
-		}
-	}
+	err = api.CallWithErrorParse("trigger.get", params, &res)
 	return
 }
 

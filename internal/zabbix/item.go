@@ -2,8 +2,6 @@ package zabbix
 
 import (
 	"fmt"
-
-	"github.com/AlekSi/reflector"
 )
 
 type (
@@ -104,15 +102,15 @@ const (
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type Item struct {
 	ItemID       string    `json:"itemid,omitempty"`
-	Delay        int       `json:"delay"`
+	Delay        int       `json:"delay,string"`
 	HostID       string    `json:"hostid"`
 	InterfaceID  string    `json:"interfaceid,omitempty"`
 	Key          string    `json:"key_"`
 	Name         string    `json:"name"`
-	Type         ItemType  `json:"type"`
-	ValueType    ValueType `json:"value_type"`
-	DataType     DataType  `json:"data_type"`
-	Delta        DeltaType `json:"delta"`
+	Type         ItemType  `json:"type,string"`
+	ValueType    ValueType `json:"value_type,string"`
+	DataType     DataType  `json:"data_type,string"`
+	Delta        DeltaType `json:"delta,string"`
 	Description  string    `json:"description"`
 	Error        string    `json:"error"`
 	History      string    `json:"history,omitempty"`
@@ -147,19 +145,7 @@ func (api *API) ItemsGet(params Params) (res Items, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("item.get", params)
-	if err != nil {
-		return
-	}
-
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
-	parseArray := response.Result.([]interface{})
-	for i := range parseArray {
-		parseResult := parseArray[i].(map[string]interface{})
-		if _, present := parseResult["hosts"]; present {
-			reflector.MapsToStructs2(parseResult["hosts"].([]interface{}), &(res[i].ItemParent), reflector.Strconv, "json")
-		}
-	}
+	err = api.CallWithErrorParse("item.get", params, &res)
 	return
 }
 

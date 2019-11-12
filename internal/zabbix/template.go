@@ -1,9 +1,5 @@
 package zabbix
 
-import (
-	"github.com/AlekSi/reflector"
-)
-
 // Template represent Zabbix Template type returned from Zabbix API
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/template/object
 type Template struct {
@@ -35,36 +31,7 @@ func (api *API) TemplatesGet(params Params) (res Templates, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("template.get", params)
-	if err != nil {
-		return
-	}
-
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
-	parseArray := response.Result.([]interface{})
-	for i := range parseArray {
-		parseResult := parseArray[i].(map[string]interface{})
-		if _, present := parseResult["macros"]; present {
-			reflector.MapsToStructs2(parseResult["macros"].([]interface{}), &(res[i].UserMacros), reflector.Strconv, "json")
-		}
-		if _, present := parseResult["templates"]; present {
-			var templates Templates
-			reflector.MapsToStructs2(parseResult["templates"].([]interface{}), &templates, reflector.Strconv, "json")
-			for _, template := range templates {
-				res[i].LinkedHosts = append(res[i].LinkedHosts, template.TemplateID)
-			}
-		}
-		if _, present := parseResult["hosts"]; present {
-			var hosts Hosts
-			reflector.MapsToStructs2(parseResult["hosts"].([]interface{}), &hosts, reflector.Strconv, "json")
-			for _, host := range hosts {
-				res[i].LinkedHosts = append(res[i].LinkedHosts, host.HostID)
-			}
-		}
-		if _, present := parseResult["parentTemplates"]; present {
-			reflector.MapsToStructs2(parseResult["parentTemplates"].([]interface{}), &(res[i].LinkedTemplates), reflector.Strconv, "json")
-		}
-	}
+	err = api.CallWithErrorParse("template.get", params, &res)
 	return
 }
 

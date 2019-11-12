@@ -1,7 +1,5 @@
 package zabbix
 
-import "github.com/AlekSi/reflector"
-
 // Macro represent Zabbix User MAcro object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/object
 type Macro struct {
@@ -20,11 +18,7 @@ func (api *API) MacroGet(params Params) (res Macros, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("usermacro.get", params)
-	if err != nil {
-		return
-	}
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
+	err = api.CallWithErrorParse("usermacro.get", params, &res)
 	return
 }
 

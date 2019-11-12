@@ -1,9 +1,5 @@
 package zabbix
 
-import (
-	"github.com/AlekSi/reflector"
-)
-
 type (
 	// AvailableType (readonly) Availability of Zabbix agent
 	// see "available" in: https://www.zabbix.com/documentation/3.2/manual/api/reference/host/object
@@ -35,10 +31,10 @@ const (
 type Host struct {
 	HostID    string        `json:"hostid,omitempty"`
 	Host      string        `json:"host"`
-	Available AvailableType `json:"available"`
+	Available AvailableType `json:"available,string"`
 	Error     string        `json:"error"`
 	Name      string        `json:"name"`
-	Status    StatusType    `json:"status"`
+	Status    StatusType    `json:"status,string"`
 
 	// Fields below used only when creating hosts
 	GroupIds    HostGroupIDs   `json:"groups,omitempty"`
@@ -55,12 +51,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	response, err := api.CallWithError("host.get", params)
-	if err != nil {
-		return
-	}
-
-	reflector.MapsToStructs2(response.Result.([]interface{}), &res, reflector.Strconv, "json")
+	err = api.CallWithErrorParse("host.get", params, &res)
 	return
 }
 
