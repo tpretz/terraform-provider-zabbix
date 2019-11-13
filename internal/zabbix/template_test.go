@@ -31,18 +31,17 @@ func TestTemplates(t *testing.T) {
 	hostGroup := CreateHostGroup(t)
 	defer DeleteHostGroup(hostGroup, t)
 
+	template := CreateTemplate(hostGroup, t)
+	if template.TemplateID == "" {
+		t.Errorf("Template id is empty %#v", template)
+	}
+
 	templates, err := api.TemplatesGet(zapi.Params{})
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if len(templates) == 0 {
 		t.Fatal("No templates were obtained")
-	}
-
-	template := CreateTemplate(hostGroup, t)
-	if template.TemplateID == "" {
-		t.Errorf("Template id is empty %#v", template)
 	}
 
 	_, err = api.TemplateGetByID(template.TemplateID)
