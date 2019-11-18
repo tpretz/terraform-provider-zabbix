@@ -20,9 +20,8 @@ env:
 before_install:
   - sudo hostname $TEST_ZABBIX_HOST && echo "127.0.1.1    $TEST_ZABBIX_HOST" | sudo tee -a /etc/hosts
   - sudo apt update -q
-  - sudo apt install -y software-properties-common jq
-  - sudo apt-add-repository --yes --update ppa:ansible/ansible
-  - sudo apt install -y ansible
+  - sudo apt install -y python-pip python-dev jq
+  - sudo -H pip install ansible==2.5.3
   - ansible-galaxy install dj-wasabi.zabbix-server
   - ansible-galaxy install dj-wasabi.zabbix-web
   - |
