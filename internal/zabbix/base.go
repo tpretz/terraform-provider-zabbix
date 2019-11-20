@@ -31,8 +31,8 @@ type Response struct {
 	ID      int32       `json:"id"`
 }
 
-// RowResponse format of zabbix api
-type RowResponse struct {
+// RawResponse format of zabbix api
+type RawResponse struct {
 	Jsonrpc string          `json:"jsonrpc"`
 	Error   *Error          `json:"error"`
 	Result  json.RawMessage `json:"result"`
@@ -152,7 +152,7 @@ func (api *API) CallWithError(method string, params interface{}) (response Respo
 // CallWithErrorParse Calls specified API method.
 // Parse the response of the api in the result variable.
 func (api *API) CallWithErrorParse(method string, params interface{}, result interface{}) (err error) {
-	var rawResult RowResponse
+	var rawResult RawResponse
 
 	response, err := api.callBytes(method, params)
 	if err != nil {
