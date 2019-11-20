@@ -214,7 +214,7 @@ func (api *API) ItemsDelete(items Items) (err error) {
 // ItemsDeleteByIds Wrapper for item.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
 func (api *API) ItemsDeleteByIds(ids []string) (err error) {
-	deleteIds, err := api.ItemsDeleteID(ids)
+	deleteIds, err := api.ItemsDeleteIDs(ids)
 	if err != nil {
 		return
 	}
@@ -225,9 +225,9 @@ func (api *API) ItemsDeleteByIds(ids []string) (err error) {
 	return
 }
 
-// ItemsDeleteID Wrapper for item.delete
+// ItemsDeleteIDs Wrapper for item.delete
 // Delete the item and return the id of the deleted item
-func (api *API) ItemsDeleteID(ids []string) (itemids []interface{}, err error) {
+func (api *API) ItemsDeleteIDs(ids []string) (itemids []interface{}, err error) {
 	response, err := api.CallWithError("item.delete", ids)
 	if err != nil {
 		return

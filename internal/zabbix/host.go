@@ -22,7 +22,7 @@ const (
 const (
 	// Monitored monitored host(default)
 	Monitored StatusType = 0
-	// Unmonitored unmonitorate host
+	// Unmonitored unmonitored host
 	Unmonitored StatusType = 1
 )
 

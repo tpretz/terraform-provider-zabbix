@@ -67,7 +67,7 @@ type Trigger struct {
 	// Items contained by the trigger in the items property.
 	ContainedItems Items `json:"items,omitempty"`
 	// Hosts that the trigger belongs to in the hosts property.
-	TriggerParent Hosts `json:"hosts,omitempty"`
+	ParentHosts Hosts `json:"hosts,omitempty"`
 }
 
 // Triggers is an array of Trigger
@@ -143,7 +143,7 @@ func (api *API) TriggersDelete(triggers Triggers) (err error) {
 // TriggersDeleteByIds Wrapper for trigger.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/delete
 func (api *API) TriggersDeleteByIds(ids []string) (err error) {
-	deleteIds, err := api.TriggersDeleteID(ids)
+	deleteIds, err := api.TriggersDeleteIDs(ids)
 	if err != nil {
 		return
 	}
@@ -154,9 +154,9 @@ func (api *API) TriggersDeleteByIds(ids []string) (err error) {
 	return
 }
 
-// TriggersDeleteID Wrapper for trigger.delete
+// TriggersDeleteIDs Wrapper for trigger.delete
 // return the id of the deleted trigger
-func (api *API) TriggersDeleteID(ids []string) (triggerids []interface{}, err error) {
+func (api *API) TriggersDeleteIDs(ids []string) (triggerids []interface{}, err error) {
 	response, err := api.CallWithError("trigger.delete", ids)
 	if err != nil {
 		return

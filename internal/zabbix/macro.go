@@ -12,9 +12,9 @@ type Macro struct {
 // Macros is an array of Macro
 type Macros []Macro
 
-// MacroGet Wrapper for usermacro.get
+// MacrosGet Wrapper for usermacro.get
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/get
-func (api *API) MacroGet(params Params) (res Macros, err error) {
+func (api *API) MacrosGet(params Params) (res Macros, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
@@ -24,7 +24,7 @@ func (api *API) MacroGet(params Params) (res Macros, err error) {
 
 // MacroGetByID Get macro by macro ID if there is exactly 1 matching macro
 func (api *API) MacroGetByID(id string) (res *Macro, err error) {
-	triggers, err := api.MacroGet(Params{"hostmacroids": id})
+	triggers, err := api.MacrosGet(Params{"hostmacroids": id})
 	if err != nil {
 		return
 	}
@@ -38,9 +38,9 @@ func (api *API) MacroGetByID(id string) (res *Macro, err error) {
 	return
 }
 
-// MacroCreate Wrapper for usermacro.create
+// MacrosCreate Wrapper for usermacro.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/create
-func (api *API) MacroCreate(macros Macros) error {
+func (api *API) MacrosCreate(macros Macros) error {
 	response, err := api.CallWithError("usermacro.create", macros)
 	if err != nil {
 		return err
@@ -54,17 +54,17 @@ func (api *API) MacroCreate(macros Macros) error {
 	return nil
 }
 
-// MacroUpdate Wrapper for usermacro.update
+// MacrosUpdate Wrapper for usermacro.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/update
-func (api *API) MacroUpdate(macros Macros) (err error) {
+func (api *API) MacrosUpdate(macros Macros) (err error) {
 	_, err = api.CallWithError("usermacro.create", macros)
 	return
 }
 
-// MacroDeleteByID Wrapper for usermacro.delete
+// MacrosDeleteByIDs Wrapper for usermacro.delete
 // Cleans MacroId in all macro elements if call succeed.
 //https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/delete
-func (api *API) MacroDeleteByID(ids []string) (err error) {
+func (api *API) MacrosDeleteByIDs(ids []string) (err error) {
 	response, err := api.CallWithError("usermacro.delete", ids)
 
 	result := response.Result.(map[string]interface{})
@@ -75,15 +75,15 @@ func (api *API) MacroDeleteByID(ids []string) (err error) {
 	return
 }
 
-// MacroDelete Wrapper for usermacro.delete
+// MacrosDelete Wrapper for usermacro.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/delete
-func (api *API) MacroDelete(macros Macros) (err error) {
+func (api *API) MacrosDelete(macros Macros) (err error) {
 	ids := make([]string, len(macros))
 	for i, macro := range macros {
 		ids[i] = macro.MacroID
 	}
 
-	err = api.MacroDeleteByID(ids)
+	err = api.MacrosDeleteByIDs(ids)
 	if err == nil {
 		for i := range macros {
 			macros[i].MacroID = ""
