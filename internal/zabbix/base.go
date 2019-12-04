@@ -71,10 +71,10 @@ func (e *ExpectedMore) Error() string {
 type API struct {
 	Auth      string      // auth token, filled by Login()
 	Logger    *log.Logger // request/response logger, nil by default
+	UserAgent string
 	url       string
 	c         http.Client
 	id        int32
-	userAgent string
 }
 
 // NewAPI Creates new API access object.
@@ -82,17 +82,12 @@ type API struct {
 // It also may contain HTTP basic auth username and password like
 // http://username:password@host/api_jsonrpc.php.
 func NewAPI(url string) (api *API) {
-	return &API{url: url, c: http.Client{}, userAgent: "github.com/claranet/zabbix"}
+	return &API{url: url, c: http.Client{}, UserAgent: "github.com/claranet/zabbix"}
 }
 
 // SetClient Allows one to use specific http.Client, for example with InsecureSkipVerify transport.
 func (api *API) SetClient(c *http.Client) {
 	api.c = *c
-}
-
-// setUserAgent override default user agent
-func (api *API) setUserAgent(userAgent string) {
-	api.userAgent = userAgent
 }
 
 func (api *API) printf(format string, v ...interface{}) {
@@ -116,7 +111,7 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	}
 	req.ContentLength = int64(len(b))
 	req.Header.Add("Content-Type", "application/json-rpc")
-	req.Header.Add("User-Agent", api.userAgent)
+	req.Header.Add("User-Agent", api.UserAgent)
 
 	res, err := api.c.Do(req)
 	if err != nil {
