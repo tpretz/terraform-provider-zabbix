@@ -22,6 +22,7 @@ before_install:
   - sudo apt update -q
   - sudo apt install -y python-pip python-dev jq
   - sudo -H pip install ansible==2.5.3
+install:
   - ansible-galaxy install dj-wasabi.zabbix-server
   - ansible-galaxy install dj-wasabi.zabbix-web
   - |
@@ -44,5 +45,6 @@ before_install:
         - zabbix_version: $TEST_ZABBIX_VERSION
     EOF
   - ansible-playbook -c local -i "${TEST_ZABBIX_HOST}," deploy.yml
-  - bash -x tests.sh
   - go install github.com/claranet/go-zabbix-api
+script:
+  - bash -x tests.sh
