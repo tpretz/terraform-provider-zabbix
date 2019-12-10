@@ -1,6 +1,6 @@
 # Go zabbix api
 
-[![GoDoc](https://godoc.org/github.com/claranet/go-zabbix-api?status.svg)](https://godoc.org/github.com/claranet/go-zabbix-api) [![Build Status](https://travis-ci.org/claranet/go-zabbix-api.svg?branch=master)](https://travis-ci.org/AlekSi/zabbix??branch=master)
+[![GoDoc](https://godoc.org/github.com/claranet/go-zabbix-api?status.svg)](https://godoc.org/github.com/claranet/go-zabbix-api) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Build Status](https://travis-ci.org/claranet/go-zabbix-api.svg?branch=master)](https://travis-ci.org/claranet/go-zabbix-api)
 
 This Go package provides access to Zabbix API.
 
