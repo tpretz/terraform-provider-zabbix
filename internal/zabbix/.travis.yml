@@ -2,7 +2,10 @@ sudo: required
 dist: xenial
 language: go
 go:
-- 1.6.2
+- "1.9"
+- "1.10.x"
+- "1.11.x"
+- "tip"
 services:
 - mysql
 env:
