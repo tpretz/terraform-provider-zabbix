@@ -4,7 +4,7 @@
 
 This Go package provides access to Zabbix API.
 
-Tested on Zabbix 3.2 but should work since 2.0 version.
+Tested on Zabbix 3.2, 3.4, 4.0, 4.2 and 4.4, but should work since 2.0 version.
 
 This package aims to support multiple zabbix resources from its API like trigger, application, host group, host, item, template..
 
