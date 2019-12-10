@@ -102,7 +102,7 @@ const (
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type Item struct {
 	ItemID       string    `json:"itemid,omitempty"`
-	Delay        int       `json:"delay,string"`
+	Delay        string    `json:"delay"`
 	HostID       string    `json:"hostid"`
 	InterfaceID  string    `json:"interfaceid,omitempty"`
 	Key          string    `json:"key_"`
