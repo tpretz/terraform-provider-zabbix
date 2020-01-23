@@ -1,20 +1,54 @@
 sudo: required
-dist: precise
+dist: xenial
 language: go
-
 go:
-  - 1.6.2
-  - tip
-
+- "1.9"
+- "1.10.x"
+- "1.11.x"
+- "tip"
+services:
+- mysql
 env:
   global:
-    - TEST_ZABBIX_URL=http://localhost:80/zabbix/api_jsonrpc.php
-    - TEST_ZABBIX_USER=Admin
-    - TEST_ZABBIX_PASSWORD=zabbix
-    - TEST_ZABBIX_VERBOSE=1
+  - TEST_ZABBIX_USER=Admin
+  - TEST_ZABBIX_PASSWORD=zabbix
+  - TEST_ZABBIX_HOST=localhost
+  - TEST_ZABBIX_URL=http://${TEST_ZABBIX_HOST}/api_jsonrpc.php
   matrix:
-    - ZABBIX_VERSION=2.0
-    - ZABBIX_VERSION=2.2
-    - ZABBIX_VERSION=2.4
-
-before_install: sudo hostname travis && sudo -E ./setup.rb
+  - TEST_ZABBIX_VERSION=3.2
+before_install:
+- sudo hostname $TEST_ZABBIX_HOST && echo "127.0.1.1    $TEST_ZABBIX_HOST" | sudo
+  tee -a /etc/hosts
+- sudo apt update -q
+- sudo apt install -y python-pip python-dev jq
+- sudo -H pip install ansible==2.5.3
+install:
+- ansible-galaxy install dj-wasabi.zabbix-server
+- ansible-galaxy install dj-wasabi.zabbix-web
+- |
+  cat <<-EOF | head -n -2 > deploy.yml
+  - hosts: $TEST_ZABBIX_HOST
+    become: yes
+    roles:
+      - { role: geerlingguy.apache }
+      - { role: dj-wasabi.zabbix-server }
+      - { role: dj-wasabi.zabbix-web }
+    vars:
+      - database_type: mysql
+      - database_type_long: mysql
+      - zabbix_server_database: mysql
+      - zabbix_server_database_long: mysql
+      - zabbix_server_dbport: 3306
+      - zabbix_server_mysql_login_host: $TEST_ZABBIX_HOST
+      - zabbix_server_mysql_login_user: root
+      - zabbix_url: $TEST_ZABBIX_HOST
+      - zabbix_version: $TEST_ZABBIX_VERSION
+  EOF
+- ansible-playbook -c local -i "${TEST_ZABBIX_HOST}," deploy.yml
+- go install github.com/claranet/go-zabbix-api
+script:
+- bash -x tests.sh
+notifications:
+  slack:
+    rooms:
+      secure: y24xc2cWcuQj7+ZFbkfHspn6DhXktumlcbyXG39zP7lnoRSuXxAzlx6/xJqyp/ifYm0xqjHjSX9cIik6hYPAxck6o/V3COWzE0UAbfaTQIj/RHHM/gAdp+7kdq9xaE/2+FsKybc0L3+GeTPLY1gsqc0y3SjyZ60DGkLQBn9oRcPcSU8HfseQZtBLQKeuBNU8RV3GpQBZK/9hNux1/s+kWz0Nl9z/hqrmkRG1Ab8E12y05Iir0DZEuGsUETUW1rLME3wHCI86TOaIQydb5tN+pIh9jBBScb78whdhZCDAACEP6g0UV9fcvTnRGasTUh+FrN0lpGnNNG7uhZEqmc5tDDHRFNwwL1MYD4hsnBzetX2HZbDvccIu/tsk9REk1X6EFBBMdVe+qTfDAlqoCfnOBoRlAXEKV2QQrVIuM4Ad6lSZl3bfyHubjXCuACadVNtQ+UxF+KB6sBCyN8KekmatMso6wG15XiZIXnWmI+Wvm07EF5E3YmUym9nFVc6u12XiRYbyw2MKbI8Lxqf44ahmQsYEtda1/3uP9rm0ILixjzCGVnvrugusWjERXeo+qolD8fufyNtxzRaLaiQ8xPvEE8jy5/b08vdvrZbCjFjkgIlYKL7sOAE61O1IEyrGPTa/BlRaMGDqnvxxvu1CNpqpCFnqlZPB4FlE1yuVDzAe7GE=
