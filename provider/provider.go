@@ -45,6 +45,9 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ZABBIX_URL", "ZABBIX_SERVER_URL"}, nil),
 			},
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"zabbix_host": dataHost(),
+		},
 		ResourcesMap: map[string]*schema.Resource{
 			"zabbix_item_trapper": resourceItemTrapper(),
 		},
