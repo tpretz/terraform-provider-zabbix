@@ -60,6 +60,15 @@ type Trigger struct {
 	//TemplateId  string    `json:"templateid"`
 	//Value ValueType `json:""`
 
+	Opdata string `json:"opdata,omitempty"`
+	//	Type               int `json:"type"`
+	Url string `json:"url,omitempty"`
+	//RecoveryMode       int    `json:"recovery_mode"`
+	RecoveryExpression string `json:"recovery_expression,omitempty"`
+	//CorrelationMode    int    `json:"correlation_mode"`
+	CorrelationTag string `json:"correlation_tag,omitempty"`
+	//ManualClose    int    `json:"manual_close"`
+
 	Priority     SeverityType     `json:"priority,string"`
 	Status       StatusType       `json:"status,string"`
 	Dependencies Triggers         `json:"dependencies,omitempty"`

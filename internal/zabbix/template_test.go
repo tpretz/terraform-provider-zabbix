@@ -3,7 +3,7 @@ package zabbix_test
 import (
 	"testing"
 
-	zapi "github.com/claranet/go-zabbix-api"
+	zapi "github.com/tpretz/go-zabbix-api"
 )
 
 func CreateTemplate(hostGroup *zapi.HostGroup, t *testing.T) *zapi.Template {
