@@ -4,3 +4,4 @@ main.tf
 crash.log
 terraform.tfstate
 terraform.tfstate.backup
+docker/zbx_env
