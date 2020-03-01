@@ -91,9 +91,29 @@ func resourceItemTrapperRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceItemTrapperUpdate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	item := zabbix.Item{
+		ItemID:    d.Id(),
+		Key:       d.Get("key").(string),
+		HostID:    d.Get("hostid").(string),
+		Name:      d.Get("name").(string),
+		Type:      zabbix.ZabbixTrapper,
+		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
+	}
+
+	items := []zabbix.Item{item}
+
+	err := api.ItemsUpdate(items)
+
+	if err != nil {
+		return err
+	}
+
 	return resourceItemTrapperRead(d, m)
 }
 
 func resourceItemTrapperDelete(d *schema.ResourceData, m interface{}) error {
-	return nil
+	api := m.(*zabbix.API)
+	return api.ItemsDeleteByIds([]string{d.Id()})
 }
