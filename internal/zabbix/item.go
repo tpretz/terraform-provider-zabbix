@@ -112,7 +112,7 @@ type Item struct {
 	DataType     DataType  `json:"data_type,string"`
 	Delta        DeltaType `json:"delta,string"`
 	Description  string    `json:"description"`
-	Error        string    `json:"error"`
+	Error        string    `json:"error,omitempty"`
 	History      string    `json:"history,omitempty"`
 	Trends       string    `json:"trends,omitempty"`
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
