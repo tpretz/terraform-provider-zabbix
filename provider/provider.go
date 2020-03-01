@@ -3,8 +3,28 @@ package provider
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
-	"log"
+	logger "log"
 )
+
+type Log struct{}
+
+func (Log) Trace(msg string, args ...interface{}) {
+	logger.Printf("[TRACE] "+msg, args...)
+}
+func (Log) Debug(msg string, args ...interface{}) {
+	logger.Printf("[DEBUG] "+msg, args...)
+}
+func (Log) Info(msg string, args ...interface{}) {
+	logger.Printf("[INFO] "+msg, args...)
+}
+func (Log) Warn(msg string, args ...interface{}) {
+	logger.Printf("[WARN] "+msg, args...)
+}
+func (Log) Error(msg string, args ...interface{}) {
+	logger.Printf("[ERROR] "+msg, args...)
+}
+
+var log = &Log{}
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
@@ -26,18 +46,18 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"zabbix_item": resourceItem(),
+			"zabbix_item_trapper": resourceItemTrapper(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
-	log.Printf("[TRACE] Started zabbix provider init")
+	log.Trace("Started zabbix provider init")
 	api := zabbix.NewAPI(d.Get("url").(string))
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
 	meta = api
-	log.Printf("[TRACE] Started zabbix provider got error: %+v", err)
+	log.Trace("Started zabbix provider got error: %+v", err)
 
 	return
 }
