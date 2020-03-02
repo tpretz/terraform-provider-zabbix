@@ -3,6 +3,7 @@ package provider
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
+	"errors"
 )
 
 func resourceTrigger() *schema.Resource {
@@ -118,11 +119,22 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Lookup of trigger with id %s", id)
 
-	t, err := api.TriggerGetByID(id)
+	triggers, err := api.TriggersGet(zabbix.Params{
+		"triggerids": id,
+		"expandExpression": "extend",
+	})
 
 	if err != nil {
 		return err
 	}
+
+	if len(triggers) < 1 {
+		return errors.New("no trigger found")
+	}
+	if len(triggers) > 1 {
+		return errors.New("multiple triggers found")
+	}
+	t := triggers[0]
 
 	log.Debug("Got trigger: %+v", t)
 
