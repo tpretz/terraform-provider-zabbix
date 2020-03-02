@@ -86,13 +86,13 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 		Comments:    d.Get("comments").(string),
 		Opdata:      d.Get("opdata").(string),
 		Status:      zabbix.StatusType(d.Get("status").(int)),
-		//Type:               d.Get("type").(int),
+		Type:               d.Get("type").(string),
 		Url: d.Get("url").(string),
-		//RecoveryMode:       d.Get("recovery_mode").(int),
+		RecoveryMode:       d.Get("recovery_mode").(string),
 		RecoveryExpression: d.Get("recovery_expression").(string),
-		//CorrelationMode:    d.Get("correlation_mode").(int),
+		CorrelationMode:    d.Get("correlation_mode").(string),
 		CorrelationTag: d.Get("correlation_tag").(string),
-		//ManualClose:    d.Get("manual_close").(int),
+		ManualClose:    d.Get("manual_close").(string),
 	}
 
 	items := []zabbix.Trigger{item}
@@ -132,12 +132,12 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("comments", t.Comments)
 	d.Set("opdata", t.Opdata)
 	d.Set("status", t.Status)
-	//d.Set("type", t.Type)
+	d.Set("type", t.Type)
 	d.Set("url", t.Url)
-	//d.Set("recovery_mode", t.RecoveryMode)
-	//d.Set("correlation_mode", t.CorrelationMode)
+	d.Set("recovery_mode", t.RecoveryMode)
+	d.Set("correlation_mode", t.CorrelationMode)
 	d.Set("correlation_tag", t.CorrelationTag)
-	//d.Set("manual_close", t.ManualClose)
+	d.Set("manual_close", t.ManualClose)
 
 	return nil
 }
@@ -152,13 +152,13 @@ func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
 		Comments:    d.Get("comments").(string),
 		Opdata:      d.Get("opdata").(string),
 		Status:      zabbix.StatusType(d.Get("status").(int)),
-		//Type:               d.Get("type").(int),
+		Type:               d.Get("type").(string),
 		Url: d.Get("url").(string),
-		//RecoveryMode:       d.Get("recovery_mode").(int),
+		RecoveryMode:       d.Get("recovery_mode").(string),
 		RecoveryExpression: d.Get("recovery_expression").(string),
-		//CorrelationMode:    d.Get("correlation_mode").(int),
+		CorrelationMode:    d.Get("correlation_mode").(string),
 		CorrelationTag: d.Get("correlation_tag").(string),
-		//ManualClose:    d.Get("manual_close").(int),
+		ManualClose:    d.Get("manual_close").(string),
 	}
 
 	items := []zabbix.Trigger{item}
