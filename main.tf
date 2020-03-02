@@ -19,3 +19,9 @@ resource "zabbix_trigger" "b" {
   description = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(120)}=1"
 }
+
+resource "zabbix_template" "a" {
+  groups = ["2"]
+  host = "example template"
+  name = "visible name"
+}
