@@ -88,7 +88,7 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("triggerid").(string)
+	id := d.Get("templateid").(string)
 
 	log.Debug("Lookup of trigger with id %s", id)
 
