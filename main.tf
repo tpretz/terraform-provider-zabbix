@@ -8,6 +8,10 @@ data "zabbix_host" "test" {
   host = "Zabbix server"
 }
 
+resource "zabbix_hostgroup" "a" {
+  name = "test group"
+}
+
 resource "zabbix_item_trapper" "a" {
   hostid = data.zabbix_host.test.id
   key = "abc_def"
@@ -21,7 +25,7 @@ resource "zabbix_trigger" "b" {
 }
 
 resource "zabbix_template" "a" {
-  groups = ["7"]
+  groups = [zabbix_hostgroup.a.id]
   host = "example template"
   name = "visible name"
 }
