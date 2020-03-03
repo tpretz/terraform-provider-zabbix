@@ -147,6 +147,29 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 func buildHostGroupIds(s *schema.Set) zabbix.HostGroupIDs {
 	list := s.List()
 
+	groups := make(zabbix.HostGroupIDs, len(list))
+
+	for i := 0; i < len(list); i++ {
+		groups[i] = zabbix.HostGroupID{
+			GroupID: list[i].(string),
+		}
+	}
+
+	return groups
+}
+
+func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
+	list := s.List()
+
+	groups := make(zabbix.TemplateIDs, len(list))
+
+	for i := 0; i < len(list); i++ {
+		groups[i] = zabbix.TemplateID{
+			TemplateID: list[i].(string),
+		}
+	}
+
+	return groups
 }
 
 func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
@@ -162,42 +185,29 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 		item.Status = 1
 	}
 
-	hostGroups, err := getHostGroups(api, d.Get("groups").(*schema.Set))
+	item.GroupIds = buildHostGroupIds(d.Get("groups").(*schema.Set))
+	item.TemplateIDs = buildTemplateIds(d.Get("templates").(*schema.Set))
+
+	interfaces, err := hostGenerateInterfaces(d)
 
 	if err != nil {
 		return err
 	}
 
-	host.GroupIds = hostGroups
+	item.Interfaces = interfaces
 
-	interfaces, err := getInterfaces(d)
+	items := []zabbix.Host{item}
 
-	if err != nil {
-		return nil, err
-	}
-
-	host.Interfaces = interfaces
-
-	templates, err := getTemplates(d, api)
-
-	if err != nil {
-		return nil, err
-	}
-
-	host.TemplateIds = templates
-
-	items := []zabbix.HostGroup{item}
-
-	err := api.HostGroupsCreate(items)
+	err = api.HostsCreate(items)
 
 	if err != nil {
 		return err
 	}
 
-	log.Trace("created hostgroup: %+v", items[0])
+	log.Trace("created host: %+v", items[0])
 
-	d.Set("groupid", items[0].GroupID)
-	d.SetId(items[0].GroupID)
+	d.Set("hostid", items[0].HostID)
+	d.SetId(items[0].HostID)
 
 	return resourceHostRead(d, m)
 }
@@ -209,26 +219,19 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Lookup of hostgroup with id %s", id)
 
-	hostgroups, err := api.HostGroupsGet(zabbix.Params{
-		"groupids": id,
-	})
+	host, err := api.HostGetByID(d.Id())
 
 	if err != nil {
 		return err
 	}
 
-	if len(hostgroups) < 1 {
-		return errors.New("no hostgroup found")
-	}
-	if len(hostgroups) > 1 {
-		return errors.New("multiple hostgroups found")
-	}
-	t := hostgroups[0]
+	log.Debug("Got host: %+v", host)
 
-	log.Debug("Got hostgroup: %+v", t)
+	d.Set("hostid", host.HostID)
+	d.Set("name", host.Name)
+	d.Set("enabled", host.Status == 0)
 
-	d.Set("groupid", t.GroupID)
-	d.Set("name", t.Name)
+	d.Set("interfaces", host.Interfaces)
 
 	return nil
 }
@@ -236,14 +239,31 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := zabbix.HostGroup{
-		GroupID: d.Id(),
-		Name:    d.Get("name").(string),
+	item := zabbix.Host{
+		HostID: d.Id(),
+		Host:   d.Get("host").(string),
+		Name:   d.Get("name").(string),
+		Status: 0,
 	}
 
-	items := []zabbix.HostGroup{item}
+	if !d.Get("enabled").(bool) {
+		item.Status = 1
+	}
 
-	err := api.HostGroupsUpdate(items)
+	item.GroupIds = buildHostGroupIds(d.Get("groups").(*schema.Set))
+	item.TemplateIDs = buildTemplateIds(d.Get("templates").(*schema.Set))
+
+	interfaces, err := hostGenerateInterfaces(d)
+
+	if err != nil {
+		return err
+	}
+
+	item.Interfaces = interfaces
+
+	items := []zabbix.Host{item}
+
+	err = api.HostsUpdate(items)
 
 	if err != nil {
 		return err
@@ -254,5 +274,5 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceHostDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
-	return api.HostGroupsDeleteByIds([]string{d.Id()})
+	return api.HostsDeleteByIds([]string{d.Id()})
 }
