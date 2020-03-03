@@ -1,9 +1,10 @@
 package provider
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
-	"errors"
 )
 
 func resourceTemplate() *schema.Resource {
@@ -21,11 +22,11 @@ func resourceTemplate() *schema.Resource {
 				Description: "Zabbix ID",
 			},
 			"groups": &schema.Schema{
-				Type:        schema.TypeSet,
+				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required: true,
+				Required:    true,
 				Description: "Zabbix ID",
 			},
 			"host": &schema.Schema{
@@ -48,13 +49,13 @@ func resourceTemplate() *schema.Resource {
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-        list := d.Get("groups").(*schema.Set).List()
+	list := d.Get("groups").(*schema.Set).List()
 	strarr := []string{}
-        for _, v := range list {
+	for _, v := range list {
 		strarr = append(strarr, v.(string))
-        }
+	}
 
-        hostGroups, err := api.HostGroupsGet(zabbix.Params{
+	hostGroups, err := api.HostGroupsGet(zabbix.Params{
 		"groupids": strarr,
 	})
 
@@ -64,9 +65,9 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 
 	item := zabbix.Template{
 		Description: d.Get("description").(string),
-		Host:  d.Get("host").(string),
-		Name:    d.Get("name").(string),
-		Groups: hostGroups,
+		Host:        d.Get("host").(string),
+		Name:        d.Get("name").(string),
+		Groups:      hostGroups,
 	}
 
 	items := []zabbix.Template{item}
@@ -122,10 +123,10 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
 	item := zabbix.Template{
-		TemplateID:   d.Id(),
+		TemplateID:  d.Id(),
 		Description: d.Get("description").(string),
-		Name:  d.Get("name").(string),
-		Host:    d.Get("host").(string),
+		Name:        d.Get("name").(string),
+		Host:        d.Get("host").(string),
 	}
 
 	items := []zabbix.Template{item}

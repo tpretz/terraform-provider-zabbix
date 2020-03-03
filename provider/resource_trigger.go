@@ -1,9 +1,10 @@
 package provider
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
-	"errors"
 )
 
 func resourceTrigger() *schema.Resource {
@@ -82,18 +83,18 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
 	item := zabbix.Trigger{
-		Description: d.Get("description").(string),
-		Expression:  d.Get("expression").(string),
-		Comments:    d.Get("comments").(string),
-		Opdata:      d.Get("opdata").(string),
-		Status:      zabbix.StatusType(d.Get("status").(int)),
+		Description:        d.Get("description").(string),
+		Expression:         d.Get("expression").(string),
+		Comments:           d.Get("comments").(string),
+		Opdata:             d.Get("opdata").(string),
+		Status:             zabbix.StatusType(d.Get("status").(int)),
 		Type:               d.Get("type").(string),
-		Url: d.Get("url").(string),
+		Url:                d.Get("url").(string),
 		RecoveryMode:       d.Get("recovery_mode").(string),
 		RecoveryExpression: d.Get("recovery_expression").(string),
 		CorrelationMode:    d.Get("correlation_mode").(string),
-		CorrelationTag: d.Get("correlation_tag").(string),
-		ManualClose:    d.Get("manual_close").(string),
+		CorrelationTag:     d.Get("correlation_tag").(string),
+		ManualClose:        d.Get("manual_close").(string),
 	}
 
 	items := []zabbix.Trigger{item}
@@ -120,7 +121,7 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of trigger with id %s", id)
 
 	triggers, err := api.TriggersGet(zabbix.Params{
-		"triggerids": id,
+		"triggerids":       id,
 		"expandExpression": "extend",
 	})
 
@@ -158,19 +159,19 @@ func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
 	item := zabbix.Trigger{
-		TriggerID:   d.Id(),
-		Description: d.Get("description").(string),
-		Expression:  d.Get("expression").(string),
-		Comments:    d.Get("comments").(string),
-		Opdata:      d.Get("opdata").(string),
-		Status:      zabbix.StatusType(d.Get("status").(int)),
+		TriggerID:          d.Id(),
+		Description:        d.Get("description").(string),
+		Expression:         d.Get("expression").(string),
+		Comments:           d.Get("comments").(string),
+		Opdata:             d.Get("opdata").(string),
+		Status:             zabbix.StatusType(d.Get("status").(int)),
 		Type:               d.Get("type").(string),
-		Url: d.Get("url").(string),
+		Url:                d.Get("url").(string),
 		RecoveryMode:       d.Get("recovery_mode").(string),
 		RecoveryExpression: d.Get("recovery_expression").(string),
 		CorrelationMode:    d.Get("correlation_mode").(string),
-		CorrelationTag: d.Get("correlation_tag").(string),
-		ManualClose:    d.Get("manual_close").(string),
+		CorrelationTag:     d.Get("correlation_tag").(string),
+		ManualClose:        d.Get("manual_close").(string),
 	}
 
 	items := []zabbix.Trigger{item}
