@@ -46,25 +46,34 @@ func resourceTemplate() *schema.Resource {
 	}
 }
 
-func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
-	list := d.Get("groups").(*schema.Set).List()
+func getHostGroups(api *zabbix.API, s *schema.Set) (groups zabbix.HostGroups, err error) {
+	list := s.List()
 	strarr := []string{}
 	for _, v := range list {
 		strarr = append(strarr, v.(string))
 	}
 
-	hostGroups, err := api.HostGroupsGet(zabbix.Params{
+	groups, err = api.HostGroupsGet(zabbix.Params{
 		"groupids": strarr,
 	})
 
 	if err != nil {
-		return err
+		return
 	}
 
-	if len(hostGroups) != len(strarr) {
-		return errors.New("incorrect number of host groups, check all ids resolve")
+	if len(groups) != len(strarr) {
+		err = errors.New("incorrect number of host groups, check all ids resolve")
+	}
+
+	return
+}
+
+func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	hostGroups, err := getHostGroups(api, d.Get("groups").(*schema.Set))
+	if err != nil {
+		return err
 	}
 
 	item := zabbix.Template{
@@ -126,22 +135,9 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	list := d.Get("groups").(*schema.Set).List()
-	strarr := []string{}
-	for _, v := range list {
-		strarr = append(strarr, v.(string))
-	}
-
-	hostGroups, err := api.HostGroupsGet(zabbix.Params{
-		"groupids": strarr,
-	})
-
+	hostGroups, err := getHostGroups(api, d.Get("groups").(*schema.Set))
 	if err != nil {
 		return err
-	}
-
-	if len(hostGroups) != len(strarr) {
-		return errors.New("incorrect number of host groups, check all ids resolve")
 	}
 
 	item := zabbix.Template{
