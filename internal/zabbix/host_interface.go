@@ -2,7 +2,7 @@ package zabbix
 
 type (
 	// InterfaceType different interface type
-	InterfaceType int
+	InterfaceType string
 )
 
 const (
@@ -10,13 +10,13 @@ const (
 	// see "type" in https://www.zabbix.com/documentation/3.2/manual/api/reference/hostinterface/object
 
 	// Agent type
-	Agent InterfaceType = 1
+	Agent InterfaceType = "1"
 	// SNMP type
-	SNMP InterfaceType = 2
+	SNMP InterfaceType = "2"
 	// IPMI type
-	IPMI InterfaceType = 3
+	IPMI InterfaceType = "3"
 	// JMX type
-	JMX InterfaceType = 4
+	JMX InterfaceType = "4"
 )
 
 // HostInterface represents zabbix host interface type
@@ -24,10 +24,10 @@ const (
 type HostInterface struct {
 	DNS   string        `json:"dns"`
 	IP    string        `json:"ip"`
-	Main  int           `json:"main"`
+	Main  string        `json:"main"`
 	Port  string        `json:"port"`
 	Type  InterfaceType `json:"type"`
-	UseIP int           `json:"useip"`
+	UseIP string        `json:"useip"`
 }
 
 // HostInterfaces is an array of HostInterface
