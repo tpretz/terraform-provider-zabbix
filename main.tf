@@ -33,7 +33,12 @@ resource "zabbix_template" "a" {
 resource "zabbix_host" "a" {
   host = "test.isp.dev"
   groups = [zabbix_hostgroup.a.id]
+  templates = [zabbix_template.a.id]
   
+  interfaces {
+    dns = "test.isp.cdev"
+    type = "snmp"
+  }
   interfaces {
     dns = "test.isp.adev"
     main = true

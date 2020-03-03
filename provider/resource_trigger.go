@@ -15,12 +15,6 @@ func resourceTrigger() *schema.Resource {
 		Delete: resourceTriggerDelete,
 
 		Schema: map[string]*schema.Schema{
-			"triggerid": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "Zabbix ID",
-			},
 			"description": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -107,7 +101,6 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 
 	log.Trace("crated trigger: %+v", items[0])
 
-	d.Set("triggerid", items[0].TriggerID)
 	d.SetId(items[0].TriggerID)
 
 	return resourceTriggerRead(d, m)
@@ -116,12 +109,10 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("triggerid").(string)
-
-	log.Debug("Lookup of trigger with id %s", id)
+	log.Debug("Lookup of trigger with id %s", d.Id())
 
 	triggers, err := api.TriggersGet(zabbix.Params{
-		"triggerids":       id,
+		"triggerids":       d.Id(),
 		"expandExpression": "extend",
 	})
 
@@ -139,7 +130,6 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got trigger: %+v", t)
 
-	d.Set("triggerid", t.TriggerID)
 	d.Set("description", t.Description)
 	d.Set("expression", t.Expression)
 	d.Set("comments", t.Comments)

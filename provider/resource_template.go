@@ -15,12 +15,6 @@ func resourceTemplate() *schema.Resource {
 		Delete: resourceTemplateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"templateid": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "Zabbix ID",
-			},
 			"groups": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
@@ -93,7 +87,6 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 
 	log.Trace("crated template: %+v", items[0])
 
-	d.Set("templateid", items[0].TemplateID)
 	d.SetId(items[0].TemplateID)
 
 	return resourceTemplateRead(d, m)
@@ -102,12 +95,10 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("templateid").(string)
-
-	log.Debug("Lookup of trigger with id %s", id)
+	log.Debug("Lookup of trigger with id %s", d.Id())
 
 	templates, err := api.TemplatesGet(zabbix.Params{
-		"templateids": id,
+		"templateids": d.Id(),
 	})
 
 	if err != nil {
@@ -124,7 +115,6 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got template: %+v", t)
 
-	d.Set("templateid", t.TemplateID)
 	d.Set("description", t.Description)
 	d.Set("host", t.Host)
 	d.Set("name", t.Name)

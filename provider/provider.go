@@ -71,3 +71,31 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 
 	return
 }
+
+func buildHostGroupIds(s *schema.Set) zabbix.HostGroupIDs {
+	list := s.List()
+
+	groups := make(zabbix.HostGroupIDs, len(list))
+
+	for i := 0; i < len(list); i++ {
+		groups[i] = zabbix.HostGroupID{
+			GroupID: list[i].(string),
+		}
+	}
+
+	return groups
+}
+
+func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
+	list := s.List()
+
+	groups := make(zabbix.TemplateIDs, len(list))
+
+	for i := 0; i < len(list); i++ {
+		groups[i] = zabbix.TemplateID{
+			TemplateID: list[i].(string),
+		}
+	}
+
+	return groups
+}

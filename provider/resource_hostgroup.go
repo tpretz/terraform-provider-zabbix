@@ -15,12 +15,6 @@ func resourceHostgroup() *schema.Resource {
 		Delete: resourceHostgroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"groupid": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "Zabbix ID",
-			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -46,7 +40,6 @@ func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 
 	log.Trace("created hostgroup: %+v", items[0])
 
-	d.Set("groupid", items[0].GroupID)
 	d.SetId(items[0].GroupID)
 
 	return resourceHostgroupRead(d, m)
@@ -55,12 +48,10 @@ func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("groupid").(string)
-
-	log.Debug("Lookup of hostgroup with id %s", id)
+	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
 	hostgroups, err := api.HostGroupsGet(zabbix.Params{
-		"groupids": id,
+		"groupids": d.Id(),
 	})
 
 	if err != nil {
@@ -77,7 +68,6 @@ func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got hostgroup: %+v", t)
 
-	d.Set("groupid", t.GroupID)
 	d.Set("name", t.Name)
 
 	return nil

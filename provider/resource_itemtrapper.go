@@ -13,12 +13,6 @@ func resourceItemTrapper() *schema.Resource {
 		Delete: resourceItemTrapperDelete,
 
 		Schema: map[string]*schema.Schema{
-			"itemid": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "Zabbix ID",
-			},
 			"hostid": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -61,7 +55,6 @@ func resourceItemTrapperCreate(d *schema.ResourceData, m interface{}) error {
 
 	log.Trace("crated item: %+v", items[0])
 
-	d.Set("itemid", items[0].ItemID)
 	d.SetId(items[0].ItemID)
 
 	return resourceItemTrapperRead(d, m)
@@ -70,11 +63,9 @@ func resourceItemTrapperCreate(d *schema.ResourceData, m interface{}) error {
 func resourceItemTrapperRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("itemid").(string)
+	log.Debug("Lookup of item with id %s", d.Id())
 
-	log.Debug("Lookup of item with id %s", id)
-
-	item, err := api.ItemGetByID(id)
+	item, err := api.ItemGetByID(d.Id())
 
 	if err != nil {
 		return err

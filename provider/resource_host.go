@@ -29,11 +29,6 @@ func resourceHost() *schema.Resource {
 		Delete: resourceHostDelete,
 
 		Schema: map[string]*schema.Schema{
-			"hostid": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-				ForceNew: true,
-			},
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    false,
@@ -152,34 +147,6 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 	return
 }
 
-func buildHostGroupIds(s *schema.Set) zabbix.HostGroupIDs {
-	list := s.List()
-
-	groups := make(zabbix.HostGroupIDs, len(list))
-
-	for i := 0; i < len(list); i++ {
-		groups[i] = zabbix.HostGroupID{
-			GroupID: list[i].(string),
-		}
-	}
-
-	return groups
-}
-
-func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
-	list := s.List()
-
-	groups := make(zabbix.TemplateIDs, len(list))
-
-	for i := 0; i < len(list); i++ {
-		groups[i] = zabbix.TemplateID{
-			TemplateID: list[i].(string),
-		}
-	}
-
-	return groups
-}
-
 func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -214,7 +181,6 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 
 	log.Trace("created host: %+v", items[0])
 
-	d.Set("hostid", items[0].HostID)
 	d.SetId(items[0].HostID)
 
 	return resourceHostRead(d, m)
@@ -244,13 +210,13 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got host: %+v", host)
 
-	d.Set("hostid", host.HostID)
 	d.Set("name", host.Name)
 	d.Set("enabled", host.Status == 0)
 
 	val := [][]interface{}{}
 	for i := 0; i < len(host.Interfaces); i++ {
 		current := map[string]interface{}{}
+		current["interfaceid"] = host.Interfaces[i].InterfaceID
 		current["ip"] = host.Interfaces[i].IP
 		current["dns"] = host.Interfaces[i].DNS
 		current["main"] = host.Interfaces[i].Main == "1"
