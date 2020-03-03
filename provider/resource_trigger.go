@@ -44,36 +44,36 @@ func resourceTrigger() *schema.Resource {
 				Default:  0,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"recovery_mode": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 			"recovery_expression": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"correlation_mode": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 			"correlation_tag": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"manual_close": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 		},
 	}

@@ -21,7 +21,7 @@ resource "zabbix_trigger" "b" {
 }
 
 resource "zabbix_template" "a" {
-  groups = ["2"]
+  groups = ["7"]
   host = "example template"
   name = "visible name"
 }
