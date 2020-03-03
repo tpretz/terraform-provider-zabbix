@@ -29,3 +29,13 @@ resource "zabbix_template" "a" {
   host = "example template"
   name = "visible name"
 }
+
+resource "zabbix_host" "a" {
+  host = "test.isp.dev"
+  groups = [zabbix_hostgroup.a.id]
+  
+  interfaces {
+    dns = "test.isp.adev"
+    main = true
+  }
+}

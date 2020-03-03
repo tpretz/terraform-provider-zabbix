@@ -14,6 +14,12 @@ var HOST_IFACE_TYPES = map[string]zabbix.InterfaceType{
 	"ipmi":  zabbix.IPMI,
 	"jmx":   zabbix.JMX,
 }
+var HOST_IFACE_TYPES_REV = map[zabbix.InterfaceType]string{
+	zabbix.Agent: "agent",
+	zabbix.SNMP:  "snmp",
+	zabbix.IPMI:  "ipmi",
+	zabbix.JMX:   "jmx",
+}
 
 func resourceHost() *schema.Resource {
 	return &schema.Resource{
@@ -32,6 +38,7 @@ func resourceHost() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    false,
 				Optional:    true,
+				Computed:    true,
 				Description: "displayname",
 			},
 			"host": &schema.Schema{
@@ -65,7 +72,8 @@ func resourceHost() *schema.Resource {
 						},
 						"main": &schema.Schema{
 							Type:     schema.TypeBool,
-							Required: true,
+							Optional: true,
+							Default:  true,
 							//ForceNew: true,
 						},
 						"port": &schema.Schema{
@@ -87,12 +95,12 @@ func resourceHost() *schema.Resource {
 			},
 			"groups": &schema.Schema{
 				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeInt},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 			},
 			"templates": &schema.Schema{
 				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeInt},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 		},
@@ -126,18 +134,18 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 		interfaces[i] = zabbix.HostInterface{
 			IP:    ip,
 			DNS:   dns,
-			Main:  0,
+			Main:  "0",
 			Port:  d.Get(prefix + "port").(string),
 			Type:  typeId,
-			UseIP: 0,
+			UseIP: "0",
 		}
 
 		if ip != "" {
-			interfaces[i].UseIP = 1
+			interfaces[i].UseIP = "1"
 		}
 
 		if d.Get(prefix + "main").(bool) {
-			interfaces[i].Main = 1
+			interfaces[i].Main = "1"
 		}
 	}
 
@@ -215,15 +223,24 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	id := d.Get("groupid").(string)
+	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
-	log.Debug("Lookup of hostgroup with id %s", id)
-
-	host, err := api.HostGetByID(d.Id())
+	hosts, err := api.HostsGet(zabbix.Params{
+		"selectInterfaces": "extend",
+		"hostids":          d.Id(),
+	})
 
 	if err != nil {
 		return err
 	}
+
+	if len(hosts) < 1 {
+		return errors.New("no hostgroup found")
+	}
+	if len(hosts) > 1 {
+		return errors.New("multiple hostgroups found")
+	}
+	host := hosts[0]
 
 	log.Debug("Got host: %+v", host)
 
@@ -231,7 +248,24 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("name", host.Name)
 	d.Set("enabled", host.Status == 0)
 
-	d.Set("interfaces", host.Interfaces)
+	val := [][]interface{}{}
+	for i := 0; i < len(host.Interfaces); i++ {
+		current := map[string]interface{}{}
+		current["ip"] = host.Interfaces[i].IP
+		current["dns"] = host.Interfaces[i].DNS
+		current["main"] = host.Interfaces[i].Main == "1"
+		current["port"] = host.Interfaces[i].Port
+		current["type"] = HOST_IFACE_TYPES_REV[host.Interfaces[i].Type]
+		val = append(val, []interface{}{current})
+		// prefix := fmt.Sprintf("interfaces.%d.", i)
+		// d.Set(prefix+"ip", host.Interfaces[i].IP)
+		// d.Set(prefix+"dns", host.Interfaces[i].DNS)
+		// d.Set(prefix+"main", host.Interfaces[i].Main == 1)
+		// d.Set(prefix+"port", host.Interfaces[i].Port)
+		// d.Set(prefix+"type", HOST_IFACE_TYPES_REV[host.Interfaces[i].Type])
+	}
+	d.Set("interfaces", val)
+	log.Debug("got interfaces: %#v", val)
 
 	return nil
 }

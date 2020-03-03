@@ -54,6 +54,7 @@ func Provider() *schema.Provider {
 			"zabbix_trigger":      resourceTrigger(),
 			"zabbix_template":     resourceTemplate(),
 			"zabbix_hostgroup":    resourceHostgroup(),
+			"zabbix_host":         resourceHost(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
