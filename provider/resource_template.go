@@ -40,46 +40,19 @@ func resourceTemplate() *schema.Resource {
 	}
 }
 
-func getHostGroups(api *zabbix.API, s *schema.Set) (groups zabbix.HostGroups, err error) {
-	list := s.List()
-	strarr := []string{}
-	for _, v := range list {
-		strarr = append(strarr, v.(string))
-	}
-
-	groups, err = api.HostGroupsGet(zabbix.Params{
-		"groupids": strarr,
-	})
-
-	if err != nil {
-		return
-	}
-
-	if len(groups) != len(strarr) {
-		err = errors.New("incorrect number of host groups, check all ids resolve")
-	}
-
-	return
-}
-
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
-
-	hostGroups, err := getHostGroups(api, d.Get("groups").(*schema.Set))
-	if err != nil {
-		return err
-	}
 
 	item := zabbix.Template{
 		Description: d.Get("description").(string),
 		Host:        d.Get("host").(string),
 		Name:        d.Get("name").(string),
-		Groups:      hostGroups,
+		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
 	}
 
 	items := []zabbix.Template{item}
 
-	err = api.TemplatesCreate(items)
+	err := api.TemplatesCreate(items)
 
 	if err != nil {
 		return err
@@ -125,22 +98,17 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	hostGroups, err := getHostGroups(api, d.Get("groups").(*schema.Set))
-	if err != nil {
-		return err
-	}
-
 	item := zabbix.Template{
 		TemplateID:  d.Id(),
 		Description: d.Get("description").(string),
 		Name:        d.Get("name").(string),
 		Host:        d.Get("host").(string),
-		Groups:      hostGroups,
+		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
 	}
 
 	items := []zabbix.Template{item}
 
-	err = api.TemplatesUpdate(items)
+	err := api.TemplatesUpdate(items)
 
 	if err != nil {
 		return err
