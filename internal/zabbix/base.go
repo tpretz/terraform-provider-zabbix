@@ -2,6 +2,7 @@ package zabbix
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -77,12 +78,37 @@ type API struct {
 	id        int32
 }
 
+type Config struct {
+	Url         string
+	TlsNoVerify bool
+	Log         *log.Logger
+}
+
 // NewAPI Creates new API access object.
 // Typical URL is http://host/api_jsonrpc.php or http://host/zabbix/api_jsonrpc.php.
 // It also may contain HTTP basic auth username and password like
 // http://username:password@host/api_jsonrpc.php.
-func NewAPI(url string) (api *API) {
-	return &API{url: url, c: http.Client{}, UserAgent: "github.com/tpretz/go-zabbix-api"}
+func NewAPI(c Config) (api *API) {
+	api = &API{
+		url:       c.Url,
+		c:         http.Client{},
+		UserAgent: "github.com/tpretz/go-zabbix-api",
+		Logger:    c.Log,
+	}
+
+	if c.TlsNoVerify {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+		api.c = http.Client{
+			Transport: tr,
+		}
+		api.printf("TLS running in insecure mode, do not use this configuration in production")
+	}
+
+	return
 }
 
 // SetClient Allows one to use specific http.Client, for example with InsecureSkipVerify transport.
