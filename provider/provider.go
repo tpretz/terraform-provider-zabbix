@@ -76,6 +76,7 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		Url:         d.Get("url").(string),
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
+		Serialize:   true, // workaround zabbix concurrency bug
 	})
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
