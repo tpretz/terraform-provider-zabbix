@@ -132,7 +132,7 @@ type Item struct {
 	Posts         string `json:"posts,omitempty"`
 	StatusCodes   string `json:"status_codes,omitempty"`
 	Timeout       string `json:"timeout,omitempty"`
-	VerifyHost    string `json:"verify_host,omitemtpy"`
+	VerifyHost    string `json:"verify_host,omitempty"`
 	VerifyPeer    string `json:"verify_peer,omitempty"`
 }
 
