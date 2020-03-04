@@ -256,6 +256,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	if len(params) < 1 {
 		return errors.New("no host lookup attribute")
 	}
+	log.Debug("performing data lookup with params: %#v", params)
 
 	return hostRead(d, m, params)
 }
@@ -272,7 +273,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
-	log.Debug("Lookup of hostgroup with id %s", d.Id())
+	log.Debug("Lookup of host with params %#v", params)
 
 	hosts, err := api.HostsGet(params)
 
@@ -281,15 +282,16 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	}
 
 	if len(hosts) < 1 {
-		return errors.New("no hostgroup found")
+		return errors.New("no host found")
 	}
 	if len(hosts) > 1 {
-		return errors.New("multiple hostgroups found")
+		return errors.New("multiple hosts found")
 	}
 	host := hosts[0]
 
 	log.Debug("Got host: %+v", host)
 
+	d.SetId(host.HostID)
 	d.Set("name", host.Name)
 	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
