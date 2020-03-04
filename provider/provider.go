@@ -45,6 +45,11 @@ func Provider() *schema.Provider {
 				Required:    true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ZABBIX_URL", "ZABBIX_SERVER_URL"}, nil),
 			},
+			"tls_insecure": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"zabbix_host":      dataHost(),
@@ -64,8 +69,13 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
-	api := zabbix.NewAPI(d.Get("url").(string))
-	api.Logger = logger.New(logger.Writer(), "[DEBUG] ", logger.LstdFlags)
+	l := logger.New(logger.Writer(), "[DEBUG] ", logger.LstdFlags)
+
+	api := zabbix.NewAPI(zabbix.Config{
+		Url:         d.Get("url").(string),
+		TlsNoVerify: d.Get("tls_insecure").(bool),
+		Log:         l,
+	})
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
 	meta = api
