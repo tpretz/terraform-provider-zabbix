@@ -30,8 +30,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Description: "displayname",
 	},
 	"host": &schema.Schema{
-		Type: schema.TypeString,
-		//Required:    true,
+		Type:        schema.TypeString,
 		Description: "host FQDN",
 	},
 	"enabled": &schema.Schema{
@@ -46,45 +45,36 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"interfaceid": &schema.Schema{
 					Type:     schema.TypeString,
 					Computed: true,
-					//ForceNew: true,
 				},
 				"dns": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
-					//ForceNew: true,
 				},
 				"ip": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
-					//ForceNew: true,
 				},
 				"main": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
 					Default:  true,
-					//ForceNew: true,
 				},
 				"port": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "10050",
-					//ForceNew: true,
 				},
 				"type": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "agent",
-					//ForceNew: true,
 				},
 			},
 		},
-		//Required: true,
-		//ForceNew: true,
 	},
 	"groups": &schema.Schema{
 		Type: schema.TypeSet,
 		Elem: &schema.Schema{Type: schema.TypeString},
-		//Required: true,
 	},
 	"templates": &schema.Schema{
 		Type:     schema.TypeSet,
@@ -199,9 +189,7 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 	return
 }
 
-func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
+func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	item := zabbix.Host{
 		Host:   d.Get("host").(string),
 		Name:   d.Get("name").(string),
@@ -218,12 +206,24 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	interfaces, err := hostGenerateInterfaces(d)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	item.Interfaces = interfaces
 
-	items := []zabbix.Host{item}
+	return &item, nil
+}
+
+func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	item, err := buildHostObject(d)
+
+	if err != nil {
+		return err
+	}
+
+	items := []zabbix.Host{*item}
 
 	err = api.HostsCreate(items)
 
@@ -322,29 +322,13 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := zabbix.Host{
-		HostID: d.Id(),
-		Host:   d.Get("host").(string),
-		Name:   d.Get("name").(string),
-		Status: 0,
-	}
-
-	if !d.Get("enabled").(bool) {
-		item.Status = 1
-	}
-
-	item.GroupIds = buildHostGroupIds(d.Get("groups").(*schema.Set))
-	item.TemplateIDs = buildTemplateIds(d.Get("templates").(*schema.Set))
-
-	interfaces, err := hostGenerateInterfaces(d)
+	item, err := buildHostObject(d)
 
 	if err != nil {
 		return err
 	}
 
-	item.Interfaces = interfaces
-
-	items := []zabbix.Host{item}
+	items := []zabbix.Host{*item}
 
 	err = api.HostsUpdate(items)
 
