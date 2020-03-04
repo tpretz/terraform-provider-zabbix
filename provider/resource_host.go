@@ -42,7 +42,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Type: schema.TypeList,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"interfaceid": &schema.Schema{
+				"id": &schema.Schema{
 					Type:     schema.TypeString,
 					Computed: true,
 				},
@@ -296,16 +296,16 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
 
-	val := make([][]interface{}, len(host.Interfaces))
+	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
 		current := map[string]interface{}{}
-		current["interfaceid"] = host.Interfaces[i].InterfaceID
+		current["id"] = host.Interfaces[i].InterfaceID
 		current["ip"] = host.Interfaces[i].IP
 		current["dns"] = host.Interfaces[i].DNS
 		current["main"] = host.Interfaces[i].Main == "1"
 		current["port"] = host.Interfaces[i].Port
 		current["type"] = HOST_IFACE_TYPES_REV[host.Interfaces[i].Type]
-		val[i] = []interface{}{current}
+		val[i] = current
 	}
 	d.Set("interfaces", val)
 	log.Debug("got interfaces: %#v", val)

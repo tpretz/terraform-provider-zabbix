@@ -18,6 +18,11 @@ func resourceItemHttp() *schema.Resource {
 				Required:    true,
 				Description: "Host ID",
 			},
+			"interfaceid": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Host Interface ID",
+			},
 			"key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -30,6 +35,11 @@ func resourceItemHttp() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"delay": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "1m",
+			},
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -37,12 +47,12 @@ func resourceItemHttp() *schema.Resource {
 			"request_method": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 			"post_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  0,
+				Default:  "0",
 			},
 			"posts": &schema.Schema{
 				Type:     schema.TypeString,
@@ -51,10 +61,12 @@ func resourceItemHttp() *schema.Resource {
 			"status_codes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "200",
 			},
 			"timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "3s",
 			},
 			"verify_host": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -72,11 +84,13 @@ func resourceItemHttp() *schema.Resource {
 
 func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
 	item := zabbix.Item{
-		Key:       d.Get("key").(string),
-		HostID:    d.Get("hostid").(string),
-		Name:      d.Get("name").(string),
-		Type:      zabbix.HTTPAgent,
-		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
+		Key:         d.Get("key").(string),
+		HostID:      d.Get("hostid").(string),
+		Name:        d.Get("name").(string),
+		Type:        zabbix.HTTPAgent,
+		ValueType:   zabbix.ValueType(d.Get("valuetype").(int)),
+		Delay:       d.Get("delay").(string),
+		InterfaceID: d.Get("interfaceid").(string),
 
 		Url:           d.Get("url").(string),
 		RequestMethod: d.Get("request_method").(string),
@@ -133,9 +147,11 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(item.ItemID)
 	d.Set("hostid", item.HostID)
+	d.Set("interfaceid", item.InterfaceID)
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
 	d.Set("valuetype", item.ValueType)
+	d.Set("delay", item.Delay)
 
 	d.Set("url", item.Url)
 	d.Set("request_method", item.RequestMethod)

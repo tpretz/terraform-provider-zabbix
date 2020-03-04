@@ -23,6 +23,16 @@ resource "zabbix_item_trapper" "a" {
   valuetype = 1
 }
 
+resource "zabbix_item_http" "a" {
+  hostid = zabbix_host.a.id
+  key = "http_one"
+  name = "http one"
+  valuetype = 1
+
+  url = "http://google.com"
+  interfaceid = zabbix_host.a.interfaces[0].id
+}
+
 resource "zabbix_trigger" "b" {
   description = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(120)}=1"
