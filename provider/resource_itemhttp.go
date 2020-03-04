@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
 )
@@ -78,8 +81,57 @@ func resourceItemHttp() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"preprocessor": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"params": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "",
+						},
+						"error_handler": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "0",
+						},
+						"error_handler_params": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "",
+						},
+					},
+				},
+			},
 		},
 	}
+}
+
+func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Preprocessors) {
+	preprocessorCount := d.Get("preprocessor.#").(int)
+	preprocessors = make(zabbix.Preprocessors, preprocessorCount)
+
+	for i := 0; i < preprocessorCount; i++ {
+		prefix := fmt.Sprintf("preprocessor.%d.", i)
+
+		preprocessors[i] = zabbix.Preprocessor{
+			Type:               d.Get(prefix + "type").(string),
+			Params:             d.Get(prefix + "params").(string),
+			ErrorHandler:       d.Get(prefix + "error_handler").(string),
+			ErrorHandlerParams: d.Get(prefix + "error_handler_params").(string),
+		}
+	}
+
+	return
 }
 
 func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
@@ -110,6 +162,8 @@ func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
 		item.VerifyPeer = "1"
 	}
 
+	item.Preprocessors = itemGeneratePreprocessors(d)
+
 	return &item
 }
 
@@ -137,11 +191,22 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Lookup of item with id %s", d.Id())
 
-	item, err := api.ItemGetByID(d.Id())
+	items, err := api.ItemsGet(zabbix.Params{
+		"itemids":             []string{d.Id()},
+		"selectPreprocessing": "extend",
+	})
 
 	if err != nil {
 		return err
 	}
+
+	if len(items) < 1 {
+		return errors.New("no item found")
+	}
+	if len(items) > 1 {
+		return errors.New("multiple items found")
+	}
+	item := items[0]
 
 	log.Debug("Got item: %+v", item)
 
@@ -161,6 +226,18 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("timeout", item.Timeout)
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
+
+	val := make([]interface{}, len(item.Preprocessors))
+	for i := 0; i < len(item.Preprocessors); i++ {
+		current := map[string]interface{}{}
+		//current["id"] = host.Interfaces[i].InterfaceID
+		current["type"] = item.Preprocessors[i].Type
+		current["params"] = item.Preprocessors[i].Params
+		current["error_handler"] = item.Preprocessors[i].ErrorHandler
+		current["error_handler_params"] = item.Preprocessors[i].ErrorHandlerParams
+		val[i] = current
+	}
+	d.Set("preprocessor", val)
 
 	return nil
 }

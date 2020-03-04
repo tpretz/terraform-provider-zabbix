@@ -32,6 +32,11 @@ resource "zabbix_item_http" "a" {
   url = "http://google.com"
   interfaceid = zabbix_host.a.interfaces[0].id
   verify_host = true
+
+  preprocessor {
+    type = "14"
+    params = "^test$"
+  }
 }
 
 resource "zabbix_trigger" "b" {
