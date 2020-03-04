@@ -21,85 +21,137 @@ var HOST_IFACE_TYPES_REV = map[zabbix.InterfaceType]string{
 	zabbix.JMX:   "jmx",
 }
 
+var hostSchemaBase = map[string]*schema.Schema{
+	"name": &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    false,
+		Optional:    true,
+		Computed:    true,
+		Description: "displayname",
+	},
+	"host": &schema.Schema{
+		Type: schema.TypeString,
+		//Required:    true,
+		Description: "host FQDN",
+	},
+	"enabled": &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  true,
+	},
+	"interfaces": &schema.Schema{
+		Type: schema.TypeList,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"interfaceid": &schema.Schema{
+					Type:     schema.TypeString,
+					Computed: true,
+					//ForceNew: true,
+				},
+				"dns": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					//ForceNew: true,
+				},
+				"ip": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					//ForceNew: true,
+				},
+				"main": &schema.Schema{
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  true,
+					//ForceNew: true,
+				},
+				"port": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "10050",
+					//ForceNew: true,
+				},
+				"type": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "agent",
+					//ForceNew: true,
+				},
+			},
+		},
+		//Required: true,
+		//ForceNew: true,
+	},
+	"groups": &schema.Schema{
+		Type: schema.TypeSet,
+		Elem: &schema.Schema{Type: schema.TypeString},
+		//Required: true,
+	},
+	"templates": &schema.Schema{
+		Type:     schema.TypeSet,
+		Elem:     &schema.Schema{Type: schema.TypeString},
+		Optional: true,
+	},
+}
+
 func resourceHost() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceHostCreate,
 		Read:   resourceHostRead,
 		Update: resourceHostUpdate,
 		Delete: resourceHostDelete,
-
-		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    false,
-				Optional:    true,
-				Computed:    true,
-				Description: "displayname",
-			},
-			"host": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "host FQDN",
-			},
-			"enabled": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-			"interfaces": &schema.Schema{
-				Type: schema.TypeList,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"interfaceid": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-							//ForceNew: true,
-						},
-						"dns": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							//ForceNew: true,
-						},
-						"ip": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							//ForceNew: true,
-						},
-						"main": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  true,
-							//ForceNew: true,
-						},
-						"port": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "10050",
-							//ForceNew: true,
-						},
-						"type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "agent",
-							//ForceNew: true,
-						},
-					},
-				},
-				Required: true,
-				//ForceNew: true,
-			},
-			"groups": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
-			},
-			"templates": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Optional: true,
-			},
-		},
+		Schema: hostResourceSchema(hostSchemaBase),
 	}
+}
+
+func dataHost() *schema.Resource {
+	return &schema.Resource{
+		Read:   dataHostRead,
+		Schema: hostDataSchema(hostSchemaBase),
+	}
+}
+
+func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
+	o = map[string]*schema.Schema{}
+	for k, v := range m {
+		schema := *v
+
+		// required
+		switch k {
+		case "host", "interfaces", "groups":
+			schema.Required = true
+		}
+
+		o[k] = &schema
+	}
+	return o
+}
+func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
+	o = map[string]*schema.Schema{}
+	for k, v := range m {
+		schema := *v
+
+		// computed
+		switch k {
+		case "host", "interfaces", "groups", "templates":
+			schema.Computed = true
+		}
+
+		// optional
+		switch k {
+		case "host":
+			schema.Optional = true
+		}
+
+		o[k] = &schema
+	}
+
+	// lookup vars
+	o["hostid"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+	}
+
+	return o
 }
 
 func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInterfaces, err error) {
@@ -186,15 +238,43 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostRead(d, m)
 }
 
+func dataHostRead(d *schema.ResourceData, m interface{}) error {
+	params := zabbix.Params{
+		"selectInterfaces": "extend",
+	}
+
+	lookups := []string{"host", "hostid", "name"}
+	for _, k := range lookups {
+		if v, ok := d.GetOk(k); ok {
+			if _, ok := params["filter"]; !ok {
+				params["filter"] = map[string]interface{}{}
+			}
+			params["filter"].(map[string]interface{})[k] = v
+		}
+	}
+
+	if len(params) < 1 {
+		return errors.New("no host lookup attribute")
+	}
+
+	return hostRead(d, m, params)
+}
+
 func resourceHostRead(d *schema.ResourceData, m interface{}) error {
+	log.Debug("Lookup of hostgroup with id %s", d.Id())
+
+	return hostRead(d, m, zabbix.Params{
+		"selectInterfaces": "extend",
+		"hostids":          d.Id(),
+	})
+}
+
+func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
-	hosts, err := api.HostsGet(zabbix.Params{
-		"selectInterfaces": "extend",
-		"hostids":          d.Id(),
-	})
+	hosts, err := api.HostsGet(params)
 
 	if err != nil {
 		return err
@@ -211,6 +291,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Got host: %+v", host)
 
 	d.Set("name", host.Name)
+	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
 
 	val := [][]interface{}{}
