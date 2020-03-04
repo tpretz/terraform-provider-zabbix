@@ -34,9 +34,7 @@ func resourceItemTrapper() *schema.Resource {
 	}
 }
 
-func resourceItemTrapperCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
+func buildItemTrapperObject(d *schema.ResourceData) *zabbix.Item {
 	item := zabbix.Item{
 		Key:       d.Get("key").(string),
 		HostID:    d.Get("hostid").(string),
@@ -45,7 +43,14 @@ func resourceItemTrapperCreate(d *schema.ResourceData, m interface{}) error {
 		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
 	}
 
-	items := []zabbix.Item{item}
+	return &item
+}
+
+func resourceItemTrapperCreate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	item := buildItemTrapperObject(d)
+	items := []zabbix.Item{*item}
 
 	err := api.ItemsCreate(items)
 
@@ -73,6 +78,7 @@ func resourceItemTrapperRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got item: %+v", item)
 
+	d.SetId(item.ItemID)
 	d.Set("hostid", item.HostID)
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
@@ -84,16 +90,10 @@ func resourceItemTrapperRead(d *schema.ResourceData, m interface{}) error {
 func resourceItemTrapperUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := zabbix.Item{
-		ItemID:    d.Id(),
-		Key:       d.Get("key").(string),
-		HostID:    d.Get("hostid").(string),
-		Name:      d.Get("name").(string),
-		Type:      zabbix.ZabbixTrapper,
-		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
-	}
+	item := buildItemTrapperObject(d)
+	item.ItemID = d.Id()
 
-	items := []zabbix.Item{item}
+	items := []zabbix.Item{*item}
 
 	err := api.ItemsUpdate(items)
 
