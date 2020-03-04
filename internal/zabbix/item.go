@@ -136,6 +136,10 @@ type Item struct {
 	Timeout       string `json:"timeout,omitempty"`
 	VerifyHost    string `json:"verify_host,omitempty"`
 	VerifyPeer    string `json:"verify_peer,omitempty"`
+
+	// SNMP Fields
+	SNMPOid string `json:"snmp_oid,omitempty"`
+	SNMPCommunity string `json:"snmp_community,omitempty"`
 }
 
 type Preprocessors []Preprocessor
