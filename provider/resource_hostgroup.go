@@ -23,6 +23,19 @@ func resourceHostgroup() *schema.Resource {
 	}
 }
 
+func dataHostgroup() *schema.Resource {
+	return &schema.Resource{
+		Read: dataHostgroupRead,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	}
+}
+
 func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -45,14 +58,10 @@ func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostgroupRead(d, m)
 }
 
-func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
+func hostgroupRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
-	log.Debug("Lookup of hostgroup with id %s", d.Id())
-
-	hostgroups, err := api.HostGroupsGet(zabbix.Params{
-		"groupids": d.Id(),
-	})
+	hostgroups, err := api.HostGroupsGet(params)
 
 	if err != nil {
 		return err
@@ -68,9 +77,26 @@ func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Got hostgroup: %+v", t)
 
+	d.SetId(t.GroupID)
 	d.Set("name", t.Name)
 
 	return nil
+}
+
+func dataHostgroupRead(d *schema.ResourceData, m interface{}) error {
+	return hostgroupRead(d, m, zabbix.Params{
+		"filter": map[string]interface{}{
+			"name": d.Get("name"),
+		},
+	})
+}
+
+func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
+	log.Debug("Lookup of hostgroup with id %s", d.Id())
+
+	return hostgroupRead(d, m, zabbix.Params{
+		"groupids": d.Id(),
+	})
 }
 
 func resourceHostgroupUpdate(d *schema.ResourceData, m interface{}) error {

@@ -296,7 +296,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
 
-	val := [][]interface{}{}
+	val := make([][]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
 		current := map[string]interface{}{}
 		current["interfaceid"] = host.Interfaces[i].InterfaceID
@@ -305,13 +305,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 		current["main"] = host.Interfaces[i].Main == "1"
 		current["port"] = host.Interfaces[i].Port
 		current["type"] = HOST_IFACE_TYPES_REV[host.Interfaces[i].Type]
-		val = append(val, []interface{}{current})
-		// prefix := fmt.Sprintf("interfaces.%d.", i)
-		// d.Set(prefix+"ip", host.Interfaces[i].IP)
-		// d.Set(prefix+"dns", host.Interfaces[i].DNS)
-		// d.Set(prefix+"main", host.Interfaces[i].Main == 1)
-		// d.Set(prefix+"port", host.Interfaces[i].Port)
-		// d.Set(prefix+"type", HOST_IFACE_TYPES_REV[host.Interfaces[i].Type])
+		val[i] = []interface{}{current}
 	}
 	d.Set("interfaces", val)
 	log.Debug("got interfaces: %#v", val)
@@ -327,6 +321,8 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	item.HostID = d.Id()
 
 	items := []zabbix.Host{*item}
 

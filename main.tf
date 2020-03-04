@@ -8,6 +8,10 @@ data "zabbix_host" "test" {
   host = "Zabbix server"
 }
 
+data "zabbix_hostgroup" "a" {
+  name = "Hypervisors"
+}
+
 resource "zabbix_hostgroup" "a" {
   name = "test group"
 }
@@ -32,7 +36,7 @@ resource "zabbix_template" "a" {
 
 resource "zabbix_host" "a" {
   host = "test.isp.dev"
-  groups = [zabbix_hostgroup.a.id]
+  groups = [zabbix_hostgroup.a.id, data.zabbix_hostgroup.a.id]
   templates = [zabbix_template.a.id]
   
   interfaces {
