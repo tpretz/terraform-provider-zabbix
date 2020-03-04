@@ -125,6 +125,8 @@ type Item struct {
 
 	ItemParent Hosts `json:"hosts"`
 
+	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
+
 	// HTTP Agent Fields
 	Url           string `json:"url,omitempty"`
 	RequestMethod string `json:"request_method,omitempty"`
@@ -134,6 +136,15 @@ type Item struct {
 	Timeout       string `json:"timeout,omitempty"`
 	VerifyHost    string `json:"verify_host,omitempty"`
 	VerifyPeer    string `json:"verify_peer,omitempty"`
+}
+
+type Preprocessors []Preprocessor
+
+type Preprocessor struct {
+	Type               string `json:"type,omitempty"`
+	Params             string `json:"params"`
+	ErrorHandler       string `json:"error_handler,omitempty"`
+	ErrorHandlerParams string `json:"error_handler_params"`
 }
 
 // Items is an array of Item
