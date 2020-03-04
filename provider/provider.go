@@ -50,6 +50,12 @@ func Provider() *schema.Provider {
 				Optional: true,
 				Default:  false,
 			},
+			"serialize": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Serialize API requests",
+			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"zabbix_host":      dataHost(),
@@ -76,7 +82,7 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		Url:         d.Get("url").(string),
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
-		Serialize:   true, // workaround zabbix concurrency bug
+		Serialize:   d.Get("serialize").(bool),
 	})
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
