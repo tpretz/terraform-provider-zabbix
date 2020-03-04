@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
 )
@@ -10,7 +12,7 @@ func resourceItemSimple() *schema.Resource {
 		Create: resourceItemSimpleCreate,
 		Read:   resourceItemSimpleRead,
 		Update: resourceItemSimpleUpdate,
-		Delete: resourceItemSimpleDelete,
+		Delete: resourceItemDelete,
 
 		Schema: map[string]*schema.Schema{
 			"hostid": &schema.Schema{
@@ -35,6 +37,7 @@ func resourceItemSimple() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"preprocessor": itemPreprocessorSchema,
 		},
 	}
 }
@@ -48,6 +51,8 @@ func buildItemSimpleObject(d *schema.ResourceData) *zabbix.Item {
 		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
 		Delay:     d.Get("delay").(string),
 	}
+
+	item.Preprocessors = itemGeneratePreprocessors(d)
 
 	return &item
 }
@@ -76,11 +81,22 @@ func resourceItemSimpleRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Debug("Lookup of item with id %s", d.Id())
 
-	item, err := api.ItemGetByID(d.Id())
+	items, err := api.ItemsGet(zabbix.Params{
+		"itemids":             []string{d.Id()},
+		"selectPreprocessing": "extend",
+	})
 
 	if err != nil {
 		return err
 	}
+
+	if len(items) < 1 {
+		return errors.New("no item found")
+	}
+	if len(items) > 1 {
+		return errors.New("multiple items found")
+	}
+	item := items[0]
 
 	log.Debug("Got item: %+v", item)
 
@@ -90,6 +106,8 @@ func resourceItemSimpleRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("name", item.Name)
 	d.Set("valuetype", item.ValueType)
 	d.Set("delay", item.Delay)
+
+	d.Set("preprocessor", flattenItemPreprocessors(item))
 
 	return nil
 }
@@ -109,9 +127,4 @@ func resourceItemSimpleUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	return resourceItemSimpleRead(d, m)
-}
-
-func resourceItemSimpleDelete(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-	return api.ItemsDeleteByIds([]string{d.Id()})
 }
