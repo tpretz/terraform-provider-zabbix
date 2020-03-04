@@ -53,7 +53,10 @@ const (
 	// Calculated type
 	Calculated ItemType = 15
 	// JMXAgent type
-	JMXAgent ItemType = 16
+	JMXAgent  ItemType = 16
+	SNMPTrap  ItemType = 17
+	Dependent ItemType = 18
+	HTTPAgent ItemType = 19
 )
 
 const (
@@ -121,6 +124,16 @@ type Item struct {
 	ApplicationIds []string `json:"applications,omitempty"`
 
 	ItemParent Hosts `json:"hosts"`
+
+	// HTTP Agent Fields
+	Url           string `json:"url,omitempty"`
+	RequestMethod string `json:"request_method,omitempty"`
+	PostType      string `json:"post_type,omitempty"`
+	Posts         string `json:"posts,omitempty"`
+	StatusCodes   string `json:"status_codes,omitempty"`
+	Timeout       string `json:"timeout,omitempty"`
+	VerifyHost    string `json:"verify_host,omitemtpy"`
+	VerifyPeer    string `json:"verify_peer,omitempty"`
 }
 
 // Items is an array of Item
