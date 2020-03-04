@@ -27,10 +27,11 @@ resource "zabbix_item_http" "a" {
   hostid = zabbix_host.a.id
   key = "http_one"
   name = "http one"
-  valuetype = 1
+  valuetype = 4
 
   url = "http://google.com"
   interfaceid = zabbix_host.a.interfaces[0].id
+  verify_host = true
 }
 
 resource "zabbix_trigger" "b" {
