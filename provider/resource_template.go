@@ -43,14 +43,8 @@ func resourceTemplate() *schema.Resource {
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := zabbix.Template{
-		Description: d.Get("description").(string),
-		Host:        d.Get("host").(string),
-		Name:        d.Get("name").(string),
-		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
-	}
-
-	items := []zabbix.Template{item}
+	item := buildTemplateObject(d)
+	items := []zabbix.Template{*item}
 
 	err := api.TemplatesCreate(items)
 
@@ -95,18 +89,23 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
+func buildTemplateObject(d *schema.ResourceData) *zabbix.Template {
 	item := zabbix.Template{
-		TemplateID:  d.Id(),
 		Description: d.Get("description").(string),
 		Name:        d.Get("name").(string),
 		Host:        d.Get("host").(string),
 		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
 	}
+	return &item
+}
 
-	items := []zabbix.Template{item}
+func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	item := buildTemplateObject(d)
+	item.TemplateID = d.Id()
+
+	items := []zabbix.Template{*item}
 
 	err := api.TemplatesUpdate(items)
 
