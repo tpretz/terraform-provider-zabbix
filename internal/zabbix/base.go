@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 	"sync/atomic"
 )
 
@@ -76,12 +77,15 @@ type API struct {
 	url       string
 	c         http.Client
 	id        int32
+	ex        sync.Mutex
+	config    Config
 }
 
 type Config struct {
 	Url         string
 	TlsNoVerify bool
 	Log         *log.Logger
+	Serialize   bool
 }
 
 // NewAPI Creates new API access object.
@@ -94,6 +98,7 @@ func NewAPI(c Config) (api *API) {
 		c:         http.Client{},
 		UserAgent: "github.com/tpretz/go-zabbix-api",
 		Logger:    c.Log,
+		config:    c,
 	}
 
 	if c.TlsNoVerify {
@@ -138,6 +143,11 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	req.ContentLength = int64(len(b))
 	req.Header.Add("Content-Type", "application/json-rpc")
 	req.Header.Add("User-Agent", api.UserAgent)
+
+	if api.config.Serialize {
+		api.ex.Lock()
+		defer api.ex.Unlock()
+	}
 
 	res, err := api.c.Do(req)
 	if err != nil {
