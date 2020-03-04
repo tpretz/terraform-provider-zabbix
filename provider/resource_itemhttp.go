@@ -227,19 +227,23 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
 
-	val := make([]interface{}, len(item.Preprocessors))
-	for i := 0; i < len(item.Preprocessors); i++ {
-		current := map[string]interface{}{}
-		//current["id"] = host.Interfaces[i].InterfaceID
-		current["type"] = item.Preprocessors[i].Type
-		current["params"] = item.Preprocessors[i].Params
-		current["error_handler"] = item.Preprocessors[i].ErrorHandler
-		current["error_handler_params"] = item.Preprocessors[i].ErrorHandlerParams
-		val[i] = current
-	}
-	d.Set("preprocessor", val)
+	d.Set("preprocessor", flattenItemPreprocessors(item))
 
 	return nil
+}
+
+func flattenItemPreprocessors(item zabbix.Item) []interface{} {
+	val := make([]interface{}, len(item.Preprocessors))
+	for i := 0; i < len(item.Preprocessors); i++ {
+		val[i] = map[string]interface{}{
+			//"id": host.Interfaces[i].InterfaceID,
+			"type":                 item.Preprocessors[i].Type,
+			"params":               item.Preprocessors[i].Params,
+			"error_handler":        item.Preprocessors[i].ErrorHandler,
+			"error_handler_params": item.Preprocessors[i].ErrorHandlerParams,
+		}
+	}
+	return val
 }
 
 func resourceItemHttpUpdate(d *schema.ResourceData, m interface{}) error {

@@ -296,21 +296,24 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
 
-	val := make([]interface{}, len(host.Interfaces))
-	for i := 0; i < len(host.Interfaces); i++ {
-		current := map[string]interface{}{}
-		current["id"] = host.Interfaces[i].InterfaceID
-		current["ip"] = host.Interfaces[i].IP
-		current["dns"] = host.Interfaces[i].DNS
-		current["main"] = host.Interfaces[i].Main == "1"
-		current["port"] = host.Interfaces[i].Port
-		current["type"] = HOST_IFACE_TYPES_REV[host.Interfaces[i].Type]
-		val[i] = current
-	}
-	d.Set("interfaces", val)
-	log.Debug("got interfaces: %#v", val)
+	d.Set("interfaces", flattenHostInterfaces(host))
 
 	return nil
+}
+
+func flattenHostInterfaces(host zabbix.Host) []interface{} {
+	val := make([]interface{}, len(host.Interfaces))
+	for i := 0; i < len(host.Interfaces); i++ {
+		val[i] = map[string]interface{}{
+			"id":   host.Interfaces[i].InterfaceID,
+			"ip":   host.Interfaces[i].IP,
+			"dns":  host.Interfaces[i].DNS,
+			"main": host.Interfaces[i].Main == "1",
+			"port": host.Interfaces[i].Port,
+			"type": HOST_IFACE_TYPES_REV[host.Interfaces[i].Type],
+		}
+	}
+	return val
 }
 
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
