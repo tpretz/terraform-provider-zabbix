@@ -8,11 +8,11 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
-func resourceItemHttp() *schema.Resource {
+func resourceItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceItemHttpCreate,
-		Read:   resourceItemHttpRead,
-		Update: resourceItemHttpUpdate,
+		Create: resourceItemSnmpCreate,
+		Read:   resourceItemSnmpRead,
+		Update: resourceItemSnmpUpdate,
 		Delete: resourceItemDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -107,7 +107,7 @@ var SNMP_LOOKUP = map[string]zabbix.ItemType{
 	"3": zabbix.SNMPv3Agent,
 }
 
-func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
+func buildItemSnmpObject(d *schema.ResourceData) *zabbix.Item {
 
 	item := zabbix.Item{
 		Key:         d.Get("key").(string),
@@ -118,7 +118,20 @@ func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
 		Delay:       d.Get("delay").(string),
 		InterfaceID: d.Get("interfaceid").(string),
 
-		
+		SNMPOid: d.Get("snmp_oid").(string),
+	}
+
+	switch item.Type {
+	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+		item.SNMPCommunity = d.Get("snmp_community").(string)
+	case zabbix.SNMPv3Agent:
+		item.SNMPv3AuthPassphrase = d.Get("snmp3_authpassphrase").(string)
+		item.SNMPv3AuthProtocol = d.Get("snmp3_authprotocol").(string)
+		item.SNMPv3ContextName = d.Get("snmp3_contextname").(string)
+		item.SNMPv3PrivPasshrase = d.Get("snmp3_privpassphrase").(string)
+		item.SNMPv3PrivProtocol = d.Get("snmp3_privprotocol").(string)
+		item.SNMPv3SecurityLevel = d.Get("snmp3_securitylevel").(string)
+		item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
 	}
 
 	item.Preprocessors = itemGeneratePreprocessors(d)
@@ -126,10 +139,10 @@ func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
 	return &item
 }
 
-func resourceItemHttpCreate(d *schema.ResourceData, m interface{}) error {
+func resourceItemSnmpCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemHttpObject(d)
+	item := buildItemSnmpObject(d)
 	items := []zabbix.Item{*item}
 
 	err := api.ItemsCreate(items)
@@ -142,10 +155,10 @@ func resourceItemHttpCreate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(items[0].ItemID)
 
-	return resourceItemHttpRead(d, m)
+	return resourceItemSnmpRead(d, m)
 }
 
-func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
+func resourceItemSnmpRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of item with id %s", d.Id())
@@ -177,24 +190,30 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("valuetype", item.ValueType)
 	d.Set("delay", item.Delay)
 
-	d.Set("url", item.Url)
-	d.Set("request_method", item.RequestMethod)
-	d.Set("post_type", item.PostType)
-	d.Set("posts", item.Posts)
-	d.Set("status_codes", item.StatusCodes)
-	d.Set("timeout", item.Timeout)
-	d.Set("verify_host", item.VerifyHost == "1")
-	d.Set("verify_peer", item.VerifyPeer == "1")
+	d.Set("snmp_oid", item.SNMPOid)
+
+	switch item.Type {
+	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+		d.Set("snmp_community", item.SNMPCommunity)
+	case zabbix.SNMPv3Agent:
+		d.Set("snmp3_authpassphrase",item.SNMPv3AuthPassphrase)
+		d.Set("snmp3_authprotocol",item.SNMPv3AuthProtocol)
+		d.Set("snmp3_contextname",item.SNMPv3ContextName)
+		d.Set("snmp3_privpassphrase",item.SNMPv3PrivPasshrase)
+		d.Set("snmp3_privprotocol",item.SNMPv3PrivProtocol)
+		d.Set("snmp3_securitylevel",item.SNMPv3SecurityLevel)
+		d.Set("snmp3_securityname",item.SNMPv3SecurityName)
+	}
 
 	d.Set("preprocessor", flattenItemPreprocessors(item))
 
 	return nil
 }
 
-func resourceItemHttpUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceItemSnmpUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemHttpObject(d)
+	item := buildItemSnmpObject(d)
 	item.ItemID = d.Id()
 
 	items := []zabbix.Item{*item}
@@ -205,5 +224,5 @@ func resourceItemHttpUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	return resourceItemHttpRead(d, m)
+	return resourceItemSnmpRead(d, m)
 }
