@@ -140,6 +140,13 @@ type Item struct {
 	// SNMP Fields
 	SNMPOid string `json:"snmp_oid,omitempty"`
 	SNMPCommunity string `json:"snmp_community,omitempty"`
+	SNMPv3AuthPassphrase string `json:"snmpv3_authpassphrase,omitempty"`
+	SNMPv3AuthProtocol string `json:"snmpv3_authprotocol,omitempty"`
+	SNMPv3ContextName string `json:"snmpv3_contextname,omitempty"`
+	SNMPv3PrivPasshrase string `json:"snmpv3_privpassphrase,omitempty"`
+	SNMPv3PrivProtocol string `json:"snmpv3_privprotocol,omitempty"`
+	SNMPv3SecurityLevel string `json:"snmpv3_securitylevel,omitempty"`
+	SNMPv3SecurityName string `json:"snmpv3_securityname,omitempty"`
 }
 
 type Preprocessors []Preprocessor
