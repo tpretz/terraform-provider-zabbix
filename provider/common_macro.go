@@ -1,0 +1,58 @@
+package provider
+
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tpretz/go-zabbix-api"
+)
+
+var macroListSchema = &schema.Schema{
+	Type:     schema.TypeList,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"value": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	},
+}
+
+func macroGenerate(d *schema.ResourceData) (macros zabbix.Macros) {
+	macroCount := d.Get("macro.#").(int)
+	macros = make(zabbix.Macros, macroCount)
+
+	for i := 0; i < macroCount; i++ {
+		prefix := fmt.Sprintf("macro.%d.", i)
+
+		macros[i] = zabbix.Macro{
+			MacroName: d.Get(prefix + "name").(string),
+			Value:     d.Get(prefix + "value").(string),
+			MacroID:   d.Get(prefix + "id").(string),
+		}
+	}
+
+	return
+}
+
+func flattenMacros(list zabbix.Macros) []interface{} {
+	val := make([]interface{}, len(list))
+	for i := 0; i < len(list); i++ {
+		val[i] = map[string]interface{}{
+			"name":  list[i].MacroName,
+			"value": list[i].Value,
+			"id":    list[i].MacroID,
+		}
+	}
+	return val
+}

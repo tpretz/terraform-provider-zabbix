@@ -81,6 +81,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Elem:     &schema.Schema{Type: schema.TypeString},
 		Optional: true,
 	},
+	"macro": macroListSchema,
 }
 
 func resourceHost() *schema.Resource {
@@ -122,7 +123,7 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 
 		// computed
 		switch k {
-		case "host", "interfaces", "groups", "templates":
+		case "host", "interfaces", "groups", "templates", "macro":
 			schema.Computed = true
 		}
 
@@ -215,6 +216,7 @@ func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	}
 
 	item.Interfaces = interfaces
+	item.UserMacros = macroGenerate(d)
 
 	return &item, nil
 }
@@ -248,6 +250,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectInterfaces":      "extend",
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
+		"selectMacros":          "extend",
 	}
 
 	lookups := []string{"host", "hostid", "name"}
@@ -275,6 +278,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectInterfaces":      "extend",
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
+		"selectMacros":          "extend",
 		"hostids":               d.Id(),
 	})
 }
@@ -318,6 +322,8 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 		groupSet.Add(v.GroupID)
 	}
 	d.Set("groups", groupSet)
+
+	d.Set("macro", flattenMacros(host.UserMacros))
 
 	return nil
 }

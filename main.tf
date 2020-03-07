@@ -57,6 +57,11 @@ resource "zabbix_template" "a" {
   groups = [zabbix_hostgroup.a.id]
   host = "example template"
   name = "visible name"
+
+  macro {
+    name = "{$SOMETHING}"
+    value = "GOOD"
+  }
 }
 
 resource "zabbix_host" "a" {
@@ -71,5 +76,10 @@ resource "zabbix_host" "a" {
   interfaces {
     dns = "test.isp.adev"
     main = true
+  }
+  
+  macro {
+    name = "{$SOMETHING}"
+    value = "ELSE"
   }
 }

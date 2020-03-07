@@ -36,6 +36,7 @@ func resourceTemplate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"macro": macroListSchema,
 		},
 	}
 }
@@ -68,6 +69,7 @@ func dataTemplate() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"macro": macroListSchema,
 		},
 	}
 }
@@ -94,7 +96,8 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	params := zabbix.Params{
-		"filter": map[string]interface{}{},
+		"filter":       map[string]interface{}{},
+		"selectMacros": "extend",
 	}
 
 	if v := d.Get("host").(string); v != "" {
@@ -117,7 +120,8 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of template with id %s", d.Id())
 
 	return templateRead(d, m, zabbix.Params{
-		"templateids": d.Id(),
+		"templateids":  d.Id(),
+		"selectMacros": "extend",
 	})
 }
 
@@ -143,6 +147,7 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	d.Set("description", t.Description)
 	d.Set("host", t.Host)
 	d.Set("name", t.Name)
+	d.Set("macro", flattenMacros(t.UserMacros))
 	d.SetId(t.TemplateID)
 
 	return nil
@@ -155,6 +160,8 @@ func buildTemplateObject(d *schema.ResourceData) *zabbix.Template {
 		Host:        d.Get("host").(string),
 		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
 	}
+
+	item.UserMacros = macroGenerate(d)
 	return &item
 }
 
