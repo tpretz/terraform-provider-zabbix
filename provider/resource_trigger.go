@@ -69,13 +69,16 @@ func resourceTrigger() *schema.Resource {
 				Optional: true,
 				Default:  "0",
 			},
+			"dependencies": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
 
-func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
+func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 	item := zabbix.Trigger{
 		Description:        d.Get("description").(string),
 		Expression:         d.Get("expression").(string),
@@ -90,6 +93,16 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 		CorrelationTag:     d.Get("correlation_tag").(string),
 		ManualClose:        d.Get("manual_close").(string),
 	}
+
+	item.Dependencies = buildTriggerIds(d.Get("dependencies").(*schema.Set))
+
+	return item
+}
+
+func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
+	item := buildTriggerObject(d)
 
 	items := []zabbix.Trigger{item}
 
@@ -112,8 +125,9 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of trigger with id %s", d.Id())
 
 	triggers, err := api.TriggersGet(zabbix.Params{
-		"triggerids":       d.Id(),
-		"expandExpression": "extend",
+		"triggerids":         d.Id(),
+		"expandExpression":   "extend",
+		"selectDependencies": "extend",
 	})
 
 	if err != nil {
@@ -142,27 +156,21 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("correlation_tag", t.CorrelationTag)
 	d.Set("manual_close", t.ManualClose)
 
+	dependenciesSet := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range t.Dependencies {
+		dependenciesSet.Add(v.TriggerID)
+	}
+	d.Set("dependencies", dependenciesSet)
+
 	return nil
 }
 
 func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item := zabbix.Trigger{
-		TriggerID:          d.Id(),
-		Description:        d.Get("description").(string),
-		Expression:         d.Get("expression").(string),
-		Comments:           d.Get("comments").(string),
-		Opdata:             d.Get("opdata").(string),
-		Status:             zabbix.StatusType(d.Get("status").(int)),
-		Type:               d.Get("type").(string),
-		Url:                d.Get("url").(string),
-		RecoveryMode:       d.Get("recovery_mode").(string),
-		RecoveryExpression: d.Get("recovery_expression").(string),
-		CorrelationMode:    d.Get("correlation_mode").(string),
-		CorrelationTag:     d.Get("correlation_tag").(string),
-		ManualClose:        d.Get("manual_close").(string),
-	}
+	item := buildTriggerObject(d)
+
+	item.TriggerID = d.Id()
 
 	items := []zabbix.Trigger{item}
 

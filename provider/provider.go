@@ -107,6 +107,20 @@ func buildHostGroupIds(s *schema.Set) zabbix.HostGroupIDs {
 	return groups
 }
 
+func buildTriggerIds(s *schema.Set) zabbix.TriggerIDs {
+	list := s.List()
+
+	groups := make(zabbix.TriggerIDs, len(list))
+
+	for i := 0; i < len(list); i++ {
+		groups[i] = zabbix.TriggerID{
+			TriggerID: list[i].(string),
+		}
+	}
+
+	return groups
+}
+
 func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
 	list := s.List()
 

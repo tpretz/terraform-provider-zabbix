@@ -42,6 +42,11 @@ resource "zabbix_item_http" "a" {
 resource "zabbix_trigger" "b" {
   description = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(120)}=1"
+  dependencies = [zabbix_trigger.c.id]
+}
+resource "zabbix_trigger" "c" {
+  description = "test trigger"
+  expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(240)}=1"
 }
 
 resource "zabbix_template" "a" {
