@@ -34,8 +34,8 @@ resource "zabbix_item_http" "a" {
   verify_host = true
 
   preprocessor {
-    type = "14"
-    params = "^test$"
+    type = "5"
+    params = "^test$\nbob"
   }
 }
 
