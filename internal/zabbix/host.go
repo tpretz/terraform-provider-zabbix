@@ -40,6 +40,8 @@ type Host struct {
 	GroupIds    HostGroupIDs   `json:"groups,omitempty"`
 	Interfaces  HostInterfaces `json:"interfaces,omitempty"`
 	TemplateIDs TemplateIDs    `json:"templates,omitempty"`
+	// templates are read back from this one
+	ParentTemplateIDs TemplateIDs `json:"parentTemplates,omitempty"`
 }
 
 // Hosts is an array of Host
