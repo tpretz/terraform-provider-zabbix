@@ -184,6 +184,11 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 		if d.Get(prefix + "main").(bool) {
 			interfaces[i].Main = "1"
 		}
+
+		// if we have an id (i.e an update)
+		if str := d.Get(prefix + "id").(string); str != "" {
+			interfaces[i].InterfaceID = str
+		}
 	}
 
 	return
@@ -240,7 +245,9 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 
 func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	params := zabbix.Params{
-		"selectInterfaces": "extend",
+		"selectInterfaces":      "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
 	}
 
 	lookups := []string{"host", "hostid", "name"}
@@ -265,8 +272,10 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
 	return hostRead(d, m, zabbix.Params{
-		"selectInterfaces": "extend",
-		"hostids":          d.Id(),
+		"selectInterfaces":      "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
+		"hostids":               d.Id(),
 	})
 }
 
@@ -297,6 +306,18 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("enabled", host.Status == 0)
 
 	d.Set("interfaces", flattenHostInterfaces(host))
+
+	templateSet := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range host.ParentTemplateIDs {
+		templateSet.Add(v.TemplateID)
+	}
+	d.Set("templates", templateSet)
+
+	groupSet := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range host.GroupIds {
+		groupSet.Add(v.GroupID)
+	}
+	d.Set("groups", groupSet)
 
 	return nil
 }
