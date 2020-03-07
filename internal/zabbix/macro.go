@@ -4,7 +4,7 @@ package zabbix
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/object
 type Macro struct {
 	MacroID   string `json:"hostmacroids,omitempty"`
-	HostID    string `json:"hostid"`
+	HostID    string `json:"hostid,omitempty"`
 	MacroName string `json:"macro"`
 	Value     string `json:"value"`
 }
