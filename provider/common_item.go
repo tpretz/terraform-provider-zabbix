@@ -28,7 +28,7 @@ var itemPreprocessorSchema = &schema.Schema{
 			"error_handler": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "0",
+				Default:  "",
 			},
 			"error_handler_params": &schema.Schema{
 				Type:     schema.TypeString,
