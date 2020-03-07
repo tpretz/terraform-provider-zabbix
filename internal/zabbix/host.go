@@ -29,12 +29,13 @@ const (
 // Host represent Zabbix host object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/object
 type Host struct {
-	HostID    string        `json:"hostid,omitempty"`
-	Host      string        `json:"host"`
-	Available AvailableType `json:"available,string"`
-	Error     string        `json:"error"`
-	Name      string        `json:"name"`
-	Status    StatusType    `json:"status,string"`
+	HostID     string        `json:"hostid,omitempty"`
+	Host       string        `json:"host"`
+	Available  AvailableType `json:"available,string"`
+	Error      string        `json:"error"`
+	Name       string        `json:"name"`
+	Status     StatusType    `json:"status,string"`
+	UserMacros Macros        `json:"macros,omitempty"`
 
 	// Fields below used only when creating hosts
 	GroupIds    HostGroupIDs   `json:"groups,omitempty"`
