@@ -39,6 +39,13 @@ const (
 	Problem ValueType = 1
 )
 
+type TriggerID struct {
+	TriggerID string `json:"triggerid"`
+}
+
+// TemplateIDs is an Array of TemplateID structs.
+type TriggerIDs []TriggerID
+
 // TriggerFunction The function objects represents the functions used in the trigger expression
 type TriggerFunction struct {
 	FunctionID string `json:"functionid"`
@@ -60,18 +67,18 @@ type Trigger struct {
 	//TemplateId  string    `json:"templateid"`
 	//Value ValueType `json:""`
 
-	Opdata string `json:"opdata,omitempty"`
+	Opdata             string `json:"opdata,omitempty"`
 	Type               string `json:"type"`
-	Url string `json:"url,omitempty"`
-	RecoveryMode       string    `json:"recovery_mode"`
+	Url                string `json:"url,omitempty"`
+	RecoveryMode       string `json:"recovery_mode"`
 	RecoveryExpression string `json:"recovery_expression,omitempty"`
-	CorrelationMode    string    `json:"correlation_mode"`
-	CorrelationTag string `json:"correlation_tag,omitempty"`
-	ManualClose    string    `json:"manual_close"`
+	CorrelationMode    string `json:"correlation_mode"`
+	CorrelationTag     string `json:"correlation_tag,omitempty"`
+	ManualClose        string `json:"manual_close"`
 
 	Priority     SeverityType     `json:"priority,string"`
 	Status       StatusType       `json:"status,string"`
-	Dependencies Triggers         `json:"dependencies,omitempty"`
+	Dependencies TriggerIDs       `json:"dependencies,omitempty"`
 	Functions    TriggerFunctions `json:"functions,omitempty"`
 	// Items contained by the trigger in the items property.
 	ContainedItems Items `json:"items,omitempty"`
