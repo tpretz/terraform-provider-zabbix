@@ -12,6 +12,10 @@ data "zabbix_hostgroup" "a" {
   name = "Hypervisors"
 }
 
+data "zabbix_template" "a" {
+  host = "Template App FTP Service"
+}
+
 resource "zabbix_hostgroup" "a" {
   name = "test group"
 }
@@ -58,7 +62,7 @@ resource "zabbix_template" "a" {
 resource "zabbix_host" "a" {
   host = "test.isp.dev"
   groups = [zabbix_hostgroup.a.id, data.zabbix_hostgroup.a.id]
-  templates = [zabbix_template.a.id]
+  templates = [zabbix_template.a.id, data.zabbix_template.a.id]
   
   interfaces {
     dns = "test.isp.cdev"

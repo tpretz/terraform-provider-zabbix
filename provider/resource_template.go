@@ -40,6 +40,38 @@ func resourceTemplate() *schema.Resource {
 	}
 }
 
+func dataTemplate() *schema.Resource {
+	return &schema.Resource{
+		Read: dataTemplateRead,
+
+		Schema: map[string]*schema.Schema{
+			"groups": &schema.Schema{
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed:    true,
+				Description: "Zabbix ID",
+			},
+			"host": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Host",
+			},
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+		},
+	}
+}
+
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -59,14 +91,40 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceTemplateRead(d, m)
 }
 
+func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
+
+	params := zabbix.Params{
+		"filter": map[string]interface{}{},
+	}
+
+	if v := d.Get("host").(string); v != "" {
+		params["filter"].(map[string]interface{})["host"] = v
+	}
+
+	if v := d.Get("name").(string); v != "" {
+		params["filter"].(map[string]interface{})["name"] = v
+	}
+
+	if len(params["filter"].(map[string]interface{})) < 1 {
+		return errors.New("no filter parameters provided")
+	}
+	log.Debug("Lookup of template with: %#v", params)
+
+	return templateRead(d, m, params)
+}
+
 func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
+	log.Debug("Lookup of template with id %s", d.Id())
 
-	log.Debug("Lookup of trigger with id %s", d.Id())
-
-	templates, err := api.TemplatesGet(zabbix.Params{
+	return templateRead(d, m, zabbix.Params{
 		"templateids": d.Id(),
 	})
+}
+
+func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
+	api := m.(*zabbix.API)
+
+	templates, err := api.TemplatesGet(params)
 
 	if err != nil {
 		return err
@@ -85,6 +143,7 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("description", t.Description)
 	d.Set("host", t.Host)
 	d.Set("name", t.Name)
+	d.SetId(t.TemplateID)
 
 	return nil
 }
