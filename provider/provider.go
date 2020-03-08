@@ -2,10 +2,14 @@ package provider
 
 import (
 	logger "log"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/tpretz/go-zabbix-api"
 )
+
+// this changes and no longer works if accessed later
+var stderr = os.Stderr
 
 type Log struct{}
 
@@ -78,7 +82,7 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
-	l := logger.New(logger.Writer(), "[DEBUG] ", logger.LstdFlags)
+	l := logger.New(stderr, "[DEBUG] ", logger.LstdFlags)
 
 	api := zabbix.NewAPI(zabbix.Config{
 		Url:         d.Get("url").(string),
