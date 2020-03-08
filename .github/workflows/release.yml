@@ -3,71 +3,77 @@
 on: 
   release:
     types: [created]
-name: Build
+name: Create Release
 jobs:
   release-linux-386:
     name: release linux/386
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
         GOOS: linux
+        VERSION: ${{ env.RELEASE_VERSION }}
   release-linux-amd64:
     name: release linux/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: linux
+        VERSION: ${{ env.RELEASE_VERSION }}
   release-darwin-386:
     name: release darwin/386
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
         GOOS: darwin
+        VERSION: ${{ env.RELEASE_VERSION }}
   release-darwin-amd64:
     name: release darwin/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: darwin
+        VERSION: ${{ env.RELEASE_VERSION }}
   release-windows-386:
     name: release windows/386
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: "386"
         GOOS: windows
+        VERSION: ${{ env.RELEASE_VERSION }}
   release-windows-amd64:
     name: release windows/amd64
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     - name: compile and release
-      uses: sqs/go-release.action@v1.0.3
+      uses: tpretz/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GOARCH: amd64
         GOOS: windows
+        VERSION: ${{ env.RELEASE_VERSION }}
