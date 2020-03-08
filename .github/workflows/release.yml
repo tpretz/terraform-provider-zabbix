@@ -2,7 +2,7 @@
 
 on: 
   release:
-    types: [created]
+    types: [published]
 name: Create Release
 jobs:
   release-linux-386:
