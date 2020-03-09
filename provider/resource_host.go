@@ -57,9 +57,10 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Description: "Interface DNS name",
 				},
 				"ip": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Interface IP address",
+					Type:         schema.TypeString,
+					Optional:     true,
+					ValidateFunc: validation.IsIPAddress,
+					Description:  "Interface IP address",
 				},
 				"main": &schema.Schema{
 					Type:        schema.TypeBool,
@@ -68,10 +69,11 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Description: "Primary interface of this type",
 				},
 				"port": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Default:     "10050",
-					Description: "Destination Port",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Default:      "10050",
+					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "port must be a numeric string"),
+					Description:  "Destination Port",
 				},
 				"type": &schema.Schema{
 					Type:     schema.TypeString,
