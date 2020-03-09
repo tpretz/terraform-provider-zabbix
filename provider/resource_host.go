@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -134,7 +135,7 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 
 		// required
 		switch k {
-		case "host", "interfaces", "groups":
+		case "host", "interface", "groups":
 			schema.Required = true
 		case "templates":
 			schema.Optional = true
@@ -156,7 +157,7 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 		case "host", "templates":
 			schema.Optional = true
 			fallthrough
-		case "interfaces", "groups", "macro":
+		case "interface", "groups", "macro":
 			schema.Computed = true
 		}
 

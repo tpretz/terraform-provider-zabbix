@@ -34,7 +34,7 @@ resource "zabbix_item_http" "a" {
   valuetype = 4
 
   url = "http://google.com"
-  interfaceid = zabbix_host.a.interfaces[0].id
+  interfaceid = zabbix_host.a.interface[0].id
   verify_host = true
 
   preprocessor {
@@ -69,11 +69,11 @@ resource "zabbix_host" "a" {
   groups = [zabbix_hostgroup.a.id, data.zabbix_hostgroup.a.id]
   templates = [zabbix_template.a.id, data.zabbix_template.a.id]
   
-  interfaces {
+  interface {
     dns = "test.isp.cdev"
     type = "snmp"
   }
-  interfaces {
+  interface {
     dns = "test.isp.adev"
     main = true
   }
