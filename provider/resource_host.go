@@ -116,6 +116,9 @@ func resourceHost() *schema.Resource {
 		Update: resourceHostUpdate,
 		Delete: resourceHostDelete,
 		Schema: hostResourceSchema(hostSchemaBase),
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 	}
 }
 
