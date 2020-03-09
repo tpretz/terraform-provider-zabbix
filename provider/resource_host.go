@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -27,63 +29,83 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Required:    false,
 		Optional:    true,
 		Computed:    true,
-		Description: "displayname",
+		Description: "Zabbix host displayname, defaults to the value of \"host\"",
 	},
 	"host": &schema.Schema{
 		Type:        schema.TypeString,
-		Description: "host FQDN",
+		Description: "FQDN of host",
 	},
 	"enabled": &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  true,
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     true,
+		Description: "Enable host for monitoring",
 	},
-	"interfaces": &schema.Schema{
-		Type: schema.TypeList,
+	"interface": &schema.Schema{
+		Type:        schema.TypeList,
+		Description: "Host interfaces",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"id": &schema.Schema{
-					Type:     schema.TypeString,
-					Computed: true,
+					Type:        schema.TypeString,
+					Computed:    true,
+					Description: "Interface ID (internally generated)",
 				},
 				"dns": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Interface DNS name",
 				},
 				"ip": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Interface IP address",
 				},
 				"main": &schema.Schema{
-					Type:     schema.TypeBool,
-					Optional: true,
-					Default:  true,
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     true,
+					Description: "Primary interface of this type",
 				},
 				"port": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
-					Default:  "10050",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "10050",
+					Description: "Destination Port",
 				},
 				"type": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "agent",
+					ValidateFunc: validation.StringInSlice([]string{
+						"agent",
+						"snmp",
+						"ipmi",
+						"jmx",
+					}, false),
+					Description: "Interface type",
 				},
 			},
 		},
 	},
 	"groups": &schema.Schema{
-		Type: schema.TypeSet,
-		Elem: &schema.Schema{Type: schema.TypeString},
+		Type:        schema.TypeSet,
+		Description: "Hostgroup IDs to associate this host with",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
 	},
 	"templates": &schema.Schema{
-		Type:     schema.TypeSet,
-		Elem:     &schema.Schema{Type: schema.TypeString},
-		Optional: true,
+		Type:        schema.TypeSet,
+		Description: "Template IDs to attach to this host",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
 	},
 	"macro": macroListSchema,
 }
 
+// resourceHost terraform host resource entrypoint
 func resourceHost() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceHostCreate,
@@ -94,6 +116,7 @@ func resourceHost() *schema.Resource {
 	}
 }
 
+// dataHost terraform host resource entrypoint
 func dataHost() *schema.Resource {
 	return &schema.Resource{
 		Read:   dataHostRead,
@@ -101,6 +124,7 @@ func dataHost() *schema.Resource {
 	}
 }
 
+// hostResourceSchema adjust a base schema for resource usage
 func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 	o = map[string]*schema.Schema{}
 	for k, v := range m {
@@ -110,12 +134,16 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 		switch k {
 		case "host", "interfaces", "groups":
 			schema.Required = true
+		case "templates":
+			schema.Optional = true
 		}
 
 		o[k] = &schema
 	}
 	return o
 }
+
+// hostDataSchema adjust a base schema for data usage
 func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 	o = map[string]*schema.Schema{}
 	for k, v := range m {
@@ -123,14 +151,11 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 
 		// computed
 		switch k {
-		case "host", "interfaces", "groups", "templates", "macro":
-			schema.Computed = true
-		}
-
-		// optional
-		switch k {
-		case "host":
+		case "host", "templates":
 			schema.Optional = true
+			fallthrough
+		case "interfaces", "groups", "macro":
+			schema.Computed = true
 		}
 
 		o[k] = &schema
@@ -145,40 +170,29 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 	return o
 }
 
+// hostGenerateInterfaces generate interface object array
 func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInterfaces, err error) {
-	interfaceCount := d.Get("interfaces.#").(int)
+	interfaceCount := d.Get("interface.#").(int)
 	interfaces = make(zabbix.HostInterfaces, interfaceCount)
 
 	for i := 0; i < interfaceCount; i++ {
-		prefix := fmt.Sprintf("interfaces.%d.", i)
-
-		ifaceType := d.Get(prefix + "type").(string)
-
-		typeId, ok := HOST_IFACE_TYPES[ifaceType]
-
-		if !ok {
-			err = fmt.Errorf("%s isnt valid interface type", ifaceType)
-			return
-		}
-
-		ip := d.Get(prefix + "ip").(string)
-		dns := d.Get(prefix + "dns").(string)
-
-		if ip == "" && dns == "" {
-			err = errors.New("interface requires either an IP or DNS entry")
-			return
-		}
+		prefix := fmt.Sprintf("interface.%d.", i)
+		typeId := HOST_IFACE_TYPES[d.Get(prefix+"type").(string)]
 
 		interfaces[i] = zabbix.HostInterface{
-			IP:    ip,
-			DNS:   dns,
+			IP:    d.Get(prefix + "ip").(string),
+			DNS:   d.Get(prefix + "dns").(string),
 			Main:  "0",
 			Port:  d.Get(prefix + "port").(string),
 			Type:  typeId,
 			UseIP: "0",
 		}
+		if interfaces[i].IP == "" && interfaces[i].DNS == "" {
+			err = errors.New("interface requires either an IP or DNS entry")
+			return
+		}
 
-		if ip != "" {
+		if interfaces[i].IP != "" {
 			interfaces[i].UseIP = "1"
 		}
 
@@ -195,6 +209,7 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 	return
 }
 
+// buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	item := zabbix.Host{
 		Host:   d.Get("host").(string),
@@ -221,6 +236,7 @@ func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	return &item, nil
 }
 
+// resourceHostCreate terraform create handler
 func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -245,25 +261,24 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostRead(d, m)
 }
 
+// dataHostRead read handler for data resource
 func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	params := zabbix.Params{
 		"selectInterfaces":      "extend",
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
 		"selectMacros":          "extend",
+		"filter":                map[string]interface{}{},
 	}
 
 	lookups := []string{"host", "hostid", "name"}
 	for _, k := range lookups {
 		if v, ok := d.GetOk(k); ok {
-			if _, ok := params["filter"]; !ok {
-				params["filter"] = map[string]interface{}{}
-			}
 			params["filter"].(map[string]interface{})[k] = v
 		}
 	}
 
-	if len(params) < 1 {
+	if len(params["filter"].(map[string]interface{})) < 1 {
 		return errors.New("no host lookup attribute")
 	}
 	log.Debug("performing data lookup with params: %#v", params)
@@ -271,6 +286,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	return hostRead(d, m, params)
 }
 
+// resourceHostRead read handler for resource
 func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
@@ -283,6 +299,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	})
 }
 
+// hostRead common host read function
 func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
@@ -309,7 +326,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("host", host.Host)
 	d.Set("enabled", host.Status == 0)
 
-	d.Set("interfaces", flattenHostInterfaces(host))
+	d.Set("interface", flattenHostInterfaces(host))
 
 	templateSet := schema.NewSet(schema.HashString, []interface{}{})
 	for _, v := range host.ParentTemplateIDs {
@@ -328,6 +345,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	return nil
 }
 
+// flattenHostInterfaces convert API response into terraform structs
 func flattenHostInterfaces(host zabbix.Host) []interface{} {
 	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
@@ -343,6 +361,7 @@ func flattenHostInterfaces(host zabbix.Host) []interface{} {
 	return val
 }
 
+// resourceHostUpdate terraform update resource handler
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -365,6 +384,7 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostRead(d, m)
 }
 
+// resourceHostDelete terraform delete resource handler
 func resourceHostDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.HostsDeleteByIds([]string{d.Id()})
