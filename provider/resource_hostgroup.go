@@ -7,12 +7,16 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// resourceHostgroup terraform resource handler
 func resourceHostgroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceHostgroupCreate,
 		Read:   resourceHostgroupRead,
 		Update: resourceHostgroupUpdate,
 		Delete: resourceHostgroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -23,6 +27,7 @@ func resourceHostgroup() *schema.Resource {
 	}
 }
 
+// dataHostgroup terraform data handler
 func dataHostgroup() *schema.Resource {
 	return &schema.Resource{
 		Read: dataHostgroupRead,
@@ -36,6 +41,7 @@ func dataHostgroup() *schema.Resource {
 	}
 }
 
+// terraform hostgroup create function
 func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -58,6 +64,7 @@ func resourceHostgroupCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostgroupRead(d, m)
 }
 
+// hostgroupRead terraform hostgroup read function
 func hostgroupRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
@@ -83,6 +90,7 @@ func hostgroupRead(d *schema.ResourceData, m interface{}, params zabbix.Params) 
 	return nil
 }
 
+// dataHostgroupRead terraform data resource read handler
 func dataHostgroupRead(d *schema.ResourceData, m interface{}) error {
 	return hostgroupRead(d, m, zabbix.Params{
 		"filter": map[string]interface{}{
@@ -91,6 +99,7 @@ func dataHostgroupRead(d *schema.ResourceData, m interface{}) error {
 	})
 }
 
+// resourceHostgroupRead terraform resource read handler
 func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of hostgroup with id %s", d.Id())
 
@@ -99,6 +108,7 @@ func resourceHostgroupRead(d *schema.ResourceData, m interface{}) error {
 	})
 }
 
+// resourceHostgroupUpdate terraform resource update handler
 func resourceHostgroupUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -118,6 +128,7 @@ func resourceHostgroupUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostgroupRead(d, m)
 }
 
+// resourceHostgroupDelete terraform resource delete handler
 func resourceHostgroupDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.HostGroupsDeleteByIds([]string{d.Id()})
