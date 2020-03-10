@@ -102,16 +102,16 @@ resource "zabbix_template" "a" {
 }
 
 resource "zabbix_host" "a" {
-  host = "test.isp.dev"
+  host = "host.example.com"
   groups = [zabbix_hostgroup.a.id, data.zabbix_hostgroup.a.id]
   templates = [zabbix_template.a.id, data.zabbix_template.a.id]
   
   interface {
-    dns = "test.isp.cdev"
+    dns = "eth0.host.example.com"
     type = "snmp"
   }
   interface {
-    dns = "test.isp.adev"
+    dns = "eth0.host.example.com"
     main = true
   }
   
