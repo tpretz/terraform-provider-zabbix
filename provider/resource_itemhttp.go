@@ -14,34 +14,7 @@ func resourceItemHttp() *schema.Resource {
 		Update: resourceItemHttpUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: map[string]*schema.Schema{
-			"hostid": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Host ID",
-			},
-			"interfaceid": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Host Interface ID",
-			},
-			"key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"valuetype": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-			"delay": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "1m",
-			},
+		Schema: mergeSchemas(itemCommonSchema, itemDelayRequiredSchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -80,8 +53,7 @@ func resourceItemHttp() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"preprocessor": itemPreprocessorSchema,
-		},
+		}),
 	}
 }
 
@@ -91,7 +63,7 @@ func buildItemHttpObject(d *schema.ResourceData) *zabbix.Item {
 		HostID:      d.Get("hostid").(string),
 		Name:        d.Get("name").(string),
 		Type:        zabbix.HTTPAgent,
-		ValueType:   zabbix.ValueType(d.Get("valuetype").(int)),
+		ValueType:   ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 		Delay:       d.Get("delay").(string),
 		InterfaceID: d.Get("interfaceid").(string),
 
@@ -166,7 +138,7 @@ func resourceItemHttpRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
-	d.Set("valuetype", item.ValueType)
+	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("delay", item.Delay)
 
 	d.Set("url", item.Url)

@@ -2,9 +2,9 @@ package provider
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -15,49 +15,12 @@ func resourceItemSnmp() *schema.Resource {
 		Update: resourceItemSnmpUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: map[string]*schema.Schema{
-			"hostid": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Host ID",
-			},
-			"interfaceid": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Host Interface ID",
-				Default:     "0",
-			},
-			"key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"valuetype": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-			"delay": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "1m",
-			},
+		Schema: mergeSchemas(itemCommonSchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"snmp_version": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "2",
-				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					v := val.(string)
-					switch val.(string) {
-					case "1", "2", "3":
-						return
-					}
-
-					errs = append(errs, fmt.Errorf("%q must be 1, 2 or 3, got: %d", key, v))
-					return
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "2",
+				ValidateFunc: validation.StringInSlice([]string{"1", "2", "3"}, false),
 			},
 			"snmp_oid": &schema.Schema{
 				Type:     schema.TypeString,
@@ -103,8 +66,7 @@ func resourceItemSnmp() *schema.Resource {
 				Optional: true,
 				Default:  "${SNMP3_SECURITYNAME}",
 			},
-			"preprocessor": itemPreprocessorSchema,
-		},
+		}),
 	}
 }
 
@@ -112,6 +74,11 @@ var SNMP_LOOKUP = map[string]zabbix.ItemType{
 	"1": zabbix.SNMPv1Agent,
 	"2": zabbix.SNMPv2Agent,
 	"3": zabbix.SNMPv3Agent,
+}
+var SNMP_LOOKUP_REV = map[zabbix.ItemType]string{
+	zabbix.SNMPv1Agent: "1",
+	zabbix.SNMPv2Agent: "2",
+	zabbix.SNMPv3Agent: "3",
 }
 
 func buildItemSnmpObject(d *schema.ResourceData) *zabbix.Item {
@@ -121,7 +88,7 @@ func buildItemSnmpObject(d *schema.ResourceData) *zabbix.Item {
 		HostID:      d.Get("hostid").(string),
 		Name:        d.Get("name").(string),
 		Type:        SNMP_LOOKUP[d.Get("snmp_version").(string)],
-		ValueType:   zabbix.ValueType(d.Get("valuetype").(int)),
+		ValueType:   ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 		Delay:       d.Get("delay").(string),
 		InterfaceID: d.Get("interfaceid").(string),
 
@@ -194,7 +161,8 @@ func resourceItemSnmpRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
-	d.Set("valuetype", item.ValueType)
+	d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
+	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("delay", item.Delay)
 
 	d.Set("snmp_oid", item.SNMPOid)

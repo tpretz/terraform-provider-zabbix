@@ -4,8 +4,77 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
+
+var ITEM_VALUE_TYPES = map[string]zabbix.ValueType{
+	"float":     zabbix.Float,
+	"character": zabbix.Character,
+	"log":       zabbix.Log,
+	"unsigned":  zabbix.Unsigned,
+	"text":      zabbix.Text,
+}
+var ITEM_VALUE_TYPES_REV = map[zabbix.ValueType]string{
+	zabbix.Float:     "float",
+	zabbix.Character: "character",
+	zabbix.Log:       "log",
+	zabbix.Unsigned:  "unsigned",
+	zabbix.Text:      "text",
+}
+var ITEM_VALUE_TYPES_ARR = []string{
+	"float",
+	"character",
+	"log",
+	"unsigned",
+	"text",
+}
+
+// common schema elements for all item types
+var itemCommonSchema = map[string]*schema.Schema{
+	"hostid": &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "Host ID",
+	},
+	"key": &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+	},
+	"name": &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+	},
+	"valuetype": &schema.Schema{
+		Type:         schema.TypeString,
+		ValidateFunc: validation.StringInSlice(ITEM_VALUE_TYPES_ARR, false),
+		Required:     true,
+	},
+	"delay": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  "1m",
+	},
+	"preprocessor": itemPreprocessorSchema,
+}
+
+// Delay (required) schema
+var itemDelayRequiredSchema = map[string]*schema.Schema{
+	"delay": &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+		Default:  "1m",
+	},
+}
+
+// Interface schema
+var itemInterfaceSchema = map[string]*schema.Schema{
+	"interfaceid": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Host Interface ID",
+	},
+}
 
 var itemPreprocessorSchema = &schema.Schema{
 	Type:     schema.TypeList,

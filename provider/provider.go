@@ -139,3 +139,16 @@ func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
 
 	return groups
 }
+
+// mergeSchemas, take a varadic list of schemas and merge, latter overwrites former
+func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schema {
+	n := map[string]*schema.Schema{}
+
+	for _, s := range schemas {
+		for k, v := range s {
+			n[k] = v
+		}
+	}
+
+	return n
+}

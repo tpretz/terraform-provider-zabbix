@@ -14,31 +14,7 @@ func resourceItemSimple() *schema.Resource {
 		Update: resourceItemSimpleUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: map[string]*schema.Schema{
-			"hostid": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Host ID",
-			},
-			"key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"delay": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "1m",
-			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"valuetype": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-			"preprocessor": itemPreprocessorSchema,
-		},
+		Schema: mergeSchemas(itemCommonSchema, itemDelayRequiredSchema),
 	}
 }
 
@@ -48,7 +24,7 @@ func buildItemSimpleObject(d *schema.ResourceData) *zabbix.Item {
 		HostID:    d.Get("hostid").(string),
 		Name:      d.Get("name").(string),
 		Type:      zabbix.SimpleCheck,
-		ValueType: zabbix.ValueType(d.Get("valuetype").(int)),
+		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 		Delay:     d.Get("delay").(string),
 	}
 
@@ -104,7 +80,7 @@ func resourceItemSimpleRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("hostid", item.HostID)
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
-	d.Set("valuetype", item.ValueType)
+	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("delay", item.Delay)
 
 	d.Set("preprocessor", flattenItemPreprocessors(item))
