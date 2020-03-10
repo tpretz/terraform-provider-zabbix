@@ -20,6 +20,43 @@ resource "zabbix_hostgroup" "a" {
   name = "test group"
 }
 
+resource "zabbix_item_snmp" "a" {
+  hostid = zabbix_template.a.id
+  key = "snmptesta"
+  name = "snmp test a"
+  valuetype = "float"
+  snmp_version = 2
+  snmp_oid = "DISMAN-EVENT-MIB::sysUpTimeInstance"
+}
+
+resource "zabbix_item_snmp" "b" {
+  hostid = zabbix_template.a.id
+  key = "snmptestb"
+  name = "snmp test b"
+  valuetype = "float"
+  snmp_version = 3
+  snmp_oid = "DISMAN-EVENT-MIB::sysUpTimeInstance"
+}
+
+resource "zabbix_item_simple" "ping" {
+  hostid = zabbix_template.a.id
+  key = "icmpping[,,,,]"
+  name = "Ping"
+  valuetype = "float"
+}
+
+resource "zabbix_item_agent" "a" {
+  hostid = zabbix_template.a.id
+  key = "agent.hostname"
+  name = "Hostname"
+  valuetype = "text"
+}
+
+resource "zabbix_trigger" "ping" {
+  description = "Ping"
+  expression = "{${zabbix_template.a.host}:${zabbix_item_simple.ping.key}.last()}=1"
+}
+
 resource "zabbix_item_trapper" "a" {
   hostid = data.zabbix_host.test.id
   key = "abc_def"
