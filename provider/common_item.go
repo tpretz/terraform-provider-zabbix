@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -68,6 +69,7 @@ var itemInterfaceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 		Description: "Host Interface ID",
+		Default:     "0",
 	},
 }
 
@@ -101,6 +103,120 @@ var itemPreprocessorSchema = &schema.Schema{
 			},
 		},
 	},
+}
+
+type ItemHandler func(*schema.ResourceData, *zabbix.Item)
+
+func itemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemCreate(d, m, c, r)
+	}
+}
+
+func itemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemUpdate(d, m, c, r)
+	}
+}
+
+func itemGetReadWrapper(r ItemHandler) schema.ReadFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemRead(d, m, r)
+	}
+}
+
+func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
+	api := m.(*zabbix.API)
+
+	item := buildItemObject(d)
+
+	// run custom function
+	c(d, item)
+
+	items := []zabbix.Item{*item}
+
+	err := api.ItemsCreate(items)
+
+	if err != nil {
+		return err
+	}
+
+	log.Trace("created item: %+v", items[0])
+
+	d.SetId(items[0].ItemID)
+
+	return resourceItemRead(d, m, r)
+}
+
+func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
+	api := m.(*zabbix.API)
+
+	item := buildItemObject(d)
+	item.ItemID = d.Id()
+
+	items := []zabbix.Item{*item}
+
+	// run custom function
+	c(d, item)
+
+	err := api.ItemsUpdate(items)
+
+	if err != nil {
+		return err
+	}
+
+	return resourceItemRead(d, m, r)
+}
+
+func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) error {
+	api := m.(*zabbix.API)
+
+	log.Debug("Lookup of item with id %s", d.Id())
+
+	items, err := api.ItemsGet(zabbix.Params{
+		"itemids":             []string{d.Id()},
+		"selectPreprocessing": "extend",
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if len(items) < 1 {
+		return errors.New("no item found")
+	}
+	if len(items) > 1 {
+		return errors.New("multiple items found")
+	}
+	item := items[0]
+
+	log.Debug("Got item: %+v", item)
+
+	d.SetId(item.ItemID)
+	d.Set("hostid", item.HostID)
+	d.Set("key", item.Key)
+	d.Set("name", item.Name)
+	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
+	d.Set("delay", item.Delay)
+	d.Set("preprocessor", flattenItemPreprocessors(item))
+
+	// run custom
+	r(d, &item)
+
+	return nil
+}
+
+func buildItemObject(d *schema.ResourceData) *zabbix.Item {
+	item := zabbix.Item{
+		Key:       d.Get("key").(string),
+		HostID:    d.Get("hostid").(string),
+		Name:      d.Get("name").(string),
+		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
+		Delay:     d.Get("delay").(string),
+	}
+	item.Preprocessors = itemGeneratePreprocessors(d)
+
+	return &item
 }
 
 func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Preprocessors) {

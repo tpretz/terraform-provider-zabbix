@@ -14,7 +14,7 @@ func resourceItemTrapper() *schema.Resource {
 		Update: resourceItemTrapperUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
+		Schema: itemCommonSchema,
 	}
 }
 
@@ -23,7 +23,6 @@ func buildItemTrapperObject(d *schema.ResourceData) *zabbix.Item {
 		Key:       d.Get("key").(string),
 		HostID:    d.Get("hostid").(string),
 		Name:      d.Get("name").(string),
-		Delay:     d.Get("delay").(string),
 		Type:      zabbix.ZabbixTrapper,
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
@@ -81,7 +80,6 @@ func resourceItemTrapperRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
-	d.Set("delay", item.Delay)
 
 	d.Set("preprocessor", flattenItemPreprocessors(item))
 
