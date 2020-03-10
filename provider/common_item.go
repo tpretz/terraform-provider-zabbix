@@ -197,7 +197,6 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) erro
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
-	d.Set("delay", item.Delay)
 	d.Set("preprocessor", flattenItemPreprocessors(item))
 
 	// run custom
@@ -212,7 +211,6 @@ func buildItemObject(d *schema.ResourceData) *zabbix.Item {
 		HostID:    d.Get("hostid").(string),
 		Name:      d.Get("name").(string),
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
-		Delay:     d.Get("delay").(string),
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
 

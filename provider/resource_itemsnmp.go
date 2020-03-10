@@ -1,8 +1,6 @@
 package provider
 
 import (
-	"errors"
-
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
@@ -10,9 +8,9 @@ import (
 
 func resourceItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceItemSnmpCreate,
-		Read:   resourceItemSnmpRead,
-		Update: resourceItemSnmpUpdate,
+		Create: itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:   itemGetReadWrapper(itemSnmpReadFunc),
+		Update: itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
 		Delete: resourceItemDelete,
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
@@ -81,19 +79,12 @@ var SNMP_LOOKUP_REV = map[zabbix.ItemType]string{
 	zabbix.SNMPv3Agent: "3",
 }
 
-func buildItemSnmpObject(d *schema.ResourceData) *zabbix.Item {
+func itemSnmpModFunc(d *schema.ResourceData, item *zabbix.Item) {
+	item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
+	item.InterfaceID = d.Get("interfaceid").(string)
+	item.Delay = d.Get("delay").(string)
 
-	item := zabbix.Item{
-		Key:         d.Get("key").(string),
-		HostID:      d.Get("hostid").(string),
-		Name:        d.Get("name").(string),
-		Type:        SNMP_LOOKUP[d.Get("snmp_version").(string)],
-		ValueType:   ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
-		Delay:       d.Get("delay").(string),
-		InterfaceID: d.Get("interfaceid").(string),
-
-		SNMPOid: d.Get("snmp_oid").(string),
-	}
+	item.SNMPOid = d.Get("snmp_oid").(string)
 
 	switch item.Type {
 	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
@@ -107,63 +98,12 @@ func buildItemSnmpObject(d *schema.ResourceData) *zabbix.Item {
 		item.SNMPv3SecurityLevel = d.Get("snmp3_securitylevel").(string)
 		item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
 	}
-
-	item.Preprocessors = itemGeneratePreprocessors(d)
-
-	return &item
 }
 
-func resourceItemSnmpCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
-	item := buildItemSnmpObject(d)
-	items := []zabbix.Item{*item}
-
-	err := api.ItemsCreate(items)
-
-	if err != nil {
-		return err
-	}
-
-	log.Trace("created item: %+v", items[0])
-
-	d.SetId(items[0].ItemID)
-
-	return resourceItemSnmpRead(d, m)
-}
-
-func resourceItemSnmpRead(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
-	log.Debug("Lookup of item with id %s", d.Id())
-
-	items, err := api.ItemsGet(zabbix.Params{
-		"itemids":             []string{d.Id()},
-		"selectPreprocessing": "extend",
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if len(items) < 1 {
-		return errors.New("no item found")
-	}
-	if len(items) > 1 {
-		return errors.New("multiple items found")
-	}
-	item := items[0]
-
-	log.Debug("Got item: %+v", item)
-
-	d.SetId(item.ItemID)
-	d.Set("hostid", item.HostID)
+func itemSnmpReadFunc(d *schema.ResourceData, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
-	d.Set("key", item.Key)
-	d.Set("name", item.Name)
-	d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
-	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("delay", item.Delay)
+	d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 
 	d.Set("snmp_oid", item.SNMPOid)
 
@@ -179,25 +119,4 @@ func resourceItemSnmpRead(d *schema.ResourceData, m interface{}) error {
 		d.Set("snmp3_securitylevel", item.SNMPv3SecurityLevel)
 		d.Set("snmp3_securityname", item.SNMPv3SecurityName)
 	}
-
-	d.Set("preprocessor", flattenItemPreprocessors(item))
-
-	return nil
-}
-
-func resourceItemSnmpUpdate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-
-	item := buildItemSnmpObject(d)
-	item.ItemID = d.Id()
-
-	items := []zabbix.Item{*item}
-
-	err := api.ItemsUpdate(items)
-
-	if err != nil {
-		return err
-	}
-
-	return resourceItemSnmpRead(d, m)
 }
