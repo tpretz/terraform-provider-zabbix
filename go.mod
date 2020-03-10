@@ -9,4 +9,4 @@ require (
 	github.com/tpretz/go-zabbix-api v0.4.3
 )
 
-replace github.com/tpretz/go-zabbix-api => ../go-zabbix-api
+//replace github.com/tpretz/go-zabbix-api => ../go-zabbix-api
