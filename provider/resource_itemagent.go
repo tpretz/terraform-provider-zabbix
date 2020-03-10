@@ -12,6 +12,9 @@ func resourceItemAgent() *schema.Resource {
 		Read:   itemGetReadWrapper(itemAgentReadFunc),
 		Update: itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
 		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema),
 	}

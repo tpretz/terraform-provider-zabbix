@@ -13,6 +13,9 @@ func resourceTemplate() *schema.Resource {
 		Read:   resourceTemplateRead,
 		Update: resourceTemplateUpdate,
 		Delete: resourceTemplateDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"groups": &schema.Schema{

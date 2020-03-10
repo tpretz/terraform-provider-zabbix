@@ -11,6 +11,9 @@ func resourceItemTrapper() *schema.Resource {
 		Read:   itemGetReadWrapper(itemTrapperReadFunc),
 		Update: itemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
 		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: itemCommonSchema,
 	}

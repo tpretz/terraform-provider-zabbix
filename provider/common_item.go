@@ -9,6 +9,7 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// Item Type Conversion and lookup tables
 var ITEM_VALUE_TYPES = map[string]zabbix.ValueType{
 	"float":     zabbix.Float,
 	"character": zabbix.Character,
@@ -73,6 +74,7 @@ var itemInterfaceSchema = map[string]*schema.Schema{
 	},
 }
 
+// Schema for preprocessor blocks
 var itemPreprocessorSchema = &schema.Schema{
 	Type:     schema.TypeList,
 	Optional: true,
@@ -105,26 +107,31 @@ var itemPreprocessorSchema = &schema.Schema{
 	},
 }
 
+// Function signature for context manipulation
 type ItemHandler func(*schema.ResourceData, *zabbix.Item)
 
+// return a terraform CreateFunc
 func itemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
 		return resourceItemCreate(d, m, c, r)
 	}
 }
 
+// return a terraform UpdateFunc
 func itemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
 		return resourceItemUpdate(d, m, c, r)
 	}
 }
 
+// return a terraform ReadFunc
 func itemGetReadWrapper(r ItemHandler) schema.ReadFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
 		return resourceItemRead(d, m, r)
 	}
 }
 
+// Create Item Resource Handler
 func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
 	api := m.(*zabbix.API)
 
@@ -148,6 +155,7 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	return resourceItemRead(d, m, r)
 }
 
+// Update Item Resource Handler
 func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
 	api := m.(*zabbix.API)
 
@@ -168,6 +176,7 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	return resourceItemRead(d, m, r)
 }
 
+// Read Item Resource Handler
 func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) error {
 	api := m.(*zabbix.API)
 
@@ -205,6 +214,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) erro
 	return nil
 }
 
+// Build the base Item Object
 func buildItemObject(d *schema.ResourceData) *zabbix.Item {
 	item := zabbix.Item{
 		Key:       d.Get("key").(string),
@@ -217,6 +227,7 @@ func buildItemObject(d *schema.ResourceData) *zabbix.Item {
 	return &item
 }
 
+// Generate preprocessor objects
 func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Preprocessors) {
 	preprocessorCount := d.Get("preprocessor.#").(int)
 	preprocessors = make(zabbix.Preprocessors, preprocessorCount)
@@ -235,6 +246,7 @@ func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Pre
 	return
 }
 
+// Generate terraform flattened form of item preprocessors
 func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 	val := make([]interface{}, len(item.Preprocessors))
 	for i := 0; i < len(item.Preprocessors); i++ {
@@ -249,6 +261,7 @@ func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 	return val
 }
 
+// Delete Item Resource Handler
 func resourceItemDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.ItemsDeleteByIds([]string{d.Id()})

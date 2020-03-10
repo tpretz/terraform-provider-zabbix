@@ -11,6 +11,9 @@ func resourceItemHttp() *schema.Resource {
 		Read:   itemGetReadWrapper(itemHttpReadFunc),
 		Update: itemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
 		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"url": &schema.Schema{

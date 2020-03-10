@@ -12,6 +12,9 @@ func resourceItemSnmp() *schema.Resource {
 		Read:   itemGetReadWrapper(itemSnmpReadFunc),
 		Update: itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
 		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"snmp_version": &schema.Schema{

@@ -13,6 +13,9 @@ func resourceTrigger() *schema.Resource {
 		Read:   resourceTriggerRead,
 		Update: resourceTriggerUpdate,
 		Delete: resourceTriggerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{

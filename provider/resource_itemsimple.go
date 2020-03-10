@@ -11,6 +11,9 @@ func resourceItemSimple() *schema.Resource {
 		Read:   itemGetReadWrapper(itemSimpleReadFunc),
 		Update: itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
 		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
 	}
