@@ -14,7 +14,7 @@ func resourceItemHttp() *schema.Resource {
 		Update: resourceItemHttpUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: mergeSchemas(itemCommonSchema, itemDelayRequiredSchema, itemInterfaceSchema, map[string]*schema.Schema{
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,

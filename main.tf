@@ -24,14 +24,14 @@ resource "zabbix_item_trapper" "a" {
   hostid = data.zabbix_host.test.id
   key = "abc_def"
   name = "ABC DEF"
-  valuetype = 1
+  valuetype = "float"
 }
 
 resource "zabbix_item_http" "a" {
   hostid = zabbix_host.a.id
   key = "http_one"
   name = "http one"
-  valuetype = 4
+  valuetype = "text"
 
   url = "http://google.com"
   interfaceid = zabbix_host.a.interface[0].id

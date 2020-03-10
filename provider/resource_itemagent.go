@@ -15,7 +15,7 @@ func resourceItemAgent() *schema.Resource {
 		Update: resourceItemAgentUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: mergeSchemas(itemCommonSchema, itemInterfaceSchema),
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema),
 	}
 }
 

@@ -14,7 +14,7 @@ func resourceItemTrapper() *schema.Resource {
 		Update: resourceItemTrapperUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: itemCommonSchema,
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
 	}
 }
 

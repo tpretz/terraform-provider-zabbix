@@ -50,19 +50,14 @@ var itemCommonSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice(ITEM_VALUE_TYPES_ARR, false),
 		Required:     true,
 	},
-	"delay": &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
-		Default:  "1m",
-	},
 	"preprocessor": itemPreprocessorSchema,
 }
 
-// Delay (required) schema
-var itemDelayRequiredSchema = map[string]*schema.Schema{
+// Delay schema
+var itemDelaySchema = map[string]*schema.Schema{
 	"delay": &schema.Schema{
 		Type:     schema.TypeString,
-		Required: true,
+		Optional: true,
 		Default:  "1m",
 	},
 }

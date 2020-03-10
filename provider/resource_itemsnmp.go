@@ -15,7 +15,7 @@ func resourceItemSnmp() *schema.Resource {
 		Update: resourceItemSnmpUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: mergeSchemas(itemCommonSchema, itemInterfaceSchema, map[string]*schema.Schema{
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"snmp_version": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,

@@ -14,7 +14,7 @@ func resourceItemSimple() *schema.Resource {
 		Update: resourceItemSimpleUpdate,
 		Delete: resourceItemDelete,
 
-		Schema: mergeSchemas(itemCommonSchema, itemDelayRequiredSchema),
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
 	}
 }
 
