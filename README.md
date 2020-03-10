@@ -4,6 +4,8 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 
 <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
 
+<img src="https://assets.zabbix.com/img/logo/zabbix_logo_500x131.png" width="500px">
+
 # Requirements
 
 - Access to Zabbix API over http or https
@@ -59,6 +61,7 @@ provider "zabbix" {
 ### zabbix_hostgroup
 ### zabbix_template
 ### zabbix_trigger
+### zabbix_item_agent
 ### zabbix_item_snmp
 ### zabbix_item_simple
 ### zabbix_item_http
