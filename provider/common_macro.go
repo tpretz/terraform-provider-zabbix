@@ -2,7 +2,6 @@ package provider
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -16,9 +15,8 @@ var macroListSchema = &schema.Schema{
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:         schema.TypeString,
-				Computed:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"name": &schema.Schema{
 				Type:         schema.TypeString,

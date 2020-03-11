@@ -2,11 +2,14 @@ package provider
 
 import (
 	"errors"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// template resource function
 func resourceTemplate() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceTemplateCreate,
@@ -21,23 +24,27 @@ func resourceTemplate() *schema.Resource {
 			"groups": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 				},
 				Required:    true,
-				Description: "Zabbix ID",
+				Description: "Host Group IDs",
 			},
 			"host": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Host",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Template hostname (internal name)",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Template description",
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Template Display Name (defaults to host)",
 			},
 			"macro": macroListSchema,
 		},
@@ -55,28 +62,31 @@ func dataTemplate() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Computed:    true,
-				Description: "Zabbix ID",
+				Description: "Host Group IDs",
 			},
 			"host": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Host",
+				Description: "Template hostname (internal name)",
 			},
 			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Template description",
+				Computed:    true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Template Display Name (defaults to host)",
 			},
 			"macro": macroListSchema,
 		},
 	}
 }
 
+// terraform resource create handler
 func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -96,6 +106,7 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceTemplateRead(d, m)
 }
 
+// terraform template read handler (data source)
 func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	params := zabbix.Params{
@@ -119,6 +130,7 @@ func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 	return templateRead(d, m, params)
 }
 
+// terraform template read handler (resource)
 func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of template with id %s", d.Id())
 
@@ -128,6 +140,7 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	})
 }
 
+// generic template read function
 func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
@@ -157,6 +170,7 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	return nil
 }
 
+// build a template object from terraform data
 func buildTemplateObject(d *schema.ResourceData) *zabbix.Template {
 	item := zabbix.Template{
 		Description: d.Get("description").(string),
@@ -169,6 +183,7 @@ func buildTemplateObject(d *schema.ResourceData) *zabbix.Template {
 	return &item
 }
 
+// terraform update resource handler
 func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -186,6 +201,7 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceTemplateRead(d, m)
 }
 
+// terraform delete handler
 func resourceTemplateDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.TemplatesDeleteByIds([]string{d.Id()})
