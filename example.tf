@@ -27,6 +27,13 @@ resource "zabbix_item_internal" "a" {
   valuetype = "float"
 }
 
+resource "zabbix_item_aggregate" "a" {
+  hostid = data.zabbix_host.test.id
+  key = "grpsum[\"${zabbix_hostgroup.a.name}\", \"test\", sum, 1h]"
+  name = "test_aggregate"
+  valuetype = "float"
+}
+
 resource "zabbix_item_snmp" "a" {
   hostid = zabbix_template.a.id
   key = "snmptesta"

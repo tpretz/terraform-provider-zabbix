@@ -1,0 +1,32 @@
+package provider
+
+import (
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/tpretz/go-zabbix-api"
+)
+
+// terraform resource handler for item type
+func resourceItemAggregate() *schema.Resource {
+	return &schema.Resource{
+		Create: itemGetCreateWrapper(itemAggregateModFunc, itemAggregateReadFunc),
+		Read:   itemGetReadWrapper(itemAggregateReadFunc),
+		Update: itemGetUpdateWrapper(itemAggregateModFunc, itemAggregateReadFunc),
+		Delete: resourceItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
+	}
+}
+
+// Custom mod handler for item type
+func itemAggregateModFunc(d *schema.ResourceData, item *zabbix.Item) {
+	item.Type = zabbix.ZabbixAggregate
+	item.Delay = d.Get("delay").(string)
+}
+
+// Custom read handler for item type
+func itemAggregateReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+	d.Set("delay", item.Delay)
+}
