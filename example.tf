@@ -20,6 +20,13 @@ resource "zabbix_hostgroup" "a" {
   name = "test group"
 }
 
+resource "zabbix_item_internal" "a" {
+  hostid = data.zabbix_host.test.id
+  key = "zabbix[hosts]"
+  name = "internal_test"
+  valuetype = "float"
+}
+
 resource "zabbix_item_snmp" "a" {
   hostid = zabbix_template.a.id
   key = "snmptesta"

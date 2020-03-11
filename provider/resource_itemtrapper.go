@@ -5,6 +5,7 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// terraform resource handler for item type
 func resourceItemTrapper() *schema.Resource {
 	return &schema.Resource{
 		Create: itemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
@@ -19,9 +20,11 @@ func resourceItemTrapper() *schema.Resource {
 	}
 }
 
+// Custom mod handler for item type
 func itemTrapperModFunc(d *schema.ResourceData, item *zabbix.Item) {
 	item.Type = zabbix.ZabbixTrapper
 }
 
+// Custom read handler for item type
 func itemTrapperReadFunc(d *schema.ResourceData, item *zabbix.Item) {
 }

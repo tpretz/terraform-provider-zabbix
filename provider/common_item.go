@@ -140,6 +140,8 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	// run custom function
 	c(d, item)
 
+	log.Trace("preparing item object for create/update: %#v", item)
+
 	items := []zabbix.Item{*item}
 
 	err := api.ItemsCreate(items)
@@ -162,10 +164,12 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	item := buildItemObject(d)
 	item.ItemID = d.Id()
 
-	items := []zabbix.Item{*item}
-
 	// run custom function
 	c(d, item)
+
+	log.Trace("preparing item object for create/update: %#v", item)
+
+	items := []zabbix.Item{*item}
 
 	err := api.ItemsUpdate(items)
 
