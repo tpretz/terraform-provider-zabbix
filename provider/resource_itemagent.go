@@ -16,12 +16,22 @@ func resourceItemAgent() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema),
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
+			"active": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+		}),
 	}
 }
 
 func itemAgentModFunc(d *schema.ResourceData, item *zabbix.Item) {
-	item.Type = zabbix.ZabbixAgent
+	t := zabbix.ZabbixAgent
+	if d.Get("active").(bool) {
+		t = zabbix.ZabbixAgentActive
+	}
+	item.Type = t
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Delay = d.Get("delay").(string)
 }
@@ -29,4 +39,5 @@ func itemAgentModFunc(d *schema.ResourceData, item *zabbix.Item) {
 func itemAgentReadFunc(d *schema.ResourceData, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
+	d.Set("active", item.Type == zabbix.ZabbixAgentActive)
 }

@@ -59,6 +59,15 @@ resource "zabbix_item_agent" "a" {
   valuetype = "text"
 }
 
+resource "zabbix_item_agent" "b" {
+  hostid = zabbix_template.a.id
+  key = "agent.version"
+  name = "Hostname(b)"
+  valuetype = "text"
+
+  active = true
+}
+
 resource "zabbix_trigger" "ping" {
   description = "Ping"
   expression = "{${zabbix_template.a.host}:${zabbix_item_simple.ping.key}.last()}=1"
