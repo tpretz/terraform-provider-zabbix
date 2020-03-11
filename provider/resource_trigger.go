@@ -78,6 +78,7 @@ func resourceTrigger() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			// add tags
 		},
 	}
 }
