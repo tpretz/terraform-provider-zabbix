@@ -4,37 +4,46 @@ import (
 	logger "log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// Provider definition
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ZABBIX_USER", "ZABBIX_USERNAME"}, nil),
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Zabbix API username",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_USER", "ZABBIX_USERNAME"}, nil),
 			},
 			"password": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ZABBIX_PASS", "ZABBIX_PASSWORD"}, nil),
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Zabbix API password",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_PASS", "ZABBIX_PASSWORD"}, nil),
 			},
 			"url": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ZABBIX_URL", "ZABBIX_SERVER_URL"}, nil),
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Zabbix API url",
+				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_URL", "ZABBIX_SERVER_URL"}, nil),
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 			"tls_insecure": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Description: "Disable TLS certificate checking (for testing use only)",
+				Optional:    true,
+				Default:     false,
 			},
 			"serialize": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Serialize API requests",
+				Description: "Serialize API requests, if required due to API race conditions",
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
@@ -59,6 +68,7 @@ func Provider() *schema.Provider {
 	}
 }
 
+// providerConfigure configure this provider
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
 	l := logger.New(stderr, "[DEBUG] ", logger.LstdFlags)

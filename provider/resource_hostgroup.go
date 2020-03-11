@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -20,8 +21,10 @@ func resourceHostgroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				Description:  "Hostgroup Name",
+				Required:     true,
 			},
 		},
 	}
@@ -34,8 +37,10 @@ func dataHostgroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				Description:  "Hostgroup Name",
+				Required:     true,
 			},
 		},
 	}

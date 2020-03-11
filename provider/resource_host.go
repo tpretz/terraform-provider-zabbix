@@ -11,6 +11,7 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// interface type conversions
 var HOST_IFACE_TYPES = map[string]zabbix.InterfaceType{
 	"agent": zabbix.Agent,
 	"snmp":  zabbix.SNMP,
@@ -24,6 +25,7 @@ var HOST_IFACE_TYPES_REV = map[zabbix.InterfaceType]string{
 	zabbix.JMX:   "jmx",
 }
 
+// hostSchemaBase base host schema
 var hostSchemaBase = map[string]*schema.Schema{
 	"name": &schema.Schema{
 		Type:        schema.TypeString,
@@ -33,8 +35,9 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Description: "Zabbix host displayname, defaults to the value of \"host\"",
 	},
 	"host": &schema.Schema{
-		Type:        schema.TypeString,
-		Description: "FQDN of host",
+		Type:         schema.TypeString,
+		Description:  "FQDN of host",
+		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
 	"enabled": &schema.Schema{
 		Type:        schema.TypeBool,
@@ -95,14 +98,16 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Type:        schema.TypeSet,
 		Description: "Hostgroup IDs to associate this host with",
 		Elem: &schema.Schema{
-			Type: schema.TypeString,
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
 	},
 	"templates": &schema.Schema{
 		Type:        schema.TypeSet,
 		Description: "Template IDs to attach to this host",
 		Elem: &schema.Schema{
-			Type: schema.TypeString,
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
 	},
 	"macro": macroListSchema,

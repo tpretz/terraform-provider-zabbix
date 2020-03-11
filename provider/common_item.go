@@ -3,6 +3,8 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -35,21 +37,27 @@ var ITEM_VALUE_TYPES_ARR = []string{
 // common schema elements for all item types
 var itemCommonSchema = map[string]*schema.Schema{
 	"hostid": &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "Host ID",
+		Type:         schema.TypeString,
+		Required:     true,
+		Description:  "Host ID",
+		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 	},
 	"key": &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
+		Type:         schema.TypeString,
+		Description:  "Item KEY",
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Required:     true,
 	},
 	"name": &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
+		Type:         schema.TypeString,
+		Description:  "Item Name",
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Required:     true,
 	},
 	"valuetype": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringInSlice(ITEM_VALUE_TYPES_ARR, false),
+		Description:  "Item Value Type, one of: " + strings.Join(ITEM_VALUE_TYPES_ARR, ", "),
 		Required:     true,
 	},
 	"preprocessor": itemPreprocessorSchema,
@@ -58,9 +66,11 @@ var itemCommonSchema = map[string]*schema.Schema{
 // Delay schema
 var itemDelaySchema = map[string]*schema.Schema{
 	"delay": &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
-		Default:  "1m",
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Default:      "1m",
+		Description:  "Item Delay period",
 	},
 }
 
@@ -85,13 +95,16 @@ var itemPreprocessorSchema = &schema.Schema{
 				Computed: true,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Preprocessor type, zabbix identifier number",
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 			},
 			"params": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Preprocessor parameters, seperate with newline character",
+				Default:     "",
 			},
 			"error_handler": &schema.Schema{
 				Type:     schema.TypeString,

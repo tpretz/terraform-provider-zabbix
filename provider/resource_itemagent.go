@@ -18,9 +18,10 @@ func resourceItemAgent() *schema.Resource {
 
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, map[string]*schema.Schema{
 			"active": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Description: "Active zabbix agent Item",
+				Optional:    true,
+				Default:     false,
 			},
 		}),
 	}

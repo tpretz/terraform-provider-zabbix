@@ -2,32 +2,41 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// macro list schema
 var macroListSchema = &schema.Schema{
 	Type:     schema.TypeList,
 	Optional: true,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:         schema.TypeString,
+				Computed:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				Description:  "Macro Name (key)",
 			},
 			"value": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				Description:  "Macro Value",
 			},
 		},
 	},
 }
 
+// macroGenerate build macro structs from terraform inputs
 func macroGenerate(d *schema.ResourceData) (macros zabbix.Macros) {
 	macroCount := d.Get("macro.#").(int)
 	macros = make(zabbix.Macros, macroCount)
@@ -45,6 +54,7 @@ func macroGenerate(d *schema.ResourceData) (macros zabbix.Macros) {
 	return
 }
 
+// flattenMacros convert response to terraform input
 func flattenMacros(list zabbix.Macros) []interface{} {
 	val := make([]interface{}, len(list))
 	for i := 0; i < len(list); i++ {
