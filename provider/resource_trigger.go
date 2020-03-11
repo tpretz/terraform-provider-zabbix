@@ -138,7 +138,8 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if len(triggers) < 1 {
-		return errors.New("no trigger found")
+		d.SetId("")
+		return nil
 	}
 	if len(triggers) > 1 {
 		return errors.New("multiple triggers found")

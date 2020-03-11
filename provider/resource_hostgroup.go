@@ -75,7 +75,8 @@ func hostgroupRead(d *schema.ResourceData, m interface{}, params zabbix.Params) 
 	}
 
 	if len(hostgroups) < 1 {
-		return errors.New("no hostgroup found")
+		d.SetId("")
+		return nil
 	}
 	if len(hostgroups) > 1 {
 		return errors.New("multiple hostgroups found")

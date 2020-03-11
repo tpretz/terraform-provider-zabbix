@@ -318,7 +318,8 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	}
 
 	if len(hosts) < 1 {
-		return errors.New("no host found")
+		d.SetId("")
+		return nil
 	}
 	if len(hosts) > 1 {
 		return errors.New("multiple hosts found")

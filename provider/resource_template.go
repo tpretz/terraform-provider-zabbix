@@ -138,7 +138,8 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	}
 
 	if len(templates) < 1 {
-		return errors.New("no template found")
+		d.SetId("")
+		return nil
 	}
 	if len(templates) > 1 {
 		return errors.New("multiple templates found")

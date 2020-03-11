@@ -196,7 +196,8 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) erro
 	}
 
 	if len(items) < 1 {
-		return errors.New("no item found")
+		d.SetId("")
+		return nil
 	}
 	if len(items) > 1 {
 		return errors.New("multiple items found")
