@@ -35,12 +35,13 @@ func resourceTrigger() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"status": &schema.Schema{
+			// priority
+			"status": &schema.Schema{ // change to "enabled"
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 			},
-			"type": &schema.Schema{
+			"type": &schema.Schema{ // change to "multiple"
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "0",
@@ -49,7 +50,7 @@ func resourceTrigger() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"recovery_mode": &schema.Schema{
+			"recovery_mode": &schema.Schema{ // change to enum or tie to expression
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "0",
@@ -58,7 +59,7 @@ func resourceTrigger() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"correlation_mode": &schema.Schema{
+			"correlation_mode": &schema.Schema{ // tie to tag
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "0",
@@ -67,7 +68,7 @@ func resourceTrigger() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"manual_close": &schema.Schema{
+			"manual_close": &schema.Schema{ // change to boolean
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "0",
