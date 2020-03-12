@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -64,6 +65,7 @@ func resourceTrigger() *schema.Resource {
 				Optional:     true,
 				Description:  "Trigger Priority level, one of: " + strings.Join(TRIGGER_PRIORITY_ARR, ", "),
 				ValidateFunc: validation.StringInSlice(TRIGGER_PRIORITY_ARR, false),
+				Default:      "not_classified",
 			},
 			"enabled": &schema.Schema{
 				Type:        schema.TypeBool,
@@ -94,30 +96,32 @@ func resourceTrigger() *schema.Resource {
 				Optional:    true,
 				Description: "use recovery expression (recovery_none must not be true)",
 			},
-			"correlation_mode": &schema.Schema{ // tie to tag
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "0",
-			},
 			"correlation_tag": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Description: "correlation tag",
+				Optional:    true,
 			},
 			"manual_close": &schema.Schema{ // change to boolean
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "0",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Manual resolution",
 			},
 			"dependencies": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
+				},
+				Description: "Trigger Dependencies",
 			},
 			// add tags
 		},
 	}
 }
 
+// Build Trigger struct for create/modify
 func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 	item := zabbix.Trigger{
 		Description:        d.Get("name").(string),
@@ -129,9 +133,9 @@ func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 		Url:                d.Get("url").(string),
 		RecoveryMode:       "0",
 		RecoveryExpression: "",
-		CorrelationMode:    d.Get("correlation_mode").(string),
-		CorrelationTag:     d.Get("correlation_tag").(string),
-		ManualClose:        d.Get("manual_close").(string),
+		CorrelationMode:    "0",
+		CorrelationTag:     "",
+		ManualClose:        "0",
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -148,11 +152,21 @@ func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 		item.RecoveryExpression = v
 	}
 
+	if v := d.Get("correlation_tag").(string); v != "" {
+		item.CorrelationMode = "1"
+		item.CorrelationTag = v
+	}
+
+	if d.Get("manual_close").(bool) {
+		item.ManualClose = "1"
+	}
+
 	item.Dependencies = buildTriggerIds(d.Get("dependencies").(*schema.Set))
 
 	return item
 }
 
+// create trigger terraform handler
 func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -173,6 +187,7 @@ func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceTriggerRead(d, m)
 }
 
+// read tirgger terraform handler
 func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -206,11 +221,9 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("enabled", t.Status == 0)
 	d.Set("multiple", t.Type == "1")
 	d.Set("url", t.Url)
-	d.Set("recovery_mode", t.RecoveryMode)
 	d.Set("recovery_expression", t.RecoveryExpression)
-	d.Set("correlation_mode", t.CorrelationMode)
 	d.Set("correlation_tag", t.CorrelationTag)
-	d.Set("manual_close", t.ManualClose)
+	d.Set("manual_close", t.ManualClose == "1")
 
 	if t.RecoveryMode == "2" {
 		d.Set("recovery_none", true)
@@ -223,6 +236,10 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 		// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
 		d.Set("recovery_expression", "<recovery_mode_enabled_no_expression>")
 	}
+	if t.CorrelationMode == "1" && t.CorrelationTag == "" {
+		// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
+		d.Set("correlation_tag", "<correlation_enabled_no_tag>")
+	}
 
 	dependenciesSet := schema.NewSet(schema.HashString, []interface{}{})
 	for _, v := range t.Dependencies {
@@ -233,6 +250,7 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
+// update trigger terraform handler
 func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
@@ -251,6 +269,7 @@ func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
 	return resourceTriggerRead(d, m)
 }
 
+// delete trigger terraform handler
 func resourceTriggerDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.TriggersDeleteByIds([]string{d.Id()})
