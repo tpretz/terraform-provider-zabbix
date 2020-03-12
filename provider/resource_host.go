@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -23,6 +24,12 @@ var HOST_IFACE_TYPES_REV = map[zabbix.InterfaceType]string{
 	zabbix.SNMP:  "snmp",
 	zabbix.IPMI:  "ipmi",
 	zabbix.JMX:   "jmx",
+}
+var HOST_IFACE_PORTS = map[string]int{
+	"agent": 10050,
+	"snmp":  161,
+	"ipmi":  623,
+	"jmx":   8686,
 }
 
 // hostSchemaBase base host schema
@@ -73,10 +80,10 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Description: "Primary interface of this type",
 				},
 				"port": &schema.Schema{
-					Type:         schema.TypeString,
+					Type:         schema.TypeInt,
 					Optional:     true,
-					Default:      "10050",
-					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "port must be a numeric string"),
+					Computed:     true,
+					ValidateFunc: validation.IntBetween(0, 65535),
 					Description:  "Destination Port",
 				},
 				"type": &schema.Schema{
@@ -194,7 +201,6 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 			IP:    d.Get(prefix + "ip").(string),
 			DNS:   d.Get(prefix + "dns").(string),
 			Main:  "0",
-			Port:  d.Get(prefix + "port").(string),
 			Type:  typeId,
 			UseIP: "0",
 		}
@@ -209,6 +215,15 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 
 		if d.Get(prefix + "main").(bool) {
 			interfaces[i].Main = "1"
+		}
+
+		// if no port set, set the default for the type
+		if v, ok := d.GetOk(prefix + "port"); ok {
+			interfaces[i].Port = strconv.FormatInt(int64(v.(int)), 10)
+		} else {
+			v := HOST_IFACE_PORTS[d.Get(prefix+"type").(string)]
+			d.Set(prefix+"port", v)
+			interfaces[i].Port = strconv.FormatInt(int64(v), 10)
 		}
 
 		// if we have an id (i.e an update)
@@ -243,6 +258,8 @@ func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
+
+	log.Trace("build host object: %#v", item)
 
 	return &item, nil
 }
@@ -361,12 +378,13 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 func flattenHostInterfaces(host zabbix.Host) []interface{} {
 	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
+		port, _ := strconv.ParseInt(host.Interfaces[i].Port, 10, 64)
 		val[i] = map[string]interface{}{
 			"id":   host.Interfaces[i].InterfaceID,
 			"ip":   host.Interfaces[i].IP,
 			"dns":  host.Interfaces[i].DNS,
 			"main": host.Interfaces[i].Main == "1",
-			"port": host.Interfaces[i].Port,
+			"port": port,
 			"type": HOST_IFACE_TYPES_REV[host.Interfaces[i].Type],
 		}
 	}

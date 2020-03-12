@@ -130,6 +130,35 @@ data "zabbix_template" "example" {
 ## Resources
 
 ### zabbix_host
+
+```hcl
+data "zabbix_host" "example" {
+  host = "server.example.com"
+  name = "Friendly Name"
+
+  enabled = false
+
+  groups = [ 1234 ]
+  templates = [ 5678 ]
+
+  interface {
+    type = "snmp"
+    dns = "interface.dns.name"
+    ip = "interface.ip.addr"
+
+    main = false
+    port = 1161
+  }
+
+  macro {
+    key = "{$MACROABC}"
+    value = "test_value_one"
+  }
+}
+```
+
+
+
 ### zabbix_hostgroup
 ### zabbix_template
 ### zabbix_trigger

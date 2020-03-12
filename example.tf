@@ -133,6 +133,7 @@ resource "zabbix_host" "a" {
   interface {
     dns = "eth0.host.example.com"
     type = "snmp"
+    port = 1161
   }
   interface {
     dns = "eth0.host.example.com"
