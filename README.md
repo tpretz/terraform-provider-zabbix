@@ -87,7 +87,45 @@ data "zabbix_host" "example" {
     * macro.#.value - Macro value
 
 ### zabbix_hostgroup
+
+```hcl
+data "zabbix_hostgroup" "example" {
+  name = "Friendly Name"
+}
+```
+
+#### Argument Reference
+
+* name - (Required) Displayname of hostgroup
+
+#### Attributes Reference
+
+* name - Displayname of hostgroup
+
 ### zabbix_template
+
+```hcl
+data "zabbix_template" "example" {
+  host = "template internal name"
+  name = "Friendly Name"
+}
+```
+
+#### Argument Reference
+
+* host - (Optional) Name of Template
+* name - (Optional) Displayname of template
+
+#### Attributes Reference
+
+* host - Name of Template
+* name - Displayname of template
+* description - description
+* groups - List of hostgroup IDs
+* macro - List of Macros
+    * macro.#.id - Generated macro ID
+    * macro.#.name - Macro name
+    * macro.#.value - Macro value
 
 ## Resources
 
