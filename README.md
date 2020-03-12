@@ -52,6 +52,40 @@ provider "zabbix" {
 ## Data Sources
 
 ### zabbix_host
+
+```hcl
+data "zabbix_host" "example" {
+  host = "server.example.com"
+  name = "Friendly Name"
+  hostid = "1234"
+}
+```
+
+#### Argument Reference
+
+* host - (Optional) FQDN of host
+* name - (Optional) Displayname of host
+* hostid - (Optional) Zabbix host UUID
+
+#### Attributes Reference
+
+* host - FQDN of host
+* name - Displayname of host
+* enabled - Host enabled for monitoring
+* interface - Host Interfaces
+    * interface.#.id - Generated Interface ID
+    * interface.#.dns - DNS name
+    * interface.#.ip - IP Address
+    * interface.#.main - Primary interface of this type
+    * interface.#.port - Interface port to use
+    * interface.#.type - Type of interface (agent,snmp,ipmi,jmx)
+* groups - List of hostgroup IDs
+* templates - List of template IDs
+* macro - List of Macros
+    * macro.#.id - Generated macro ID
+    * macro.#.name - Macro name
+    * macro.#.value - Macro value
+
 ### zabbix_hostgroup
 ### zabbix_template
 
