@@ -76,7 +76,7 @@ resource "zabbix_item_agent" "b" {
 }
 
 resource "zabbix_trigger" "ping" {
-  description = "Ping"
+  name = "Ping"
   expression = "{${zabbix_template.a.host}:${zabbix_item_simple.ping.key}.last()}=1"
 }
 
@@ -104,12 +104,12 @@ resource "zabbix_item_http" "a" {
 }
 
 resource "zabbix_trigger" "b" {
-  description = "test trigger"
+  name = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(120)}=1"
   dependencies = [zabbix_trigger.c.id]
 }
 resource "zabbix_trigger" "c" {
-  description = "test trigger"
+  name = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(240)}=1"
 }
 
