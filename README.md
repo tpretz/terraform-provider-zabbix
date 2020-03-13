@@ -27,6 +27,8 @@ No Testing has yet been added to this repository
 
 # Usage
 
+All resources support terraform resource importing using zabbix ID numbers
+
 ## Provider
 
 Instantiate an instance of the provider.
@@ -515,4 +517,82 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_aggregate
+
+```hcl
+data "zabbix_item_aggregate" "example" {
+  hostid = "1234"
+  key = "grpsum()"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  delay = "1m"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
 ### zabbix_item_internal
+
+```hcl
+data "zabbix_item_internal" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  delay = "1m"
+
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
