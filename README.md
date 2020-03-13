@@ -138,8 +138,8 @@ data "zabbix_host" "example" {
 
   enabled = false
 
-  groups = [ 1234 ]
-  templates = [ 5678 ]
+  groups = [ "1234" ]
+  templates = [ "5678" ]
 
   interface {
     type = "snmp"
@@ -157,11 +157,123 @@ data "zabbix_host" "example" {
 }
 ```
 
+#### Argument Reference
+
+* host - (Required) FQDN of host
+* name - (Optional) Displayname of host
+* interface - (Required) Host Interfaces
+    * interface.#.type - (Required) Type of interface (agent,snmp,ipmi,jmx)
+    * interface.#.dns - (Optional) DNS name
+    * interface.#.ip - (Optional) IP Address
+    * interface.#.main - (Optional) Primary interface of this type
+    * interface.#.port - (Optional) Interface port to use
+* groups - (Required) List of hostgroup IDs
+* templates - (Optional) List of template IDs
+* macro - (Optional) List of Macros
+    * macro.#.name - Macro name
+    * macro.#.value - Macro value
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* interface.#.id - Generated Interface ID
+* macro.#.id - Generated macro ID
 
 
 ### zabbix_hostgroup
+
+```hcl
+data "zabbix_hostgroup" "example" {
+  name = "Friendly Name"
+}
+```
+
+#### Argument Reference
+
+* name - (Required) Displayname of hostgroup
+
+#### Attributes Reference
+
+Same as arguments
+
 ### zabbix_template
+
+```hcl
+data "zabbix_template" "example" {
+  host = "template internal name"
+  name = "Friendly Name"
+
+  groups = [ "1234" ]
+  description = "Template Description"
+  
+  macro {
+    key = "{$MACROABC}"
+    value = "test_value_one"
+  }
+}
+```
+
+#### Argument Reference
+
+* host - (Required) Name of Template
+* name - (Optional) Displayname of template
+* description - (Optional) Template description
+* groups - (Required) List of hostgroup IDs
+* macro - (Optional) List of Macros
+    * macro.#.name - Macro name
+    * macro.#.value - Macro value
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* macro.#.id - Generated macro ID
+
 ### zabbix_trigger
+
+```hcl
+data "zabbix_trigger" "example" {
+  name = "Trigger Name"
+  expression = "{trigger:expression.last()} > 10"
+  comments = "Trigger Comments"
+
+  priority = "high"
+  enabled = false
+
+  groups = [ "1234" ]
+  description = "Template Description"
+  multiple = false
+  url = "http://example.com/triggerdocs"
+  recovery_none = false
+  recovery_expression = "{trigger:expression.last()} > 15"
+
+  correlation_tag = "example"
+  manual_close = false
+
+  dependencies = [ "1234" ]
+}
+```
+
+#### Argument Reference
+
+* host - (Required) Trigger name
+* expression - (Required) Trigger expression
+* comments - (Optional) Trigger comments
+* priority - (Optional) Trigger priority, defaults to non_classified, one of (not_classified, info, warn, average, high, disaster)
+* enabled - (Optional) Enable trigger, defaults to true
+* multiple - (Optional) Generate multiple alerts, defaults to false
+* url - (Optional) Trigger URL
+* recovery_none - (Optional) Disable recovery expressions, defaults to false
+* recovery_expression - (Optional) Use this specific recovery expression
+* correlation_tag - (Optional) Use this specific correlation tag
+* manual_close - (Optional) Allow manual resolution
+* dependencies - (Optional) List of Trigger IDs to be attached as dependencies
+
+#### Attributes Reference
+
+Same as arguments
+
 ### zabbix_item_agent
 ### zabbix_item_snmp
 ### zabbix_item_simple

@@ -101,7 +101,7 @@ func resourceTrigger() *schema.Resource {
 				Description: "correlation tag",
 				Optional:    true,
 			},
-			"manual_close": &schema.Schema{ // change to boolean
+			"manual_close": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
