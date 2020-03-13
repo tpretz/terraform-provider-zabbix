@@ -89,14 +89,14 @@ func resourceItemSnmp() *schema.Resource {
 				Optional:     true,
 				Description:  "SNMP Community (v1/v2 only)",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Default:      "${SNMP_COMMUNITY}",
+				Default:      "{$SNMP_COMMUNITY}",
 			},
 			"snmp3_authpassphrase": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "Authentication Passphrase (v3 only)",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Default:      "${SNMP3_AUTHPASSPHRASE}",
+				Default:      "{$SNMP3_AUTHPASSPHRASE}",
 			},
 			"snmp3_authprotocol": &schema.Schema{
 				Type:         schema.TypeString,
@@ -110,14 +110,14 @@ func resourceItemSnmp() *schema.Resource {
 				Optional:     true,
 				Description:  "Context Name (v3 only)",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Default:      "${SNMP3_CONTEXTNAME}",
+				Default:      "{$SNMP3_CONTEXTNAME}",
 			},
 			"snmp3_privpassphrase": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "Priv Passphrase (v3 only)",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Default:      "${SNMP3_PRIVPASSPHRASE}",
+				Default:      "{$SNMP3_PRIVPASSPHRASE}",
 			},
 			"snmp3_privprotocol": &schema.Schema{
 				Type:         schema.TypeString,
@@ -138,7 +138,7 @@ func resourceItemSnmp() *schema.Resource {
 				Optional:     true,
 				Description:  "Security Name (v3 only)",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Default:      "${SNMP3_SECURITYNAME}",
+				Default:      "{$SNMP3_SECURITYNAME}",
 			},
 		}),
 	}

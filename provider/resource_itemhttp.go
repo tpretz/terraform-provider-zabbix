@@ -91,13 +91,13 @@ func resourceItemHttp() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "https verify host",
-				Default:     false,
+				Default:     true,
 			},
 			"verify_peer": &schema.Schema{
 				Type:        schema.TypeBool,
 				Description: "https verify peer",
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 		}),
 	}

@@ -275,8 +275,244 @@ data "zabbix_trigger" "example" {
 Same as arguments
 
 ### zabbix_item_agent
+
+```hcl
+data "zabbix_item_agent" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  delay = "1m"
+
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  active = true
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* active - (Optional) zabbix active agent (defaults to false)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
 ### zabbix_item_snmp
+
+```hcl
+j
+data "zabbix_item_snmp" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  snmp_version = "3"
+  snmp_oid = "1.2.3.4
+  
+  snmp_community = "public"
+
+  snmp3_authpassphrase = "supersecretpassword"
+  snmp3_authprotocol = "md5"
+  snmp3_contextname = "context"
+  snmp3_privpassphrase = "anotherpassword"
+  snmp3_privprotocol = "des"
+  snmp3_securitylevel = "noauthnopriv"
+  snmp3_securityname = "secname"
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* snmp_version - (Optional) SNMP Version, defaults to 2, one of (1, 2, 3)
+* snmp_oid - (Required) SNMP OID Number
+* snmp_community - (Optional) SNMPv1/v2 community string, defaults to {$SNMP_COMMUNITY}
+* snmp3_authpassphrase - (Optional) SNMPv3 Auth passphrase, defaults to {$SNMP3_AUTHPASSPHRASE}
+* snmp3_authprotocol - (Optional) SNMPv3 Auth protocol, defaults to sha, one of (md5, sha)
+* snmp3_contextname - (Optional) SNMPv3 Context Name, defaults to {$SNMP3_CONTEXTNAME} 
+* snmp3_privpassphrase - (Optional) SNMPv3 Priv passphrase, defaults to {$SNMP3_PRIVPASSPHRASE}
+* snmp3_privprotocol - (Optional) SNMPv3 Priv protocol, defaults to aes, one of (des, aes)
+* snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
+* snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
 ### zabbix_item_simple
+
+```hcl
+data "zabbix_item_simple" "example" {
+  hostid = "1234"
+  key = "net.tcp.service[ftp,,155]"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  delay = "1m"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+
 ### zabbix_item_http
+
+```hcl
+data "zabbix_item_http" "example" {
+  hostid = "1234"
+  key = "http_value_search"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  delay = "1m"
+
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  url = "http://example.com"
+  request_method = "post"
+  post_type = "body"
+  posts = "{}"
+  status_codes = "200"
+  timeout = "3s"
+  verify_host = true
+  verify_peer = true
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+* url - (Required) URL to fetch
+* request_method - (Optional) Method to use, defaults to "get", one of (get, post, put, head)
+* post_type - (Optional) Post type to use, defaults to "body", one of (body, headers, both)
+* status_codes - (Optional) Status codes to detect, defaults to 200
+* timeout - (Optional) Request timeout, defaults to 3s
+* verify_host (Optional) TLS host verification, defaults to true
+* verify_peer (Optional) TLS peer verification, defaults to true
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
 ### zabbix_item_trapper
 
+```hcl
+data "zabbix_item_trapper" "example" {
+  hostid = "1234"
+  key = "trapper_item_key"
+  name = "Item Name"
+  valuetype = "unsigned"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_item_aggregate
+### zabbix_item_internal
