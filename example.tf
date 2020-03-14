@@ -112,6 +112,15 @@ resource "zabbix_trigger" "b" {
 resource "zabbix_trigger" "c" {
   name = "test trigger"
   expression = "{${data.zabbix_host.test.host}:${zabbix_item_trapper.a.key}.nodata(240)}=1"
+
+
+  tag {
+    key = "category"
+    value = "special"
+  }
+  tag {
+    key = "bob"
+  }
 }
 
 resource "zabbix_template" "a" {

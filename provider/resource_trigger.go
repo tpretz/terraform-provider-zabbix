@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -116,9 +117,56 @@ func resourceTrigger() *schema.Resource {
 				},
 				Description: "Trigger Dependencies",
 			},
-			// add tags
+			"tag": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": &schema.Schema{
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotWhiteSpace,
+							Description:  "Tag Key",
+						},
+						"value": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Tag Value",
+						},
+					},
+				},
+			},
 		},
 	}
+}
+
+// tagGenerate build tag structs from terraform inputs
+func tagGenerate(d *schema.ResourceData) (tags zabbix.Tags) {
+	tagCount := d.Get("tag.#").(int)
+	tags = make(zabbix.Tags, tagCount)
+
+	for i := 0; i < tagCount; i++ {
+		prefix := fmt.Sprintf("tag.%d.", i)
+
+		tags[i] = zabbix.Tag{
+			Tag:   d.Get(prefix + "key").(string),
+			Value: d.Get(prefix + "value").(string),
+		}
+	}
+
+	return
+}
+
+// flattenTags convert response to terraform input
+func flattenTags(list zabbix.Tags) []interface{} {
+	val := make([]interface{}, len(list))
+	for i := 0; i < len(list); i++ {
+		val[i] = map[string]interface{}{
+			"key":   list[i].Tag,
+			"value": list[i].Value,
+		}
+	}
+	return val
 }
 
 // Build Trigger struct for create/modify
@@ -162,6 +210,7 @@ func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 	}
 
 	item.Dependencies = buildTriggerIds(d.Get("dependencies").(*schema.Set))
+	item.Tags = tagGenerate(d)
 
 	return item
 }
@@ -197,6 +246,7 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 		"triggerids":         d.Id(),
 		"expandExpression":   "extend",
 		"selectDependencies": "extend",
+		"selectTags":         "extend",
 	})
 
 	if err != nil {
@@ -224,6 +274,7 @@ func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("recovery_expression", t.RecoveryExpression)
 	d.Set("correlation_tag", t.CorrelationTag)
 	d.Set("manual_close", t.ManualClose == "1")
+	d.Set("tag", flattenTags(t.Tags))
 
 	if t.RecoveryMode == "2" {
 		d.Set("recovery_none", true)
