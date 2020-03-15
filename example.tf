@@ -115,11 +115,15 @@ resource "zabbix_trigger" "c" {
 
 
   tag {
-    key = "category"
-    value = "special"
+    key = "cheese"
+    value = "chedder"
   }
   tag {
     key = "bob"
+  }
+  tag {
+    key = "category"
+    value = "spec1al"
   }
 }
 

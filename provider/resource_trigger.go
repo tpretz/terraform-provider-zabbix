@@ -125,14 +125,12 @@ func resourceTrigger() *schema.Resource {
 						"key": &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ForceNew:     true,
 							ValidateFunc: validation.StringIsNotWhiteSpace,
 							Description:  "Tag Key",
 						},
 						"value": &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
-							ForceNew:    true,
 							Description: "Tag Value",
 						},
 					},
