@@ -254,6 +254,11 @@ data "zabbix_trigger" "example" {
   manual_close = false
 
   dependencies = [ "1234" ]
+
+  tag {
+    key = "service_type"
+    value = "webserver"
+  }
 }
 ```
 
@@ -271,6 +276,9 @@ data "zabbix_trigger" "example" {
 * correlation_tag - (Optional) Use this specific correlation tag
 * manual_close - (Optional) Allow manual resolution
 * dependencies - (Optional) List of Trigger IDs to be attached as dependencies
+* tag - (Optional) List of Tags
+    * tag.#.key - (Required) Tag Key
+    * tag.#.value - (Optional) Tag Value (for tags with a name and value)
 
 #### Attributes Reference
 
