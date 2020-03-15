@@ -2,12 +2,12 @@ package provider
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -118,7 +118,7 @@ func resourceTrigger() *schema.Resource {
 				Description: "Trigger Dependencies",
 			},
 			"tag": &schema.Schema{
-				Type:     schema.TypeList, // need to convert to a set
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -144,15 +144,14 @@ func resourceTrigger() *schema.Resource {
 
 // tagGenerate build tag structs from terraform inputs
 func tagGenerate(d *schema.ResourceData) (tags zabbix.Tags) {
-	tagCount := d.Get("tag.#").(int)
-	tags = make(zabbix.Tags, tagCount)
+	set := d.Get("tag").(*schema.Set).List()
+	tags = make(zabbix.Tags, len(set))
 
-	for i := 0; i < tagCount; i++ {
-		prefix := fmt.Sprintf("tag.%d.", i)
-
+	for i := 0; i < len(set); i++ {
+		current := set[i].(map[string]interface{})
 		tags[i] = zabbix.Tag{
-			Tag:   d.Get(prefix + "key").(string),
-			Value: d.Get(prefix + "value").(string),
+			Tag:   current["key"].(string),
+			Value: current["value"].(string),
 		}
 	}
 
@@ -160,15 +159,18 @@ func tagGenerate(d *schema.ResourceData) (tags zabbix.Tags) {
 }
 
 // flattenTags convert response to terraform input
-func flattenTags(list zabbix.Tags) []interface{} {
-	val := make([]interface{}, len(list))
+func flattenTags(list zabbix.Tags) *schema.Set {
+	set := schema.NewSet(func(i interface{}) int {
+		m := i.(map[string]interface{})
+		return hashcode.String(m["key"].(string) + "V" + m["value"].(string))
+	}, []interface{}{})
 	for i := 0; i < len(list); i++ {
-		val[i] = map[string]interface{}{
+		set.Add(map[string]interface{}{
 			"key":   list[i].Tag,
 			"value": list[i].Value,
-		}
+		})
 	}
-	return val
+	return set
 }
 
 // Build Trigger struct for create/modify
