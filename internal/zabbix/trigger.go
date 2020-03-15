@@ -39,6 +39,13 @@ const (
 	Problem ValueType = 1
 )
 
+type Tag struct {
+	Tag   string `json:"tag"`
+	Value string `json:"value,omitempty"`
+}
+
+type Tags []Tag
+
 type TriggerID struct {
 	TriggerID string `json:"triggerid"`
 }
@@ -84,6 +91,7 @@ type Trigger struct {
 	ContainedItems Items `json:"items,omitempty"`
 	// Hosts that the trigger belongs to in the hosts property.
 	ParentHosts Hosts `json:"hosts,omitempty"`
+	Tags        Tags  `json:"tags,omitempty"`
 }
 
 // Triggers is an array of Trigger
