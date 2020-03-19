@@ -134,7 +134,7 @@ data "zabbix_template" "example" {
 ### zabbix_host
 
 ```hcl
-data "zabbix_host" "example" {
+resource "zabbix_host" "example" {
   host = "server.example.com"
   name = "Friendly Name"
 
@@ -186,7 +186,7 @@ Same as arguments, plus:
 ### zabbix_hostgroup
 
 ```hcl
-data "zabbix_hostgroup" "example" {
+resource "zabbix_hostgroup" "example" {
   name = "Friendly Name"
 }
 ```
@@ -202,7 +202,7 @@ Same as arguments
 ### zabbix_template
 
 ```hcl
-data "zabbix_template" "example" {
+resource "zabbix_template" "example" {
   host = "template internal name"
   name = "Friendly Name"
 
@@ -235,7 +235,7 @@ Same as arguments, plus:
 ### zabbix_trigger
 
 ```hcl
-data "zabbix_trigger" "example" {
+resource "zabbix_trigger" "example" {
   name = "Trigger Name"
   expression = "{trigger:expression.last()} > 10"
   comments = "Trigger Comments"
@@ -287,7 +287,7 @@ Same as arguments
 ### zabbix_item_agent
 
 ```hcl
-data "zabbix_item_agent" "example" {
+resource "zabbix_item_agent" "example" {
   hostid = "1234"
   key = "zabbix.hostname"
   name = "Item Name"
@@ -333,7 +333,7 @@ Same as arguments, plus:
 
 ```hcl
 j
-data "zabbix_item_snmp" "example" {
+resource "zabbix_item_snmp" "example" {
   hostid = "1234"
   key = "zabbix.hostname"
   name = "Item Name"
@@ -392,7 +392,7 @@ Same as arguments, plus:
 ### zabbix_item_simple
 
 ```hcl
-data "zabbix_item_simple" "example" {
+resource "zabbix_item_simple" "example" {
   hostid = "1234"
   key = "net.tcp.service[ftp,,155]"
   name = "Item Name"
@@ -432,7 +432,7 @@ Same as arguments, plus:
 ### zabbix_item_http
 
 ```hcl
-data "zabbix_item_http" "example" {
+resource "zabbix_item_http" "example" {
   hostid = "1234"
   key = "http_value_search"
   name = "Item Name"
@@ -491,7 +491,7 @@ Same as arguments, plus:
 ### zabbix_item_trapper
 
 ```hcl
-data "zabbix_item_trapper" "example" {
+resource "zabbix_item_trapper" "example" {
   hostid = "1234"
   key = "trapper_item_key"
   name = "Item Name"
@@ -527,7 +527,7 @@ Same as arguments, plus:
 ### zabbix_item_aggregate
 
 ```hcl
-data "zabbix_item_aggregate" "example" {
+resource "zabbix_item_aggregate" "example" {
   hostid = "1234"
   key = "grpsum()"
   name = "Item Name"
@@ -566,7 +566,7 @@ Same as arguments, plus:
 ### zabbix_item_internal
 
 ```hcl
-data "zabbix_item_internal" "example" {
+resource "zabbix_item_internal" "example" {
   hostid = "1234"
   key = "zabbix.hostname"
   name = "Item Name"
