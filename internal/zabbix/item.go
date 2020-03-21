@@ -147,6 +147,9 @@ type Item struct {
 	SNMPv3PrivProtocol string `json:"snmpv3_privprotocol,omitempty"`
 	SNMPv3SecurityLevel string `json:"snmpv3_securitylevel,omitempty"`
 	SNMPv3SecurityName string `json:"snmpv3_securityname,omitempty"`
+
+	// Dependent Fields
+	MasterItemID string `json:"master_itemid,omitempty"`
 }
 
 type Preprocessors []Preprocessor
