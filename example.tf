@@ -66,6 +66,14 @@ resource "zabbix_item_agent" "a" {
   valuetype = "text"
 }
 
+resource "zabbix_item_dependent" "a" {
+  master_itemid = zabbix_item_agent.a.id
+  hostid = zabbix_template.a.id
+  key = "custom.abc"
+  name = "Hostname abc"
+  valuetype = "text"
+}
+
 resource "zabbix_item_agent" "b" {
   hostid = zabbix_template.a.id
   key = "agent.version"

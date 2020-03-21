@@ -243,7 +243,6 @@ resource "zabbix_trigger" "example" {
   priority = "high"
   enabled = false
 
-  groups = [ "1234" ]
   description = "Template Description"
   multiple = false
   url = "http://example.com/triggerdocs"
@@ -593,6 +592,45 @@ resource "zabbix_item_internal" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_item_dependent
+
+```hcl
+resource "zabbix_item_dependent" "example" {
+  hostid = "1234"
+  key = "custom.hostname"
+  name = "Item Name"
+  valuetype = "text"
+
+  master_itemid = "12344"
+
+  preprocessor {
+    type = "5"
+    params = "param a\nparam b"
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* master_itemid - (Required) Master Item ID
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
