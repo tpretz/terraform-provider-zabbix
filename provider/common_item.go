@@ -101,10 +101,13 @@ var itemPreprocessorSchema = &schema.Schema{
 				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 			},
 			"params": &schema.Schema{
-				Type:        schema.TypeString,
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+				},
 				Optional:    true,
-				Description: "Preprocessor parameters, seperate with newline character",
-				Default:     "",
+				Description: "Preprocessor parameters",
 			},
 			"error_handler": &schema.Schema{
 				Type:     schema.TypeString,
@@ -252,10 +255,15 @@ func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Pre
 
 	for i := 0; i < preprocessorCount; i++ {
 		prefix := fmt.Sprintf("preprocessor.%d.", i)
+		params := d.Get(prefix + "params").([]interface{})
+		pstrarr := make([]string, len(params))
+		for i := 0; i < len(params); i++ {
+			pstrarr[i] = params[i].(string)
+		}
 
 		preprocessors[i] = zabbix.Preprocessor{
 			Type:               d.Get(prefix + "type").(string),
-			Params:             d.Get(prefix + "params").(string),
+			Params:             strings.Join(pstrarr, "\n"),
 			ErrorHandler:       d.Get(prefix + "error_handler").(string),
 			ErrorHandlerParams: d.Get(prefix + "error_handler_params").(string),
 		}
@@ -268,10 +276,11 @@ func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Pre
 func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 	val := make([]interface{}, len(item.Preprocessors))
 	for i := 0; i < len(item.Preprocessors); i++ {
+		parr := strings.Split(item.Preprocessors[i].Params, "\n")
 		val[i] = map[string]interface{}{
 			//"id": host.Interfaces[i].InterfaceID,
 			"type":                 item.Preprocessors[i].Type,
-			"params":               item.Preprocessors[i].Params,
+			"params":               parr,
 			"error_handler":        item.Preprocessors[i].ErrorHandler,
 			"error_handler_params": item.Preprocessors[i].ErrorHandlerParams,
 		}

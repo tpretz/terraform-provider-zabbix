@@ -298,7 +298,7 @@ resource "zabbix_item_agent" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -340,7 +340,7 @@ resource "zabbix_item_snmp" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -401,7 +401,7 @@ resource "zabbix_item_simple" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -443,7 +443,7 @@ resource "zabbix_item_http" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -498,7 +498,7 @@ resource "zabbix_item_trapper" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -536,7 +536,7 @@ resource "zabbix_item_aggregate" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -577,7 +577,7 @@ resource "zabbix_item_internal" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
@@ -617,7 +617,7 @@ resource "zabbix_item_dependent" "example" {
 
   preprocessor {
     type = "5"
-    params = "param a\nparam b"
+    params = ["param a", "param b"]
     error_handler = "1"
     error_handler_params = ""
   }
