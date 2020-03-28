@@ -43,6 +43,7 @@ type Host struct {
 	TemplateIDs TemplateIDs    `json:"templates,omitempty"`
 	// templates are read back from this one
 	ParentTemplateIDs TemplateIDs `json:"parentTemplates,omitempty"`
+	ProxyID           string      `json:"proxy_hostid,omitempty"`
 }
 
 // Hosts is an array of Host
