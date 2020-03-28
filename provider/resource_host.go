@@ -46,6 +46,10 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Description:  "FQDN of host",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
+	"proxyid": &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "ID of proxy to monitor this host",
+	},
 	"enabled": &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
@@ -152,12 +156,15 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 		switch k {
 		case "host", "interface", "groups":
 			schema.Required = true
-		case "templates":
+		case "templates", "proxyid":
 			schema.Optional = true
 		}
 
 		o[k] = &schema
 	}
+
+	o["proxyid"].ValidateFunc = validation.StringIsNotWhiteSpace
+	o["proxyid"].Default = "0"
 	return o
 }
 
@@ -172,7 +179,7 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 		case "host", "templates":
 			schema.Optional = true
 			fallthrough
-		case "interface", "groups", "macro":
+		case "interface", "groups", "macro", "proxyid":
 			schema.Computed = true
 		}
 
@@ -238,9 +245,10 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 // buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	item := zabbix.Host{
-		Host:   d.Get("host").(string),
-		Name:   d.Get("name").(string),
-		Status: 0,
+		Host:    d.Get("host").(string),
+		Name:    d.Get("name").(string),
+		ProxyID: d.Get("proxyid").(string),
+		Status:  0,
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -353,6 +361,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.SetId(host.HostID)
 	d.Set("name", host.Name)
 	d.Set("host", host.Host)
+	d.Set("proxyid", host.ProxyID)
 	d.Set("enabled", host.Status == 0)
 
 	d.Set("interface", flattenHostInterfaces(host))

@@ -129,6 +129,22 @@ data "zabbix_template" "example" {
     * macro.#.name - Macro name
     * macro.#.value - Macro value
 
+### zabbix_proxy
+
+```hcl
+data "zabbix_proxy" "example" {
+  host = "proxy.name"
+}
+```
+
+#### Argument Reference
+
+* host - (Required) Name of proxy
+
+#### Attributes Reference
+
+* host - name of proxy
+
 ## Resources
 
 ### zabbix_host
@@ -142,6 +158,7 @@ resource "zabbix_host" "example" {
 
   groups = [ "1234" ]
   templates = [ "5678" ]
+  proxyid = "7890"
 
   interface {
     type = "snmp"
@@ -171,6 +188,7 @@ resource "zabbix_host" "example" {
     * interface.#.port - (Optional) Interface port to use
 * groups - (Required) List of hostgroup IDs
 * templates - (Optional) List of template IDs
+* proxyid - (Optional) Zabbix proxy id for this host
 * macro - (Optional) List of Macros
     * macro.#.name - Macro name
     * macro.#.value - Macro value

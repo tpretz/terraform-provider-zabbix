@@ -4,6 +4,10 @@ provider "zabbix" {
   url = "http://127.0.0.1:8081/api_jsonrpc.php"
 }
 
+# data "zabbix_proxy" "a" {
+#   host = "test"
+# }
+
 data "zabbix_host" "test" {
   host = "Zabbix server"
 }
@@ -107,7 +111,7 @@ resource "zabbix_item_http" "a" {
 
   preprocessor {
     type = "5"
-    params = "^test$\nbob"
+    params = ["^test$","bob"]
   }
 }
 
@@ -150,6 +154,7 @@ resource "zabbix_host" "a" {
   host = "host.example.com"
   groups = [zabbix_hostgroup.a.id, data.zabbix_hostgroup.a.id]
   templates = [zabbix_template.a.id, data.zabbix_template.a.id]
+  #proxyid = data.zabbix_proxy.a.id
   
   interface {
     dns = "eth0.host.example.com"
