@@ -83,6 +83,7 @@ data "zabbix_host" "example" {
     * interface.#.type - Type of interface (agent,snmp,ipmi,jmx)
 * groups - List of hostgroup IDs
 * templates - List of template IDs
+* proxyid - Proxy ID
 * macro - List of Macros
     * macro.#.id - Generated macro ID
     * macro.#.name - Macro name
