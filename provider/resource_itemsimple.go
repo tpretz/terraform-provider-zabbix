@@ -16,7 +16,7 @@ func resourceItemSimple() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema),
 	}
 }
 
@@ -24,9 +24,11 @@ func resourceItemSimple() *schema.Resource {
 func itemSimpleModFunc(d *schema.ResourceData, item *zabbix.Item) {
 	item.Delay = d.Get("delay").(string)
 	item.Type = zabbix.SimpleCheck
+	item.InterfaceID = d.Get("interfaceid").(string)
 }
 
 // Custom read handler for item type
 func itemSimpleReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 }
