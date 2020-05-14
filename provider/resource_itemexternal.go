@@ -23,8 +23,8 @@ func resourceItemExternal() *schema.Resource {
 // Custom mod handler for item type
 func itemExternalModFunc(d *schema.ResourceData, item *zabbix.Item) {
 	item.Type = zabbix.ExternalCheck
-	item.Delay = d.Get("delay").(string)
 	item.InterfaceID = d.Get("interfaceid").(string)
+	item.Delay = d.Get("delay").(string)
 }
 
 // Custom read handler for item type
