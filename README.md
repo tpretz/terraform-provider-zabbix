@@ -581,6 +581,39 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
+### zabbix_item_external
+
+```hcl
+resource "zabbix_item_external" "example" {
+  hostid = "1234"
+  key = "script[\"argv1\",\"argv2\"]"
+  name = "Item Name"
+  interfaceid = "5678"
+  valuetype = "unsigned"
+  delay = "1m"
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* interfaceid - (Required) Host interface ID
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* delay - (Optional) Item collection interval, defaults to 1m
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
 ### zabbix_item_internal
 
 ```hcl

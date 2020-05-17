@@ -6,11 +6,11 @@ import (
 )
 
 // terraform resource handler for item type
-func resourceItemSimple() *schema.Resource {
+func resourceItemExternal() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Read:   itemGetReadWrapper(itemSimpleReadFunc),
-		Update: itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Create: itemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Read:   itemGetReadWrapper(itemExternalReadFunc),
+		Update: itemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
 		Delete: resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -21,14 +21,14 @@ func resourceItemSimple() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemSimpleModFunc(d *schema.ResourceData, item *zabbix.Item) {
-	item.Delay = d.Get("delay").(string)
-	item.Type = zabbix.SimpleCheck
+func itemExternalModFunc(d *schema.ResourceData, item *zabbix.Item) {
+	item.Type = zabbix.ExternalCheck
 	item.InterfaceID = d.Get("interfaceid").(string)
+	item.Delay = d.Get("delay").(string)
 }
 
 // Custom read handler for item type
-func itemSimpleReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemExternalReadFunc(d *schema.ResourceData, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 }
