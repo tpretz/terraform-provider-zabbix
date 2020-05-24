@@ -39,6 +39,21 @@ var lldCommonSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
+	"preprocessor": lldPreprocessorSchema,
+	"condition":    lldFilterConditionSchema,
+	"evaltype": &schema.Schema{
+		Type:         schema.TypeString,
+		Description:  "EvalType",
+		ValidateFunc: validation.StringInSlice([]string{"0", "1", "2", "3"}, false),
+		Default:      "0",
+		Optional:     true,
+	},
+	"formula": &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "Formula",
+		Default:     "",
+		Optional:    true,
+	},
 }
 
 // Interface schema
@@ -85,6 +100,36 @@ var lldPreprocessorSchema = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
+			},
+		},
+	},
+}
+
+// Schema for filter block
+var lldFilterConditionSchema = &schema.Schema{
+	Type:     schema.TypeList,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"macro": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Filter Macro",
+			},
+			"value": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Filter Valu",
+			},
+			"operator": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "8",
+				ValidateFunc: validation.StringInSlice([]string{"8", "9"}, false),
 			},
 		},
 	},
@@ -170,8 +215,9 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	log.Debug("Lookup of lld with id %s", d.Id())
 
 	llds, err := api.LLDsGet(zabbix.Params{
-		"lldids":              []string{d.Id()},
+		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
+		"selectFilter":        "extend",
 	})
 
 	if err != nil {
@@ -194,6 +240,9 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("key", lld.Key)
 	d.Set("name", lld.Name)
 	d.Set("delay", lld.Delay)
+	d.Set("evaltype", lld.Filter.EvalType)
+	d.Set("formula", lld.Filter.Formula)
+	d.Set("condition", flattenlldConditions(lld))
 	d.Set("preprocessor", flattenlldPreprocessors(lld))
 
 	// run custom
@@ -210,7 +259,12 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 		Name:   d.Get("name").(string),
 		Delay:  d.Get("delay").(string),
 	}
+
 	lld.Preprocessors = lldGeneratePreprocessors(d)
+
+	lld.Filter.EvalType = d.Get("evaltype").(string)
+	lld.Filter.Formula = d.Get("formula").(string)
+	lld.Filter.Conditions = lldGenerateConditions(d)
 
 	return &lld
 }
@@ -239,6 +293,28 @@ func lldGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Prep
 	return
 }
 
+// Generate LLD Filter Conditions
+func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFilterConditions) {
+	conditionsCount := d.Get("condition.#").(int)
+	conditions = make(zabbix.LLDRuleFilterConditions, conditionsCount)
+
+	for i := 0; i < conditionsCount; i++ {
+		prefix := fmt.Sprintf("condition.%d.", i)
+
+		conditions[i] = zabbix.LLDRuleFilterCondition{
+			Macro:    d.Get(prefix + "macro").(string),
+			Value:    d.Get(prefix + "value").(string),
+			Operator: d.Get(prefix + "operator").(string),
+		}
+		id := d.Get(prefix + "id").(string)
+		if id != "" {
+			conditions[i].FormulaID = id
+		}
+	}
+
+	return
+}
+
 // Generate terraform flattened form of lld preprocessors
 func flattenlldPreprocessors(lld zabbix.LLDRule) []interface{} {
 	val := make([]interface{}, len(lld.Preprocessors))
@@ -250,6 +326,20 @@ func flattenlldPreprocessors(lld zabbix.LLDRule) []interface{} {
 			"params":               parr,
 			"error_handler":        lld.Preprocessors[i].ErrorHandler,
 			"error_handler_params": lld.Preprocessors[i].ErrorHandlerParams,
+		}
+	}
+	return val
+}
+
+// Generate terraform flattened form of lld filter conditions
+func flattenlldConditions(lld zabbix.LLDRule) []interface{} {
+	val := make([]interface{}, len(lld.Filter.Conditions))
+	for i := 0; i < len(lld.Filter.Conditions); i++ {
+		val[i] = map[string]interface{}{
+			"id":       lld.Filter.Conditions[i].FormulaID,
+			"macro":    lld.Filter.Conditions[i].Macro,
+			"value":    lld.Filter.Conditions[i].Value,
+			"operator": lld.Filter.Conditions[i].Operator,
 		}
 	}
 	return val
