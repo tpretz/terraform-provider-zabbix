@@ -10,9 +10,9 @@ type LLDRuleFilterCondition struct {
 type LLDRuleFilterConditions []LLDRuleFilterCondition
 
 type LLDRuleFilter struct {
-	Conditions  LLDRuleFilterConditions `json:"conditions`
+	Conditions  LLDRuleFilterConditions `json:"conditions"`
 	EvalType    string                  `json:"evaltype"`
-	EvalFormula string                  `json:"eval_formula"`
+	EvalFormula string                  `json:"eval_formula,omitempty"`
 	Formula     string                  `json:"formula"`
 }
 
