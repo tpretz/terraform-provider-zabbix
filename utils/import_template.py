@@ -13,9 +13,17 @@ ITEM_T_MAP = {
   "3": "unsigned",
   "4": "text",
 }
+TRIGGER_P_MAP = {
+  "0": "not_classified",
+  "1": "info",
+  "2": "warn",
+  "3": "average",
+  "4": "high",
+  "5": "disaster",
+}
 
 def safeTfName(inname):
-  return re.sub(r'[^0-9a-z]', '-', inname, flags=re.IGNORECASE).lower()
+  return re.sub(r'[^0-9a-z]+', '-', inname, flags=re.IGNORECASE).lower()
 
 def extractTemplates(root):
     templates = []
@@ -65,6 +73,7 @@ def extractTriggers(root):
                 continue
             tobj[child.tag] = child.text
             log.debug("%s: %s" % (child.tag, child.text)) 
+        tobj['name_safe'] = safeTfName(tobj['name'])
         triggers.append(tobj)
 
     log.debug("got triggers %s" % triggers)
@@ -121,7 +130,18 @@ def renderItem(t, i, args):
     print("\n".join(lines))
 
 def renderTrigger(t):
-    pass
+    lines = []
+
+    lines.append('resource "zabbix_trigger" "{}" {{'.format(t['name_safe']))
+    lines.append('  name = "{}"'.format(t["name"]))
+    lines.append('  expression = "{}"'.format(t["expression"]))
+    lines.append('  description = "{}"'.format('\\n'.join(t["description"].splitlines())))
+    lines.append('  priority = "{}"'.format(TRIGGER_P_MAP[t["priority"]]))
+    if t.get('recovery_mode') == "1":
+        lines.append('  recovery_expression = "{}"'.format(t['recovery_expression']))
+    lines.append('}')
+
+    print("\n".join(lines))
 
 def main():
     logging.basicConfig(level=logging.INFO)
