@@ -262,7 +262,6 @@ resource "zabbix_trigger" "example" {
   priority = "high"
   enabled = false
 
-  description = "Template Description"
   multiple = false
   url = "http://example.com/triggerdocs"
   recovery_none = false

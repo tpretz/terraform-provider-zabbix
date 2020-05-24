@@ -25,6 +25,37 @@ TRIGGER_P_MAP = {
 def safeTfName(inname):
   return re.sub(r'[^0-9a-z]+', '-', inname, flags=re.IGNORECASE).lower()
 
+def expressionRef(ex):
+    def subTmplFun(match):
+        cap = match.group(1)
+        log.debug("evaluating %s" % cap)
+
+        # check if a ref, local cache of refs, todo
+        return '{${zabbix_template.'+safeTfName(cap)+'.host}:'
+
+        # will be used once conditional in place
+        return '{'+cap+':'
+    
+    def subItemFun(match):
+        cap = match.group(1)
+        log.debug("evaluating %s" % cap)
+
+        # check if a ref, local cache of refs and types, todo
+        return ':${zabbix_item_snmp.'+safeTfName(cap)+'.key}.'
+
+        # will be used once conditional in place
+        return ':'+cap+'.'
+
+    res = re.sub(r'{([^{:]+):',
+    subTmplFun,
+    ex)
+
+    res = re.sub(r':([^:\.]+)\.',
+    subItemFun,
+    res)
+
+    return res
+
 def extractTemplates(root):
     templates = []
 
@@ -41,6 +72,10 @@ def extractTemplates(root):
             'triggers': [],
         }
         obj["template_safe"] = safeTfName(obj["template"])
+
+        # extract discovery rules
+        obj["rules"] = extractLLDRules(tmpl)
+        log.debug("got rules %s" % obj['rules'])
 
         # extract groups
 
@@ -61,6 +96,23 @@ def extractTemplates(root):
         log.debug("got tmpl object %s" % obj)
         templates.append(obj)
     return templates
+
+def extractLLDRules(root):
+    rules = []
+
+    for t in root.findall("discovery_rules/discovery_rule"):
+        tobj = {}
+        for child in t:
+            if child.text is None:
+                continue
+            if len(child) > 0:
+                continue
+            tobj[child.tag] = child.text
+            log.debug("lld attr %s: %s" % (child.tag, child.text)) 
+
+        tobj["name_safe"] = safeTfName(tobj["name"])
+        rules.append(tobj)
+    return rules
 
 def extractTriggers(root):
     triggers = []
@@ -99,6 +151,26 @@ resource "zabbix_template" "{template_safe}" {{
     for i in t["items"]:
       renderItem(t, i, args)
 
+    # for all discovery rules
+    for r in t["rules"]:
+        renderLLDRule(t, r, args)
+
+def renderLLDRule(t, i, args):
+    lines = []
+    ty = i.get("type", "0")
+    if ty is "1" or ty is "4" or ty is "6": # snmp
+       lines.append('resource "zabbix_lld_snmp" "{}" {{'.format(i['name_safe']))
+       lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
+       lines.append('  name = "{}"'.format(i["name"]))
+       lines.append('  key = "{}"'.format(i["key"]))
+       lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
+       lines.append('  snmp_version = "{}"'.format(args.snmp))
+       lines.append('}')
+    else:
+        log.debug("unsupported discovery type")
+    
+    print("\n".join(lines))
+
 def renderItem(t, i, args):
     lines = []
 
@@ -132,13 +204,14 @@ def renderItem(t, i, args):
 def renderTrigger(t):
     lines = []
 
+    # need to fix expression to ref both template and items for dependencies
     lines.append('resource "zabbix_trigger" "{}" {{'.format(t['name_safe']))
     lines.append('  name = "{}"'.format(t["name"]))
-    lines.append('  expression = "{}"'.format(t["expression"]))
-    lines.append('  description = "{}"'.format('\\n'.join(t["description"].splitlines())))
+    lines.append('  expression = "{}"'.format(expressionRef(t["expression"])))
+    lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
     lines.append('  priority = "{}"'.format(TRIGGER_P_MAP[t["priority"]]))
     if t.get('recovery_mode') == "1":
-        lines.append('  recovery_expression = "{}"'.format(t['recovery_expression']))
+        lines.append('  recovery_expression = "{}"'.format(expressionRef(t['recovery_expression'])))
     lines.append('}')
 
     print("\n".join(lines))
@@ -154,7 +227,6 @@ def main():
     parser.add_argument('-s', '--snmp', required=True, help='snmp version')
 
     args = parser.parse_args()
-    print("%s" % args)
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -167,6 +239,7 @@ def main():
 
     templates = extractTemplates(root)
     triggers = extractTriggers(root)
+
 
     for t in templates:
       renderTemplate(t, args)
