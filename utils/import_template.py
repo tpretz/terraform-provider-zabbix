@@ -21,9 +21,34 @@ TRIGGER_P_MAP = {
   "4": "high",
   "5": "disaster",
 }
+EVALTYPE_P_MAP = { 
+  "0": "andor",
+  "1": "and",
+  "2": "or",
+  "3": "custom",
+}
+OPERATOR_P_MAP = { 
+  "8": "match",
+  "9": "notmatch",
+}
+
+names = {}
+names_rev = {}
 
 def safeTfName(inname):
-  return re.sub(r'[^0-9a-z]+', '-', inname, flags=re.IGNORECASE).lower()
+    if inname in names:
+        return names[inname]
+    gen = re.sub(r'[^0-9a-z]+', '-', inname, flags=re.IGNORECASE).lower().strip('-')
+    lookup = gen
+
+    i = 0
+    while lookup in names_rev:
+        lookup = gen + '-' + str(i)
+        i += 1
+    names[inname] = lookup
+    names_rev[lookup] = inname
+
+    return lookup
 
 def expressionRef(ex):
     def subTmplFun(match):
@@ -85,7 +110,7 @@ def extractTemplates(root):
         for item in tmpl.findall("items/item"):
             itemobj = {}
             for child in item:
-                if child.text is None or child.text == '0':
+                if child.text is None:
                     continue
                 itemobj[child.tag] = child.text
                 log.debug("%s: %s" % (child.tag, child.text)) 
@@ -111,6 +136,24 @@ def extractLLDRules(root):
             log.debug("lld attr %s: %s" % (child.tag, child.text)) 
 
         tobj["name_safe"] = safeTfName(tobj["name"])
+
+        items = []
+        # nested things too
+        for i in t.findall('item_prototypes/item_prototype'):
+            iobj = {}
+            for child in i:
+                if child.text is None:
+                    continue
+                if len(child) > 0:
+                    continue
+                iobj[child.tag] = child.text
+                log.debug("lld item attr %s: %s" % (child.tag, child.text)) 
+
+            iobj["key_safe"] = safeTfName(iobj["key"])
+            items.append(iobj)
+
+        tobj['items'] = items
+
         rules.append(tobj)
     return rules
 
@@ -121,7 +164,7 @@ def extractTriggers(root):
     for t in root.findall("triggers/trigger"):
         tobj = {}
         for child in t:
-            if child.text is None or child.text == '0':
+            if child.text is None:
                 continue
             tobj[child.tag] = child.text
             log.debug("%s: %s" % (child.tag, child.text)) 
@@ -169,6 +212,42 @@ def renderLLDRule(t, i, args):
     else:
         log.debug("unsupported discovery type")
     
+    print("\n".join(lines))
+
+    # process its items too
+    for item in i['items']:
+        renderLLDItem(t, i, item, args)
+
+def renderLLDItem(t, lld, i, args):
+    log.info("got item %s" % i)
+    lines = []
+
+    ty = i.get("type", "0")
+    if ty is "0": # agent
+       pass
+    elif ty is "1" or ty is "4" or ty is "6": # snmp
+       lines.append('resource "zabbix_protoitem_snmp" "{}" {{'.format(i['key_safe']))
+       lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
+       lines.append('  ruleid = zabbix_lld_snmp.{}.id'.format(lld["name_safe"]))
+       lines.append('  name = "{}"'.format(i["name"]))
+       lines.append('  key = "{}"'.format(i["key"]))
+       lines.append('  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]))
+       lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
+       lines.append('  snmp_version = "{}"'.format(args.snmp))
+       lines.append('}')
+    elif ty is "2": # trapper
+       pass
+    elif ty is "3": # simple
+       pass
+    elif ty is "5": # internal
+       pass
+    elif ty is "7": # active agent
+       pass
+    elif ty is "8": # aggregate
+       pass
+    elif ty is "10": # external
+       pass
+
     print("\n".join(lines))
 
 def renderItem(t, i, args):
