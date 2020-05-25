@@ -37,7 +37,7 @@ func resourceProtoItemDependent() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, itemPrototypeSchema, schemaDependent),
+		Schema: mergeSchemas(itemCommonSchema, itemPrototypeSchema, schemaDependent),
 	}
 }
 func resourceLLDDependent() *schema.Resource {
@@ -49,7 +49,7 @@ func resourceLLDDependent() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(itemCommonSchema, schemaDependent),
+		Schema: mergeSchemas(lldCommonSchema, schemaDependent),
 	}
 }
 

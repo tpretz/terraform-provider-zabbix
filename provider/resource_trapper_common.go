@@ -29,7 +29,7 @@ func resourceProtoItemTrapper() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: itemCommonSchema,
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemPrototypeSchema),
 	}
 }
 func resourceLLDTrapper() *schema.Resource {

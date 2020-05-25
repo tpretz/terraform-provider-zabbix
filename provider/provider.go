@@ -71,7 +71,9 @@ func Provider() *schema.Provider {
 
 			"zabbix_item_external": resourceItemExternal(),
 
-			"zabbix_item_internal": resourceItemInternal(),
+			"zabbix_item_internal":       resourceItemInternal(),
+			"zabbix_proto_item_internal": resourceProtoItemInternal(),
+			"zabbix_lld_internal":        resourceLLDInternal(),
 
 			"zabbix_item_snmp":       resourceItemSnmp(),
 			"zabbix_proto_item_snmp": resourceProtoItemSnmp(),

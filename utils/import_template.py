@@ -288,7 +288,10 @@ def renderLLDItem(t, lld, i, args):
         lines.extend(common_lines)
         lines.append('}')
     elif ty == "5": # internal
-       pass
+        i['resource_type'] = 'zabbix_proto_item_internal'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "7": # active agent
        pass
     elif ty == "8": # aggregate
@@ -365,7 +368,10 @@ def renderItem(t, i, args):
         lines.extend(common_lines)
         lines.append('}')
     elif ty == "5": # internal
-       pass
+        i['resource_type'] = 'zabbix_item_internal'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "7": # active agent
        pass
     elif ty == "8": # aggregate
