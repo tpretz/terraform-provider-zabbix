@@ -83,7 +83,7 @@ def expressionRef(ex):
     subTmplFun,
     ex)
 
-    res = re.sub(r':(.+)\.(\w+)\(',
+    res = re.sub(r':(.+?)\.(\w+)\(',
     subItemFun,
     res)
 
@@ -329,6 +329,7 @@ def renderLLDTrigger(tmpl, lld, t, args):
 
     try:
         expression = expressionRef(t["expression"])
+        recovery_expression = expressionRef(t["recovery_expression"])
     except KeyError:
         log.error("cant render trigger %s as no valid item found" % t['name'])
         return
@@ -338,10 +339,11 @@ def renderLLDTrigger(tmpl, lld, t, args):
     lines.append('resource "zabbix_proto_trigger" "{}" {{'.format(t['name_safe']))
     lines.append('  name = "{}"'.format(t["name"]))
     lines.append('  expression = "{}"'.format(expression))
-    lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
+    if 'description' in t:
+        lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
     lines.append('  priority = "{}"'.format(TRIGGER_P_MAP[t["priority"]]))
     if t.get('recovery_mode') == "1":
-        lines.append('  recovery_expression = "{}"'.format(expressionRef(t['recovery_expression'])))
+        lines.append('  recovery_expression = "{}"'.format(recovery_expression))
     lines.append('}')
 
     print("\n".join(lines))
@@ -410,14 +412,22 @@ def renderItem(t, i, args):
 def renderTrigger(t):
     lines = []
 
+    try:
+        expression = expressionRef(t["expression"])
+        recovery_expression = expressionRef(t["recovery_expression"])
+    except KeyError:
+        log.error("cant render trigger %s as no valid item found" % t['name'])
+        return
+
     # need to fix expression to ref both template and items for dependencies
     lines.append('resource "zabbix_trigger" "{}" {{'.format(t['name_safe']))
     lines.append('  name = "{}"'.format(t["name"]))
-    lines.append('  expression = "{}"'.format(expressionRef(t["expression"])))
-    lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
+    lines.append('  expression = "{}"'.format(expression))
+    if 'description' in t:
+        lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
     lines.append('  priority = "{}"'.format(TRIGGER_P_MAP[t["priority"]]))
     if t.get('recovery_mode') == "1":
-        lines.append('  recovery_expression = "{}"'.format(expressionRef(t['recovery_expression'])))
+        lines.append('  recovery_expression = "{}"'.format(recovery_expression))
     lines.append('}')
 
     print("\n".join(lines))
