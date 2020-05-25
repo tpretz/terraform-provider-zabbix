@@ -279,6 +279,20 @@ resource "zabbix_trigger" "example" {
 }
 ```
 
+#### Note
+
+When referencing hosts, templates or items within the expression, or recovery_expression, ensure you reference other resources via an attribute lookup.
+Without this, simply specifying the raw strings, will prevent terraform from correctly understanding the dependencies between triggers and other resources.
+
+Example
+```
+# Bad
+expression = "{Template Name:itemname.last()}>0"
+
+# Good
+expression = "{${zabbix_template.a.name}:${zabbix_item_snmp.b.key}.last()}>0"
+```
+
 #### Argument Reference
 
 * host - (Required) Trigger name
