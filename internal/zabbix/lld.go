@@ -179,9 +179,9 @@ func (api *API) LLDDeleteIDs(ids []string) (itemids []interface{}, err error) {
 	}
 
 	result := response.Result.(map[string]interface{})
-	itemids1, ok := result["itemids"].([]interface{})
+	itemids1, ok := result["ruleids"].([]interface{})
 	if !ok {
-		itemids2 := result["itemids"].(map[string]interface{})
+		itemids2 := result["ruleids"].(map[string]interface{})
 		for _, id := range itemids2 {
 			itemids = append(itemids, id)
 		}
