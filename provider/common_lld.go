@@ -11,6 +11,43 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+// eval type
+var LLD_EVALTYPE = map[string]zabbix.LLDEvalType{
+	"andor":  zabbix.LLDAndOr,
+	"and":    zabbix.LLDAnd,
+	"or":     zabbix.LLDOr,
+	"custom": zabbix.LLDCustom,
+}
+var LLD_EVALTYPE_REV = map[zabbix.LLDEvalType]string{}
+var LLD_EVALTYPE_ARR = []string{}
+
+// generate the above structures
+var _ = func() bool {
+	for k, v := range LLD_EVALTYPE {
+		LLD_EVALTYPE_REV[v] = k
+		LLD_EVALTYPE_ARR = append(LLD_EVALTYPE_ARR, k)
+	}
+	return false
+}()
+
+// operator
+var LLD_OPERATOR = map[string]zabbix.LLDOperatorType{
+	"match":    zabbix.LLDMatch,
+	"notmatch": zabbix.LLDNotMatch,
+}
+
+var LLD_OPERATOR_REV = map[zabbix.LLDOperatorType]string{}
+var LLD_OPERATOR_ARR = []string{}
+
+// generate the above structures
+var _ = func() bool {
+	for k, v := range LLD_OPERATOR {
+		LLD_OPERATOR_REV[v] = k
+		LLD_OPERATOR_ARR = append(LLD_OPERATOR_ARR, k)
+	}
+	return false
+}()
+
 // common schema elements for all lld types
 var lldCommonSchema = map[string]*schema.Schema{
 	"hostid": &schema.Schema{
@@ -26,6 +63,13 @@ var lldCommonSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Default:      "3600",
 		Description:  "LLD Delay period",
+	},
+	"lifetime": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Default:      "30d",
+		Description:  "LLD Stale Item Lifetime",
 	},
 	"key": &schema.Schema{
 		Type:         schema.TypeString,
@@ -43,8 +87,8 @@ var lldCommonSchema = map[string]*schema.Schema{
 	"condition":    lldFilterConditionSchema,
 	"evaltype": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "EvalType",
-		ValidateFunc: validation.StringInSlice([]string{"0", "1", "2", "3"}, false),
+		Description:  "EvalType, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(LLD_EVALTYPE_ARR, false),
 		Default:      "0",
 		Optional:     true,
 	},
@@ -129,7 +173,8 @@ var lldFilterConditionSchema = &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "8",
-				ValidateFunc: validation.StringInSlice([]string{"8", "9"}, false),
+				Description:  "Operator, one of: " + strings.Join(LLD_OPERATOR_ARR, ", "),
+				ValidateFunc: validation.StringInSlice(LLD_OPERATOR_ARR, false),
 			},
 		},
 	},
@@ -240,7 +285,8 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("key", lld.Key)
 	d.Set("name", lld.Name)
 	d.Set("delay", lld.Delay)
-	d.Set("evaltype", lld.Filter.EvalType)
+	d.Set("lifetime", lld.LifeTime)
+	d.Set("evaltype", LLD_EVALTYPE_REV[lld.Filter.EvalType])
 	d.Set("formula", lld.Filter.Formula)
 	d.Set("condition", flattenlldConditions(lld))
 	d.Set("preprocessor", flattenlldPreprocessors(lld))
@@ -254,15 +300,16 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 // Build the base lld Object
 func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 	lld := zabbix.LLDRule{
-		Key:    d.Get("key").(string),
-		HostID: d.Get("hostid").(string),
-		Name:   d.Get("name").(string),
-		Delay:  d.Get("delay").(string),
+		Key:      d.Get("key").(string),
+		HostID:   d.Get("hostid").(string),
+		Name:     d.Get("name").(string),
+		Delay:    d.Get("delay").(string),
+		LifeTime: d.Get("lifetime").(string),
 	}
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)
 
-	lld.Filter.EvalType = d.Get("evaltype").(string)
+	lld.Filter.EvalType = LLD_EVALTYPE[d.Get("evaltype").(string)]
 	lld.Filter.Formula = d.Get("formula").(string)
 	lld.Filter.Conditions = lldGenerateConditions(d)
 
@@ -304,7 +351,7 @@ func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFil
 		conditions[i] = zabbix.LLDRuleFilterCondition{
 			Macro:    d.Get(prefix + "macro").(string),
 			Value:    d.Get(prefix + "value").(string),
-			Operator: d.Get(prefix + "operator").(string),
+			Operator: LLD_OPERATOR[d.Get(prefix+"operator").(string)],
 		}
 		id := d.Get(prefix + "id").(string)
 		if id != "" {
@@ -339,7 +386,7 @@ func flattenlldConditions(lld zabbix.LLDRule) []interface{} {
 			"id":       lld.Filter.Conditions[i].FormulaID,
 			"macro":    lld.Filter.Conditions[i].Macro,
 			"value":    lld.Filter.Conditions[i].Value,
-			"operator": lld.Filter.Conditions[i].Operator,
+			"operator": LLD_OPERATOR_REV[lld.Filter.Conditions[i].Operator],
 		}
 	}
 	return val
