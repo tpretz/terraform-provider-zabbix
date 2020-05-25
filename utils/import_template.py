@@ -301,6 +301,12 @@ def renderLLDItem(t, lld, i, args):
         lines.extend(common_lines)
         lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
         lines.append('}')
+    elif ty == "18": # dependent
+        i['resource_type'] = 'zabbix_proto_item_dependent'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('  master_itemid = "{}"'.format(i['master_item']))
+        lines.append('}')
 
     print("\n".join(lines))
 
@@ -348,7 +354,7 @@ def renderItem(t, i, args):
     elif ty == "2": # trapper
        pass
     elif ty == "3": # simple
-        i['resource_type'] = 'zabbix_proto_item_simple'
+        i['resource_type'] = 'zabbix_item_simple'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('}')
@@ -365,6 +371,12 @@ def renderItem(t, i, args):
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
+        lines.append('}')
+    elif ty == "18": # dependent
+        i['resource_type'] = 'zabbix_item_dependent'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('  master_itemid = "{}"'.format(i['master_item']))
         lines.append('}')
 
     print("\n".join(lines))

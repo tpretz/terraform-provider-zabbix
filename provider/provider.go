@@ -84,7 +84,9 @@ func Provider() *schema.Provider {
 			"zabbix_item_calculated":       resourceItemCalculated(),
 			"zabbix_proto_item_calculated": resourceProtoItemCalculated(),
 
-			"zabbix_item_dependent": resourceItemDependent(),
+			"zabbix_item_dependent":       resourceItemDependent(),
+			"zabbix_proto_item_dependent": resourceProtoItemDependent(),
+			"zabbix_lld_dependent":        resourceLLDDependent(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
