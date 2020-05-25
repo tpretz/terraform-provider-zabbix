@@ -53,23 +53,32 @@ func Provider() *schema.Provider {
 			"zabbix_template":  dataTemplate(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"zabbix_item_trapper":         resourceItemTrapper(),
-			"zabbix_item_http":            resourceItemHttp(),
-			"zabbix_item_simple":          resourceItemSimple(),
-			"zabbix_item_external":        resourceItemExternal(),
-			"zabbix_item_internal":        resourceItemInternal(),
-			"zabbix_item_snmp":            resourceItemSnmp(),
-			"zabbix_proto_item_snmp":      resourceProtoItemSnmp(),
-			"zabbix_lld_snmp":             resourceLLDSnmp(),
-			"zabbix_item_agent":           resourceItemAgent(),
-			"zabbix_lld_agent":            resourceLLDAgent(),
+			"zabbix_trigger":   resourceTrigger(),
+			"zabbix_template":  resourceTemplate(),
+			"zabbix_hostgroup": resourceHostgroup(),
+			"zabbix_host":      resourceHost(),
+
+			"zabbix_item_trapper": resourceItemTrapper(),
+
+			"zabbix_item_http": resourceItemHttp(),
+
+			"zabbix_item_simple": resourceItemSimple(),
+
+			"zabbix_item_external": resourceItemExternal(),
+
+			"zabbix_item_internal": resourceItemInternal(),
+
+			"zabbix_item_snmp":       resourceItemSnmp(),
+			"zabbix_proto_item_snmp": resourceProtoItemSnmp(),
+			"zabbix_lld_snmp":        resourceLLDSnmp(),
+
+			"zabbix_item_agent": resourceItemAgent(),
+			"zabbix_lld_agent":  resourceLLDAgent(),
+
 			"zabbix_item_aggregate":       resourceItemAggregate(),
 			"zabbix_proto_item_aggregate": resourceProtoItemAggregate(),
-			"zabbix_item_dependent":       resourceItemDependent(),
-			"zabbix_trigger":              resourceTrigger(),
-			"zabbix_template":             resourceTemplate(),
-			"zabbix_hostgroup":            resourceHostgroup(),
-			"zabbix_host":                 resourceHost(),
+
+			"zabbix_item_dependent": resourceItemDependent(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

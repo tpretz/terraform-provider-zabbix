@@ -205,15 +205,19 @@ resource "zabbix_template" "{template_safe}" {{
 
 def renderLLDRule(t, i, args):
     lines = []
+    common_lines = [
+        '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
+        '  name = "{}"'.format(i["name"]),
+        '  key = "{}"'.format(i["key"]),
+    ]
     ty = i.get("type", "0")
     if ty is "1" or ty is "4" or ty is "6": # snmp
-       lines.append('resource "zabbix_lld_snmp" "{}" {{'.format(i['name_safe']))
-       lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
-       lines.append('  name = "{}"'.format(i["name"]))
-       lines.append('  key = "{}"'.format(i["key"]))
-       lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
-       lines.append('  snmp_version = "{}"'.format(args.snmp))
-       lines.append('}')
+        t['resource_type'] = 'zabbix_lld_snmp'
+        lines.append('resource "{}" "{}" {{'.format(t['resource_type'], i['name_safe']))
+        lines.extend(common_lines)
+        lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
+        lines.append('  snmp_version = "{}"'.format(args.snmp))
+        lines.append('}')
     else:
         log.debug("unsupported discovery type")
     
@@ -226,17 +230,20 @@ def renderLLDRule(t, i, args):
 def renderLLDItem(t, lld, i, args):
     log.info("got item %s" % i)
     lines = []
+    common_lines = [
+       '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
+       '  ruleid = {}.{}.id'.format(t["resource_type"], lld["name_safe"]),
+       '  name = "{}"'.format(i["name"]),
+       '  key = "{}"'.format(i["key"]),
+       '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
+    ]
 
     ty = i.get("type", "0")
     if ty is "0": # agent
        pass
     elif ty is "1" or ty is "4" or ty is "6": # snmp
        lines.append('resource "zabbix_proto_item_snmp" "{}" {{'.format(i['key_safe']))
-       lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
-       lines.append('  ruleid = zabbix_lld_snmp.{}.id'.format(lld["name_safe"]))
-       lines.append('  name = "{}"'.format(i["name"]))
-       lines.append('  key = "{}"'.format(i["key"]))
-       lines.append('  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]))
+       lines.extend(common_lines)
        lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
        lines.append('  snmp_version = "{}"'.format(args.snmp))
        lines.append('}')
@@ -249,6 +256,9 @@ def renderLLDItem(t, lld, i, args):
     elif ty is "7": # active agent
        pass
     elif ty is "8": # aggregate
+       lines.append('resource "zabbix_proto_item_aggregate" "{}" {{'.format(i['key_safe']))
+       lines.extend(common_lines)
+       lines.append('}')
        pass
     elif ty is "10": # external
        pass
