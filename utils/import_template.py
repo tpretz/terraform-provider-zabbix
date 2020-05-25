@@ -300,7 +300,10 @@ def renderLLDItem(t, lld, i, args):
         lines.extend(common_lines)
         lines.append('}')
     elif ty == "10": # external
-       pass
+        i['resource_type'] = 'zabbix_proto_item_external'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "15": # calculated
         i['resource_type'] = 'zabbix_proto_item_calculated'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -377,7 +380,10 @@ def renderItem(t, i, args):
     elif ty == "8": # aggregate
        pass
     elif ty == "10": # external
-       pass
+        i['resource_type'] = 'zabbix_item_external'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "15": # calculated 
         i['resource_type'] = 'zabbix_item_calculated'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
