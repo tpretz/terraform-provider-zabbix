@@ -236,7 +236,7 @@ def renderLLDRule(t, i, args):
         '  key = "{}"'.format(i["key"]),
     ]
     ty = i.get("type", "0")
-    if ty is "1" or ty is "4" or ty is "6": # snmp
+    if ty == "1" or ty == "4" or ty == "6": # snmp
         t['resource_type'] = 'zabbix_lld_snmp'
         lines.append('resource "{}" "{}" {{'.format(t['resource_type'], i['name_safe']))
         lines.extend(common_lines)
@@ -268,35 +268,35 @@ def renderLLDItem(t, lld, i, args):
     ]
 
     ty = i.get("type", "0")
-    if ty is "0": # agent
+    if ty == "0": # agent
        pass
-    elif ty is "1" or ty is "4" or ty is "6": # snmp
+    elif ty == "1" or ty == "4" or ty == "6": # snmp
         i['resource_type'] = 'zabbix_proto_item_snmp'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
         lines.append('  snmp_version = "{}"'.format(args.snmp))
         lines.append('}')
-    elif ty is "2": # trapper
+    elif ty == "2": # trapper
        pass
-    elif ty is "3": # simple
+    elif ty == "3": # simple
        pass
-    elif ty is "5": # internal
+    elif ty == "5": # internal
        pass
-    elif ty is "7": # active agent
+    elif ty == "7": # active agent
        pass
-    elif ty is "8": # aggregate
+    elif ty == "8": # aggregate
         i['resource_type'] = 'zabbix_proto_item_aggregate'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('}')
-    elif ty is "10": # external
+    elif ty == "10": # external
        pass
     elif ty == "15": # calculated
         i['resource_type'] = 'zabbix_proto_item_calculated'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
-        lines.append('  formula = "{}"'.format(i['params']))
+        lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
         lines.append('}')
 
     print("\n".join(lines))
@@ -333,32 +333,32 @@ def renderItem(t, i, args):
     ]
 
     ty = i.get("type", "0")
-    if ty is "0": # agent
+    if ty == "0": # agent
        pass
-    elif ty is "1" or ty is "4" or ty is "6": # snmp
+    elif ty == "1" or ty == "4" or ty == "6": # snmp
         i['resource_type'] = 'zabbix_item_snmp'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
         lines.append('  snmp_version = "{}"'.format(args.snmp))
         lines.append('}')
-    elif ty is "2": # trapper
+    elif ty == "2": # trapper
        pass
-    elif ty is "3": # simple
+    elif ty == "3": # simple
        pass
-    elif ty is "5": # internal
+    elif ty == "5": # internal
        pass
-    elif ty is "7": # active agent
+    elif ty == "7": # active agent
        pass
-    elif ty is "8": # aggregate
+    elif ty == "8": # aggregate
        pass
-    elif ty is "10": # external
+    elif ty == "10": # external
        pass
-    elif ty is "15": # calculated 
+    elif ty == "15": # calculated 
         i['resource_type'] = 'zabbix_item_calculated'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
-        lines.extend('  formula = "{}"'.format(i['params']))
+        lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
         lines.append('}')
 
     print("\n".join(lines))
