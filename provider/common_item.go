@@ -90,6 +90,7 @@ var itemPrototypeSchema = map[string]*schema.Schema{
 	"ruleid": &schema.Schema{
 		Type:         schema.TypeString,
 		Required:     true,
+		ForceNew:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Description:  "LLD Rule ID",
 	},
@@ -249,6 +250,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	}
 
 	if prototype {
+		params["selectDiscoveryRule"] = "extend"
 		items, err = api.ProtoItemsGet(params)
 	} else {
 		items, err = api.ItemsGet(params)
@@ -275,8 +277,8 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	d.Set("name", item.Name)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("preprocessor", flattenItemPreprocessors(item))
-	if prototype {
-		d.Set("ruleid", item.RuleID)
+	if prototype && item.DiscoveryRule != nil {
+		d.Set("ruleid", item.DiscoveryRule.ItemID)
 	}
 
 	// run custom

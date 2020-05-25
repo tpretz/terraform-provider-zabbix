@@ -89,7 +89,7 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Type:         schema.TypeString,
 		Description:  "EvalType, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(LLD_EVALTYPE_ARR, false),
-		Default:      "0",
+		Default:      "andor",
 		Optional:     true,
 	},
 	"formula": &schema.Schema{
@@ -172,7 +172,7 @@ var lldFilterConditionSchema = &schema.Schema{
 			"operator": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "8",
+				Default:      "match",
 				Description:  "Operator, one of: " + strings.Join(LLD_OPERATOR_ARR, ", "),
 				ValidateFunc: validation.StringInSlice(LLD_OPERATOR_ARR, false),
 			},
