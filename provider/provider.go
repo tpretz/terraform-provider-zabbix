@@ -79,6 +79,9 @@ func Provider() *schema.Provider {
 			"zabbix_item_aggregate":       resourceItemAggregate(),
 			"zabbix_proto_item_aggregate": resourceProtoItemAggregate(),
 
+			"zabbix_item_calculated":       resourceItemCalculated(),
+			"zabbix_proto_item_calculated": resourceProtoItemCalculated(),
+
 			"zabbix_item_dependent": resourceItemDependent(),
 		},
 		ConfigureFunc: providerConfigure,

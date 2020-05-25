@@ -257,7 +257,7 @@ def renderLLDRule(t, i, args):
         renderLLDTrigger(t, i, trigger, args)
 
 def renderLLDItem(t, lld, i, args):
-    log.info("got item %s" % i)
+    log.info("got lld item %s" % i)
     lines = []
     common_lines = [
        '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
@@ -266,7 +266,6 @@ def renderLLDItem(t, lld, i, args):
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
     ]
-  #  i['resource_type'] = 'unknown'
 
     ty = i.get("type", "0")
     if ty is "0": # agent
@@ -287,12 +286,18 @@ def renderLLDItem(t, lld, i, args):
     elif ty is "7": # active agent
        pass
     elif ty is "8": # aggregate
-       lines.append('resource "zabbix_proto_item_aggregate" "{}" {{'.format(i['key_safe']))
-       lines.extend(common_lines)
-       lines.append('}')
-       pass
+        i['resource_type'] = 'zabbix_proto_item_aggregate'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty is "10": # external
        pass
+    elif ty == "15": # calculated
+        i['resource_type'] = 'zabbix_proto_item_calculated'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('  formula = "{}"'.format(i['params']))
+        lines.append('}')
 
     print("\n".join(lines))
 
@@ -320,7 +325,12 @@ def renderLLDTrigger(tmpl, lld, t, args):
 
 def renderItem(t, i, args):
     lines = []
-    #i['resource_type'] = 'unknown'
+    common_lines = [
+       '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
+       '  name = "{}"'.format(i["name"]),
+       '  key = "{}"'.format(i["key"]),
+       '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
+    ]
 
     ty = i.get("type", "0")
     if ty is "0": # agent
@@ -328,10 +338,7 @@ def renderItem(t, i, args):
     elif ty is "1" or ty is "4" or ty is "6": # snmp
         i['resource_type'] = 'zabbix_item_snmp'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
-        lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
-        lines.append('  name = "{}"'.format(i["name"]))
-        lines.append('  key = "{}"'.format(i["key"]))
-        lines.append('  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]))
+        lines.extend(common_lines)
         lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
         lines.append('  snmp_version = "{}"'.format(args.snmp))
         lines.append('}')
@@ -347,6 +354,12 @@ def renderItem(t, i, args):
        pass
     elif ty is "10": # external
        pass
+    elif ty is "15": # calculated 
+        i['resource_type'] = 'zabbix_item_calculated'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.extend('  formula = "{}"'.format(i['params']))
+        lines.append('}')
 
     print("\n".join(lines))
 
