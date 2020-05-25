@@ -4,6 +4,7 @@ import argparse
 import logging
 import xml.etree.ElementTree as ET
 import re
+import sys
 
 log = None
 ITEM_T_MAP = {
@@ -72,8 +73,9 @@ def expressionRef(ex):
 
         # check if a ref, local cache of refs
         if hasCachedTfName(cap):
-            safe = safeTfName(cap)
+            log.debug("got match")
             if cap in item_cache:
+                log.debug("cache hit %s" % item_cache[cap])
                 return ':${'+item_cache[cap]['resource_type']+'.'+safeTfName(cap)+'.key}.'+match.group(2)+'('
 
         # will be used once conditional in place
@@ -244,7 +246,9 @@ def renderLLDRule(t, i, args):
         lines.append('  snmp_version = "{}"'.format(args.snmp))
         lines.append('}')
     else:
-        log.debug("unsupported discovery type")
+        log.error("unsupported discovery type %s" % i)
+        sys.exit(1)
+
     
     print("\n".join(lines))
 
@@ -315,6 +319,11 @@ def renderLLDItem(t, lld, i, args):
         lines.extend(common_lines)
         lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
         lines.append('}')
+    elif ty == "17": # snmp trap
+        i['resource_type'] = 'zabbix_proto_item_snmptrap'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "18": # dependent
         i['resource_type'] = 'zabbix_proto_item_dependent'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -329,7 +338,8 @@ def renderLLDTrigger(tmpl, lld, t, args):
 
     try:
         expression = expressionRef(t["expression"])
-        recovery_expression = expressionRef(t["recovery_expression"])
+        if t.get('recovery_mode') == "1":
+            recovery_expression = expressionRef(t["recovery_expression"])
     except KeyError:
         log.error("cant render trigger %s as no valid item found" % t['name'])
         return
@@ -400,6 +410,11 @@ def renderItem(t, i, args):
         lines.extend(common_lines)
         lines.append('  formula = "{}"'.format(i['params'].replace('"','\\"')))
         lines.append('}')
+    elif ty == "17": # snmp trap
+        i['resource_type'] = 'zabbix_item_snmptrap'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "18": # dependent
         i['resource_type'] = 'zabbix_item_dependent'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -414,7 +429,8 @@ def renderTrigger(t):
 
     try:
         expression = expressionRef(t["expression"])
-        recovery_expression = expressionRef(t["recovery_expression"])
+        if t.get('recovery_mode') == "1":
+            recovery_expression = expressionRef(t["recovery_expression"])
     except KeyError:
         log.error("cant render trigger %s as no valid item found" % t['name'])
         return
