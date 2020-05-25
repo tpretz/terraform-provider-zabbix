@@ -280,7 +280,10 @@ def renderLLDItem(t, lld, i, args):
     elif ty == "2": # trapper
        pass
     elif ty == "3": # simple
-       pass
+        i['resource_type'] = 'zabbix_proto_item_simple'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "5": # internal
        pass
     elif ty == "7": # active agent
@@ -345,7 +348,10 @@ def renderItem(t, i, args):
     elif ty == "2": # trapper
        pass
     elif ty == "3": # simple
-       pass
+        i['resource_type'] = 'zabbix_proto_item_simple'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "5": # internal
        pass
     elif ty == "7": # active agent

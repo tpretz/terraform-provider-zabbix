@@ -63,7 +63,9 @@ func Provider() *schema.Provider {
 
 			"zabbix_item_http": resourceItemHttp(),
 
-			"zabbix_item_simple": resourceItemSimple(),
+			"zabbix_item_simple":       resourceItemSimple(),
+			"zabbix_proto_item_simple": resourceProtoItemSimple(),
+			"zabbix_lld_simple":        resourceLLDSimple(),
 
 			"zabbix_item_external": resourceItemExternal(),
 
