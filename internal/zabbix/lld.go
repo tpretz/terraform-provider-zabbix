@@ -54,6 +54,7 @@ type LLDRule struct {
 	PublicKey    string `json:"publickey,omitempty"`
 	Status       string `json:"status,omitempty"`
 	TrapperHosts string `json:"trapper_hosts,omitempty"`
+	MasterItemID string `json:"master_itemid,omitempty"`
 
 	// ssh / telnet
 	Username string `json:"username,omitempty"`
