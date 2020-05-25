@@ -61,6 +61,7 @@ func Provider() *schema.Provider {
 			"zabbix_item_snmp":      resourceItemSnmp(),
 			"zabbix_lld_snmp":       resourceLLDSnmp(),
 			"zabbix_item_agent":     resourceItemAgent(),
+			"zabbix_lld_agent":      resourceLLDAgent(),
 			"zabbix_item_aggregate": resourceItemAggregate(),
 			"zabbix_item_dependent": resourceItemDependent(),
 			"zabbix_trigger":        resourceTrigger(),
