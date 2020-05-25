@@ -28,7 +28,19 @@ func resourceItemAgent() *schema.Resource {
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, schemaAgent),
 	}
 }
+func resourceProtoItemAgent() *schema.Resource {
+	return &schema.Resource{
+		Create: protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Read:   protoItemGetReadWrapper(itemAgentReadFunc),
+		Update: protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Delete: resourceProtoItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, itemPrototypeSchema, schemaAgent),
+	}
+}
 func resourceLLDAgent() *schema.Resource {
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc),

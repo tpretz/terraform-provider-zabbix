@@ -268,8 +268,13 @@ def renderLLDItem(t, lld, i, args):
     ]
 
     ty = i.get("type", "0")
-    if ty == "0": # agent
-       pass
+    if ty == "0" or ty == "7": # agent
+        i['resource_type'] = 'zabbix_proto_item_agent'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        if ty == "7":
+            lines.append('  active = true')
+        lines.append('}')
     elif ty == "1" or ty == "4" or ty == "6": # snmp
         i['resource_type'] = 'zabbix_proto_item_snmp'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -351,8 +356,13 @@ def renderItem(t, i, args):
     ]
 
     ty = i.get("type", "0")
-    if ty == "0": # agent
-       pass
+    if ty == "0" or ty == "7": # agent
+        i['resource_type'] = 'zabbix_item_agent'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        if ty == "7":
+            lines.append('  active = true')
+        lines.append('}')
     elif ty == "1" or ty == "4" or ty == "6": # snmp
         i['resource_type'] = 'zabbix_item_snmp'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -375,8 +385,6 @@ def renderItem(t, i, args):
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('}')
-    elif ty == "7": # active agent
-       pass
     elif ty == "8": # aggregate
        pass
     elif ty == "10": # external
