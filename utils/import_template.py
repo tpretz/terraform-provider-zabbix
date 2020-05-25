@@ -231,7 +231,7 @@ def renderLLDItem(t, lld, i, args):
     if ty is "0": # agent
        pass
     elif ty is "1" or ty is "4" or ty is "6": # snmp
-       lines.append('resource "zabbix_protoitem_snmp" "{}" {{'.format(i['key_safe']))
+       lines.append('resource "zabbix_proto_item_snmp" "{}" {{'.format(i['key_safe']))
        lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
        lines.append('  ruleid = zabbix_lld_snmp.{}.id'.format(lld["name_safe"]))
        lines.append('  name = "{}"'.format(i["name"]))
