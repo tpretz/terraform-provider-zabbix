@@ -34,6 +34,7 @@ OPERATOR_P_MAP = {
 
 names = {}
 names_rev = {}
+item_cache = {}
 
 def hasCachedTfName(inname):
     return inname in names
@@ -71,7 +72,9 @@ def expressionRef(ex):
 
         # check if a ref, local cache of refs
         if hasCachedTfName(cap):
-            return ':${zabbix_item_snmp.'+safeTfName(cap)+'.key}.'
+            safe = safeTfName(cap)
+            if cap in item_cache:
+                return ':${'+item_cache[cap]['resource_type']+'.'+safeTfName(cap)+'.key}.'+match.group(2)+'('
 
         # will be used once conditional in place
         return ':'+cap+'.'
@@ -80,7 +83,7 @@ def expressionRef(ex):
     subTmplFun,
     ex)
 
-    res = re.sub(r':([^:\.]+)\.',
+    res = re.sub(r':(.+)\.(\w+)\(',
     subItemFun,
     res)
 
@@ -123,6 +126,8 @@ def extractTemplates(root):
                 continue
             itemobj["key_safe"] = safeTfName(itemobj["key"])
             obj['items'].append(itemobj)
+            item_cache[itemobj["key"]] = itemobj
+
         log.debug("got tmpl object %s" % obj)
         templates.append(obj)
     return templates
@@ -155,9 +160,29 @@ def extractLLDRules(root):
                 log.debug("lld item attr %s: %s" % (child.tag, child.text)) 
 
             iobj["key_safe"] = safeTfName(iobj["key"])
+            iobj["prototype"] = True
+            item_cache[iobj["key"]] = iobj
             items.append(iobj)
 
         tobj['items'] = items
+        
+        
+        triggers = []
+        # nested things too
+        for i in t.findall('trigger_prototypes/trigger_prototype'):
+            iobj = {}
+            for child in i:
+                if child.text is None:
+                    continue
+                if len(child) > 0:
+                    continue
+                iobj[child.tag] = child.text
+                log.debug("lld trigger attr %s: %s" % (child.tag, child.text)) 
+
+            iobj["name_safe"] = safeTfName(iobj["name"])
+            triggers.append(iobj)
+
+        tobj['triggers'] = triggers
 
         rules.append(tobj)
     return rules
@@ -226,6 +251,10 @@ def renderLLDRule(t, i, args):
     # process its items too
     for item in i['items']:
         renderLLDItem(t, i, item, args)
+    
+    # process its triggers too
+    for trigger in i['triggers']:
+        renderLLDTrigger(t, i, trigger, args)
 
 def renderLLDItem(t, lld, i, args):
     log.info("got item %s" % i)
@@ -237,16 +266,18 @@ def renderLLDItem(t, lld, i, args):
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
     ]
+  #  i['resource_type'] = 'unknown'
 
     ty = i.get("type", "0")
     if ty is "0": # agent
        pass
     elif ty is "1" or ty is "4" or ty is "6": # snmp
-       lines.append('resource "zabbix_proto_item_snmp" "{}" {{'.format(i['key_safe']))
-       lines.extend(common_lines)
-       lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
-       lines.append('  snmp_version = "{}"'.format(args.snmp))
-       lines.append('}')
+        i['resource_type'] = 'zabbix_proto_item_snmp'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
+        lines.append('  snmp_version = "{}"'.format(args.snmp))
+        lines.append('}')
     elif ty is "2": # trapper
        pass
     elif ty is "3": # simple
@@ -265,21 +296,45 @@ def renderLLDItem(t, lld, i, args):
 
     print("\n".join(lines))
 
+def renderLLDTrigger(tmpl, lld, t, args):
+    log.info("got trigger %s" % t)
+
+    try:
+        expression = expressionRef(t["expression"])
+    except KeyError:
+        log.error("cant render trigger %s as no valid item found" % t['name'])
+        return
+
+    lines = []
+
+    lines.append('resource "zabbix_proto_trigger" "{}" {{'.format(t['name_safe']))
+    lines.append('  name = "{}"'.format(t["name"]))
+    lines.append('  expression = "{}"'.format(expression))
+    lines.append('  comments = "{}"'.format('\\n'.join(t["description"].splitlines())))
+    lines.append('  priority = "{}"'.format(TRIGGER_P_MAP[t["priority"]]))
+    if t.get('recovery_mode') == "1":
+        lines.append('  recovery_expression = "{}"'.format(expressionRef(t['recovery_expression'])))
+    lines.append('}')
+
+    print("\n".join(lines))
+
 def renderItem(t, i, args):
     lines = []
+    #i['resource_type'] = 'unknown'
 
     ty = i.get("type", "0")
     if ty is "0": # agent
        pass
     elif ty is "1" or ty is "4" or ty is "6": # snmp
-       lines.append('resource "zabbix_item_snmp" "{}" {{'.format(i['key_safe']))
-       lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
-       lines.append('  name = "{}"'.format(i["name"]))
-       lines.append('  key = "{}"'.format(i["key"]))
-       lines.append('  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]))
-       lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
-       lines.append('  snmp_version = "{}"'.format(args.snmp))
-       lines.append('}')
+        i['resource_type'] = 'zabbix_item_snmp'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.append('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
+        lines.append('  name = "{}"'.format(i["name"]))
+        lines.append('  key = "{}"'.format(i["key"]))
+        lines.append('  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]))
+        lines.append('  snmp_oid = "{}"'.format(i["snmp_oid"]))
+        lines.append('  snmp_version = "{}"'.format(args.snmp))
+        lines.append('}')
     elif ty is "2": # trapper
        pass
     elif ty is "3": # simple
