@@ -144,6 +144,18 @@ func resourceItemSnmp() *schema.Resource {
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, schemaSnmp),
 	}
 }
+func resourceProtoItemSnmp() *schema.Resource {
+	return &schema.Resource{
+		Create: protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:   protoItemGetReadWrapper(itemSnmpReadFunc),
+		Update: protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Delete: resourceProtoItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, itemPrototypeSchema, schemaSnmp),
+	}
+}
 
 func resourceLLDSnmp() *schema.Resource {
 	return &schema.Resource{
