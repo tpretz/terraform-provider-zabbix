@@ -53,10 +53,11 @@ func Provider() *schema.Provider {
 			"zabbix_template":  dataTemplate(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"zabbix_trigger":   resourceTrigger(),
-			"zabbix_template":  resourceTemplate(),
-			"zabbix_hostgroup": resourceHostgroup(),
-			"zabbix_host":      resourceHost(),
+			"zabbix_trigger":       resourceTrigger(),
+			"zabbix_proto_trigger": resourceProtoTrigger(),
+			"zabbix_template":      resourceTemplate(),
+			"zabbix_hostgroup":     resourceHostgroup(),
+			"zabbix_host":          resourceHost(),
 
 			"zabbix_item_trapper": resourceItemTrapper(),
 
