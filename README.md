@@ -29,6 +29,10 @@ No Testing has yet been added to this repository
 
 All resources support terraform resource importing using zabbix ID numbers
 
+# Templates to Terraform
+
+The script `utils/template2terraform` provides the capabilities to convert (some of) a Zabbix XML template into Terraform HCL.
+
 ## Provider
 
 Instantiate an instance of the provider.
@@ -282,6 +286,7 @@ resource "zabbix_trigger" "example" {
 #### Note
 
 When referencing hosts, templates or items within the expression, or recovery_expression, ensure you reference other resources via an attribute lookup.
+
 Without this, simply specifying the raw strings, will prevent terraform from correctly understanding the dependencies between triggers and other resources.
 
 Example
