@@ -35,6 +35,9 @@ OPERATOR_P_MAP = {
 names = {}
 names_rev = {}
 
+def hasCachedTfName(inname):
+    return inname in names
+
 def safeTfName(inname):
     if inname in names:
         return names[inname]
@@ -55,8 +58,9 @@ def expressionRef(ex):
         cap = match.group(1)
         log.debug("evaluating %s" % cap)
 
-        # check if a ref, local cache of refs, todo
-        return '{${zabbix_template.'+safeTfName(cap)+'.host}:'
+        # check if a ref, local cache of refs
+        if hasCachedTfName(cap):
+            return '{${zabbix_template.'+safeTfName(cap)+'.host}:'
 
         # will be used once conditional in place
         return '{'+cap+':'
@@ -65,8 +69,9 @@ def expressionRef(ex):
         cap = match.group(1)
         log.debug("evaluating %s" % cap)
 
-        # check if a ref, local cache of refs and types, todo
-        return ':${zabbix_item_snmp.'+safeTfName(cap)+'.key}.'
+        # check if a ref, local cache of refs
+        if hasCachedTfName(cap):
+            return ':${zabbix_item_snmp.'+safeTfName(cap)+'.key}.'
 
         # will be used once conditional in place
         return ':'+cap+'.'
