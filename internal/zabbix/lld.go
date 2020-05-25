@@ -1,17 +1,31 @@
 package zabbix
 
+type (
+	LLDEvalType     string
+	LLDOperatorType string
+)
+
+const (
+	LLDAndOr    LLDEvalType     = "0"
+	LLDAnd      LLDEvalType     = "1"
+	LLDOr       LLDEvalType     = "2"
+	LLDCustom   LLDEvalType     = "3"
+	LLDMatch    LLDOperatorType = "8"
+	LLDNotMatch LLDOperatorType = "9"
+)
+
 type LLDRuleFilterCondition struct {
-	Macro     string `json:"macro"`
-	Value     string `json:"value"`
-	FormulaID string `json:"formulaid,omitempty"`
-	Operator  string `json:"operator,omitempty"`
+	Macro     string          `json:"macro"`
+	Value     string          `json:"value"`
+	FormulaID string          `json:"formulaid,omitempty"`
+	Operator  LLDOperatorType `json:"operator,omitempty"`
 }
 
 type LLDRuleFilterConditions []LLDRuleFilterCondition
 
 type LLDRuleFilter struct {
 	Conditions  LLDRuleFilterConditions `json:"conditions"`
-	EvalType    string                  `json:"evaltype"`
+	EvalType    LLDEvalType             `json:"evaltype"`
 	EvalFormula string                  `json:"eval_formula,omitempty"`
 	Formula     string                  `json:"formula"`
 }
