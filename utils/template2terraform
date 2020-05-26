@@ -217,7 +217,7 @@ resource "zabbix_template" "{template_safe}" {{
   name = "{name}"
 
   description = "{description}"
-  groups = [ "1" ]
+  groups = [ zabbix_hostgroup.t.id ]
 }}
 """.format_map(t))
 
@@ -491,6 +491,11 @@ def main():
     templates = extractTemplates(root)
     triggers = extractTriggers(root)
 
+    print("""
+data "zabbix_hostgroup" "t" {
+    name = "Templates"
+}
+    """)
 
     for t in templates:
       renderTemplate(t, args)
