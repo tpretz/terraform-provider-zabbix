@@ -5,6 +5,7 @@ import logging
 import xml.etree.ElementTree as ET
 import re
 import sys
+import json
 
 log = None
 ITEM_T_MAP = {
@@ -115,6 +116,8 @@ def extractTemplates(root):
         # extract groups
 
         # extract applications
+        for item in tmpl.findall("applications/application/name"):
+            obj["applications"].append(item.text)
 
         # extract items
         for item in tmpl.findall("items/item"):
@@ -127,6 +130,11 @@ def extractTemplates(root):
             if 'key' not in itemobj or 'value_type' not in itemobj:
                 continue
             itemobj["key_safe"] = safeTfName(itemobj["key"])
+
+            itemobj["applications"] = []
+            for a in item.findall('applications/application/name'):
+                itemobj["applications"].append(a.text)
+
             obj['items'].append(itemobj)
             item_cache[itemobj["key"]] = itemobj
 
@@ -163,6 +171,11 @@ def extractLLDRules(root):
 
             iobj["key_safe"] = safeTfName(iobj["key"])
             iobj["prototype"] = True
+
+            iobj["applications"] = []
+            for a in i.findall('applications/application/name'):
+                iobj["applications"].append(a.text)
+
             item_cache[iobj["key"]] = iobj
             items.append(iobj)
 
@@ -211,16 +224,23 @@ def renderTemplate(t, args):
       t["name"] = t["template"]
     if t.get("description") is None:
       t["description"] = "Imported Template"
+    t["hostgroup"] = safeTfName("t")
     print("""
 resource "zabbix_template" "{template_safe}" {{
   host = "{template}"
   name = "{name}"
 
   description = "{description}"
-  groups = [ zabbix_hostgroup.t.id ]
+  groups = [ data.zabbix_hostgroup.{hostgroup}.id ]
 }}
 """.format_map(t))
 
+    # applications
+    for i in t["applications"]:
+        print("resource \"zabbix_application\" \"{}\" {{".format(safeTfName(i)))
+        print("  name = \"{}\"".format(i))
+        print('  hostid = zabbix_template.{}.id'.format(t["template_safe"]))
+        print("}")
 
     # now for all items
     for i in t["items"]:
@@ -263,12 +283,14 @@ def renderLLDRule(t, i, args):
 def renderLLDItem(t, lld, i, args):
     log.info("got lld item %s" % i)
     lines = []
+    applications = [ "zabbix_application."+ safeTfName(m)+".id" for m in i["applications"]]
     common_lines = [
        '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
        '  ruleid = {}.{}.id'.format(t["resource_type"], lld["name_safe"]),
        '  name = "{}"'.format(i["name"]),
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
+       '  applications = [{}]'.format(", ".join(applications)),
     ]
 
     ty = i.get("type", "0")
@@ -367,11 +389,13 @@ def renderLLDTrigger(tmpl, lld, t, args):
 
 def renderItem(t, i, args):
     lines = []
+    applications = [ "zabbix_application."+ safeTfName(m)+".id" for m in i["applications"]]
     common_lines = [
        '  hostid = zabbix_template.{}.id'.format(t["template_safe"]),
        '  name = "{}"'.format(i["name"]),
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
+       '  applications = [{}]'.format(", ".join(applications)),
     ]
 
     ty = i.get("type", "0")
@@ -492,10 +516,10 @@ def main():
     triggers = extractTriggers(root)
 
     print("""
-data "zabbix_hostgroup" "t" {
+data "zabbix_hostgroup" "{}" {{
     name = "Templates"
-}
-    """)
+}}
+    """.format(safeTfName("t")))
 
     for t in templates:
       renderTemplate(t, args)

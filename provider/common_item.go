@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -62,6 +63,15 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Required:     true,
 	},
 	"preprocessor": itemPreprocessorSchema,
+	"applications": &schema.Schema{
+		Type:        schema.TypeSet,
+		Description: "Application IDs to associate this item with",
+		Elem: &schema.Schema{
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
+		},
+		Optional: true,
+	},
 }
 
 // Delay schema
@@ -247,6 +257,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	params := zabbix.Params{
 		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
+		"selectApplications":  "extend",
 	}
 
 	if prototype {
@@ -281,6 +292,18 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
 	}
 
+	var applications zabbix.Applications
+	err = json.Unmarshal(item.Applications, &applications)
+	if err != nil {
+		return err
+	}
+
+	applicationSet := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range applications {
+		applicationSet.Add(v.ApplicationID)
+	}
+	d.Set("applications", applicationSet)
+
 	// run custom
 	r(d, &item)
 
@@ -296,6 +319,10 @@ func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
+
+	text, _ := json.Marshal(d.Get("applications").(*schema.Set).List())
+	raw := json.RawMessage(text)
+	item.Applications = raw
 
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)
