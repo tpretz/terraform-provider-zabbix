@@ -15,7 +15,7 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 * [zabbix_host](#zabbix_host)
 * [zabbix_hostgroup](#zabbix_hostgroup)
 * [zabbix_template](#zabbix_template)
-* [zabbix_trigger](#zabbix_trigger)
+* [zabbix_trigger](#zabbix_trigger--zabbix_proto_trigger)
 * [zabbix_item_agent / zabbix_proto_item_agent](#zabbix_item_agent--zabbix_proto_item_agent)
 * [zabbix_item_snmp / zabbix_proto_item_snmp](#zabbix_item_snmp--zabbix_proto_item_snmp)
 * [zabbix_item_simple / zabbix_proto_item_simple](#zabbix_item_simple--zabbix_proto_item_simple)
@@ -290,7 +290,7 @@ Same as arguments, plus:
 
 * macro.#.id - Generated macro ID
 
-### zabbix_trigger
+### zabbix_trigger / zabbix_proto_trigger
 [index](#index)
 
 ```hcl
