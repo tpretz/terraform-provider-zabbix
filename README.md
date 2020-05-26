@@ -25,6 +25,16 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 * [zabbix_item_external / zabbix_proto_item_external](#zabbix_item_external--zabbix_proto_item_external)
 * [zabbix_item_internal / zabbix_proto_item_internal](#zabbix_item_internal--zabbix_proto_item_internal)
 * [zabbix_item_dependent / zabbix_proto_item_dependent](#zabbix_item_dependent--zabbix_proto_item_dependent)
+* [zabbix_item_calculated / zabbix_proto_item_calculated](#zabbix_item_calculated--zabbix_proto_item_calculated)
+* [zabbix_item_snmptrap / zabbix_proto_item_snmptrap](#zabbix_item_snmptrap--zabbix_proto_item_snmptrap)
+* [zabbix_lld_agent](#zabbix_lld_agent)
+* [zabbix_lld_trapper](#zabbix_lld_trapper)
+* [zabbix_lld_simple](#zabbix_lld_simple)
+* [zabbix_lld_external](#zabbix_lld_external)
+* [zabbix_lld_internal](#zabbix_lld_internal)
+* [zabbix_lld_dependent](#zabbix_lld_dependent)
+* [zabbix_lld_snmp](#zabbix_lld_snmp)
+* [zabbix_lld_http](#zabbix_lld_http)
 
 # Requirements
 
@@ -777,6 +787,642 @@ resource "zabbix_item_dependent" "example" {
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
 * ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_item_calculated / zabbix_proto_item_calculated
+[index](#index)
+
+```hcl
+resource "zabbix_item_dependent" "example" {
+  hostid = "1234"
+  key = "custom.hostname"
+  name = "Item Name"
+  valuetype = "text"
+
+  formula = "1+1"
+
+  # only for proto_item
+  ruleid = "8989"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* formula - (Required) Calculated Item Formula
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_item_snmptrap / zabbix_proto_item_snmptrap
+[index](#index)
+
+```hcl
+resource "zabbix_item_snmptrap" "example" {
+  hostid = "1234"
+  key = "custom.hostname"
+  name = "Item Name"
+  valuetype = "text"
+
+  # only for proto_item
+  ruleid = "8989"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach item to
+* key - (Required) Item Key
+* name - (Required) Item Name
+* valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* preprocessor - (Optional) Item Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_agent
+[index](#index)
+
+```hcl
+resource "zabbix_lld_agent" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+
+  active = true
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* active - (Optional) zabbix active agent (defaults to false)
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_trapper
+[index](#index)
+
+```hcl
+resource "zabbix_lld_trapper" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_simple
+[index](#index)
+
+```hcl
+resource "zabbix_lld_simple" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_external
+[index](#index)
+
+```hcl
+resource "zabbix_lld_external" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_internal
+[index](#index)
+
+```hcl
+resource "zabbix_lld_internal" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_dependent
+[index](#index)
+
+```hcl
+resource "zabbix_lld_dependent" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  master_itemid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* master_itemid - (Required) ItemID this depends on
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_snmp
+[index](#index)
+
+```hcl
+resource "zabbix_lld_snmp" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  snmp_version = "3"
+  snmp_oid = "1.2.3.4
+  
+  snmp_community = "public"
+
+  snmp3_authpassphrase = "supersecretpassword"
+  snmp3_authprotocol = "md5"
+  snmp3_contextname = "context"
+  snmp3_privpassphrase = "anotherpassword"
+  snmp3_privprotocol = "des"
+  snmp3_securitylevel = "noauthnopriv"
+  snmp3_securityname = "secname"
+  
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* snmp_version - (Optional) SNMP Version, defaults to 2, one of (1, 2, 3)
+* snmp_oid - (Required) SNMP OID Number
+* snmp_community - (Optional) SNMPv1/v2 community string, defaults to {$SNMP_COMMUNITY}
+* snmp3_authpassphrase - (Optional) SNMPv3 Auth passphrase, defaults to {$SNMP3_AUTHPASSPHRASE}
+* snmp3_authprotocol - (Optional) SNMPv3 Auth protocol, defaults to sha, one of (md5, sha)
+* snmp3_contextname - (Optional) SNMPv3 Context Name, defaults to {$SNMP3_CONTEXTNAME} 
+* snmp3_privpassphrase - (Optional) SNMPv3 Priv passphrase, defaults to {$SNMP3_PRIVPASSPHRASE}
+* snmp3_privprotocol - (Optional) SNMPv3 Priv protocol, defaults to aes, one of (des, aes)
+* snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
+* snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
+
+#### Attributes Reference
+
+Same as arguments, plus:
+
+* preprocessor.#.id - Preprocessor assigned ID number
+
+### zabbix_lld_http
+[index](#index)
+
+```hcl
+resource "zabbix_lld_http" "example" {
+  hostid = "1234"
+  key = "zabbix.hostname"
+  name = "Item Name"
+
+  delay = "1m"
+  lifetime = "1d"
+  evaltype = "and"
+  
+  interfaceid = "5678"
+
+  preprocessor {
+    type = "5"
+    params = ["param a", "param b"]
+    error_handler = "1"
+    error_handler_params = ""
+  }
+
+  condition {
+    macro = "{#name}"
+    value = "^blah"
+    operator = "match"
+  }
+
+  macro {
+    macro = "{#name}"
+    path = "$.bob"
+  }
+
+  url = "http://example.com"
+  request_method = "post"
+  post_type = "body"
+  posts = "{}"
+  status_codes = "200"
+  timeout = "3s"
+  verify_host = true
+  verify_peer = true
+}
+```
+
+#### Argument Reference
+
+* hostid - (Required) Host/Template ID to attach LLD Rule to
+* key - (Required) LLD Key
+* name - (Required) LLD Name
+* delay - (Optional) LLD collection interval, defaults to 1m
+* lifetime - (Optional) Discovery Item lifetime, defaults to 30d
+* evaltype - (Optional) Discovery Filter Evaluation type, defaults to andor
+* formula - (Optional) Filter formula
+* preprocessor - (Optional) LLD Preprocessors
+    * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
+    * params - (Optional) Preprocessor params
+    * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
+    * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* condition - (Optional) LLD Filters
+    * macro - (Required) Filter macro name
+    * value - (Required) Filter Regex
+    * operator - (Optional) Filter operator, defaults to "match"
+* macro - (Optional) LLD Macros
+    * macro - (Required) Macro name
+    * path - (Required) Macro JSON path
+* interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
+* url - (Required) URL to fetch
+* request_method - (Optional) Method to use, defaults to "get", one of (get, post, put, head)
+* post_type - (Optional) Post type to use, defaults to "body", one of (body, headers, both)
+* status_codes - (Optional) Status codes to detect, defaults to 200
+* timeout - (Optional) Request timeout, defaults to 3s
+* verify_host (Optional) TLS host verification, defaults to true
+* verify_peer (Optional) TLS peer verification, defaults to true
 
 #### Attributes Reference
 

@@ -86,7 +86,7 @@ var lldCommonSchema = map[string]*schema.Schema{
 	},
 	"preprocessor": lldPreprocessorSchema,
 	"condition":    lldFilterConditionSchema,
-	"macropath":    lldMacroPathSchema,
+	"macro":        lldMacroPathSchema,
 	"evaltype": &schema.Schema{
 		Type:         schema.TypeString,
 		Description:  "EvalType, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", "),
@@ -318,7 +318,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("formula", lld.Filter.Formula)
 	d.Set("condition", flattenlldConditions(lld))
 	d.Set("preprocessor", flattenlldPreprocessors(lld))
-	d.Set("macropath", flattenlldMacroPaths(lld))
+	d.Set("macro", flattenlldMacroPaths(lld))
 
 	// run custom
 	r(d, &lld)
@@ -372,7 +372,7 @@ func lldGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Prep
 
 // Generate macro path objects
 func lldGenerateMacroPaths(d *schema.ResourceData) (paths zabbix.LLDMacroPaths) {
-	set := d.Get("macropath").(*schema.Set).List()
+	set := d.Get("macro").(*schema.Set).List()
 	paths = make(zabbix.LLDMacroPaths, len(set))
 
 	for i := 0; i < len(paths); i++ {
