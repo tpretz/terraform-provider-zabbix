@@ -151,6 +151,8 @@ var lldPreprocessorSchema = &schema.Schema{
 	},
 }
 
+var lldValidationMacro = validation.StringMatch(regexp.MustCompile("^\\{#[A-Z]+\\}$"), "must be a LLD macro format")
+
 var lldMacroPathSchema = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
@@ -160,13 +162,13 @@ var lldMacroPathSchema = &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "Macro",
-				ValidateFunc: validation.StringIsNotWhiteSpace,
+				ValidateFunc: lldValidationMacro,
 			},
 			"path": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  "Macro Path",
-				ValidateFunc: validation.StringIsNotWhiteSpace,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^\\$"), "must be a json path"),
 			},
 		},
 	},
@@ -183,14 +185,16 @@ var lldFilterConditionSchema = &schema.Schema{
 				Computed: true,
 			},
 			"macro": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Filter Macro",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Filter Macro",
+				ValidateFunc: lldValidationMacro,
 			},
 			"value": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Filter Valu",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Filter Value",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"operator": &schema.Schema{
 				Type:         schema.TypeString,
