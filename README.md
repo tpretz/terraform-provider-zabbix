@@ -10,11 +10,11 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 
 ## Data Sources
 
-* [zabbix_host](#data-zabbix_host)
-* [zabbix_hostgroup](#data-zabbix_hostgroup)
-* [zabbix_template](#data-zabbix_template)
-* [zabbix_application](#data-zabbix_application)
-* [zabbix_proxy](#data-zabbix_proxy)
+* [zabbix_host](#datazabbix_host)
+* [zabbix_hostgroup](#datazabbix_hostgroup)
+* [zabbix_template](#datazabbix_template)
+* [zabbix_application](#datazabbix_application)
+* [zabbix_proxy](#datazabbix_proxy)
 
 ## Resources
 
