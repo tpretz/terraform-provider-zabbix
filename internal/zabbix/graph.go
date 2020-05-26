@@ -86,13 +86,34 @@ func (api *API) GraphsGet(params Params) (res Graphs, err error) {
 	if _, present := params["output"]; !present {
 		params["output"] = "extend"
 	}
-	err = api.CallWithErrorParse("graphs.get", params, &res)
+	err = api.CallWithErrorParse("graph.get", params, &res)
+	return
+}
+func (api *API) GraphProtosGet(params Params) (res Graphs, err error) {
+	if _, present := params["output"]; !present {
+		params["output"] = "extend"
+	}
+	err = api.CallWithErrorParse("graphprototype.get", params, &res)
 	return
 }
 
 // GraphGetByID Gets host group by Id only if there is exactly 1 matching host group.
 func (api *API) GraphGetByID(id string) (res *Graph, err error) {
-	groups, err := api.HostGroupsGet(Params{"graphids": id})
+	groups, err := api.GraphsGet(Params{"graphids": id})
+	if err != nil {
+		return
+	}
+
+	if len(groups) == 1 {
+		res = &groups[0]
+	} else {
+		e := ExpectedOneResult(len(groups))
+		err = &e
+	}
+	return
+}
+func (api *API) GraphProtoGetByID(id string) (res *Graph, err error) {
+	groups, err := api.GraphProtosGet(Params{"graphids": id})
 	if err != nil {
 		return
 	}
@@ -121,11 +142,28 @@ func (api *API) GraphsCreate(hostGroups Graphs) (err error) {
 	}
 	return
 }
+func (api *API) GraphProtossCreate(hostGroups Graphs) (err error) {
+	response, err := api.CallWithError("graphprototype.create", hostGroups)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	groupids := result["graphids"].([]interface{})
+	for i, id := range groupids {
+		hostGroups[i].GraphID = id.(string)
+	}
+	return
+}
 
 // GraphsUpdate Wrapper for graph.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/graph/update
 func (api *API) GraphsUpdate(hostGroups Graphs) (err error) {
 	_, err = api.CallWithError("graph.update", hostGroups)
+	return
+}
+func (api *API) GraphProtosUpdate(hostGroups Graphs) (err error) {
+	_, err = api.CallWithError("graphprototype.update", hostGroups)
 	return
 }
 
@@ -146,11 +184,38 @@ func (api *API) GraphsDelete(hostGroups Graphs) (err error) {
 	}
 	return
 }
+func (api *API) GraphProtossDelete(hostGroups Graphs) (err error) {
+	ids := make([]string, len(hostGroups))
+	for i, group := range hostGroups {
+		ids[i] = group.GraphID
+	}
+
+	err = api.GraphProtosDeleteByIds(ids)
+	if err == nil {
+		for i := range hostGroups {
+			hostGroups[i].GraphID = ""
+		}
+	}
+	return
+}
 
 // HostGroupsDeleteByIds Wrapper for hostgroup.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/hostgroup/delete
 func (api *API) GraphsDeleteByIds(ids []string) (err error) {
 	response, err := api.CallWithError("graph.delete", ids)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	groupids := result["graphids"].([]interface{})
+	if len(ids) != len(groupids) {
+		err = &ExpectedMore{len(ids), len(groupids)}
+	}
+	return
+}
+func (api *API) GraphProtosDeleteByIds(ids []string) (err error) {
+	response, err := api.CallWithError("graphprototype.delete", ids)
 	if err != nil {
 		return
 	}
