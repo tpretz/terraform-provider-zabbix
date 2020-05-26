@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -85,6 +86,7 @@ var lldCommonSchema = map[string]*schema.Schema{
 	},
 	"preprocessor": lldPreprocessorSchema,
 	"condition":    lldFilterConditionSchema,
+	"macropath":    lldMacroPathSchema,
 	"evaltype": &schema.Schema{
 		Type:         schema.TypeString,
 		Description:  "EvalType, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", "),
@@ -144,6 +146,27 @@ var lldPreprocessorSchema = &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
+			},
+		},
+	},
+}
+
+var lldMacroPathSchema = &schema.Schema{
+	Type:     schema.TypeSet,
+	Optional: true,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"macro": &schema.Schema{
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Macro",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+			},
+			"path": &schema.Schema{
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Macro Path",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 		},
 	},
@@ -262,6 +285,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	llds, err := api.LLDsGet(zabbix.Params{
 		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
+		"selectLLDMacroPaths": "extend",
 		"selectFilter":        "extend",
 	})
 
@@ -290,6 +314,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("formula", lld.Filter.Formula)
 	d.Set("condition", flattenlldConditions(lld))
 	d.Set("preprocessor", flattenlldPreprocessors(lld))
+	d.Set("macropath", flattenlldMacroPaths(lld))
 
 	// run custom
 	r(d, &lld)
@@ -308,6 +333,7 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 	}
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)
+	lld.MacroPaths = lldGenerateMacroPaths(d)
 
 	lld.Filter.EvalType = LLD_EVALTYPE[d.Get("evaltype").(string)]
 	lld.Filter.Formula = d.Get("formula").(string)
@@ -334,6 +360,22 @@ func lldGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Prep
 			Params:             strings.Join(pstrarr, "\n"),
 			ErrorHandler:       d.Get(prefix + "error_handler").(string),
 			ErrorHandlerParams: d.Get(prefix + "error_handler_params").(string),
+		}
+	}
+
+	return
+}
+
+// Generate macro path objects
+func lldGenerateMacroPaths(d *schema.ResourceData) (paths zabbix.LLDMacroPaths) {
+	set := d.Get("macropath").(*schema.Set).List()
+	paths = make(zabbix.LLDMacroPaths, len(set))
+
+	for i := 0; i < len(paths); i++ {
+		current := set[i].(map[string]interface{})
+		paths[i] = zabbix.LLDMacroPath{
+			Macro: current["macro"].(string),
+			Path:  current["path"].(string),
 		}
 	}
 
@@ -376,6 +418,20 @@ func flattenlldPreprocessors(lld zabbix.LLDRule) []interface{} {
 		}
 	}
 	return val
+}
+
+func flattenlldMacroPaths(lld zabbix.LLDRule) *schema.Set {
+	set := schema.NewSet(func(i interface{}) int {
+		m := i.(map[string]interface{})
+		return hashcode.String(m["macro"].(string) + "P" + m["path"].(string))
+	}, []interface{}{})
+	for i := 0; i < len(lld.MacroPaths); i++ {
+		set.Add(map[string]interface{}{
+			"macro": lld.MacroPaths[i].Macro,
+			"path":  lld.MacroPaths[i].Path,
+		})
+	}
+	return set
 }
 
 // Generate terraform flattened form of lld filter conditions
