@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -26,6 +27,41 @@ var GRAPH_AXIS_LOOKUP = map[string]zabbix.GraphAxis{
 var GRAPH_AXIS_LOOKUP_REV = map[zabbix.GraphAxis]string{}
 var GRAPH_AXIS_LOOKUP_ARR = []string{}
 
+var GRAPH_FUNC_LOOKUP = map[string]zabbix.GraphItemFunc{
+	"min":     zabbix.GraphItemMin,
+	"average": zabbix.GraphItemAvg,
+	"max":     zabbix.GraphItemMax,
+	"all":     zabbix.GraphItemAll,
+	"last":    zabbix.GraphItemLast,
+}
+var GRAPH_FUNC_LOOKUP_REV = map[zabbix.GraphItemFunc]string{}
+var GRAPH_FUNC_LOOKUP_ARR = []string{}
+
+var GRAPH_DRAW_LOOKUP = map[string]zabbix.GraphItemDraw{
+	"line":     zabbix.GraphItemLine,
+	"filled":   zabbix.GraphItemFilled,
+	"bold":     zabbix.GraphItemBold,
+	"dot":      zabbix.GraphItemDot,
+	"dashed":   zabbix.GraphItemDashed,
+	"gradient": zabbix.GraphItemGradient,
+}
+var GRAPH_DRAW_LOOKUP_REV = map[zabbix.GraphItemDraw]string{}
+var GRAPH_DRAW_LOOKUP_ARR = []string{}
+
+var GRAPH_ITYPE_LOOKUP = map[string]zabbix.GraphItemType{
+	"simple": zabbix.GraphItemSimple,
+	"sum":    zabbix.GraphItemSum,
+}
+var GRAPH_ITYPE_LOOKUP_REV = map[zabbix.GraphItemType]string{}
+var GRAPH_ITYPE_LOOKUP_ARR = []string{}
+
+var GRAPH_SIDE_LOOKUP = map[string]zabbix.GraphItemSide{
+	"left":  zabbix.GraphItemLeft,
+	"right": zabbix.GraphItemRight,
+}
+var GRAPH_SIDE_LOOKUP_REV = map[zabbix.GraphItemSide]string{}
+var GRAPH_SIDE_LOOKUP_ARR = []string{}
+
 var _ = func() bool {
 	for k, v := range GRAPH_TYPE_LOOKUP {
 		GRAPH_TYPE_LOOKUP_REV[v] = k
@@ -34,6 +70,22 @@ var _ = func() bool {
 	for k, v := range GRAPH_AXIS_LOOKUP {
 		GRAPH_AXIS_LOOKUP_REV[v] = k
 		GRAPH_AXIS_LOOKUP_ARR = append(GRAPH_AXIS_LOOKUP_ARR, k)
+	}
+	for k, v := range GRAPH_FUNC_LOOKUP {
+		GRAPH_FUNC_LOOKUP_REV[v] = k
+		GRAPH_FUNC_LOOKUP_ARR = append(GRAPH_FUNC_LOOKUP_ARR, k)
+	}
+	for k, v := range GRAPH_DRAW_LOOKUP {
+		GRAPH_DRAW_LOOKUP_REV[v] = k
+		GRAPH_DRAW_LOOKUP_ARR = append(GRAPH_DRAW_LOOKUP_ARR, k)
+	}
+	for k, v := range GRAPH_ITYPE_LOOKUP {
+		GRAPH_ITYPE_LOOKUP_REV[v] = k
+		GRAPH_ITYPE_LOOKUP_ARR = append(GRAPH_ITYPE_LOOKUP_ARR, k)
+	}
+	for k, v := range GRAPH_SIDE_LOOKUP {
+		GRAPH_SIDE_LOOKUP_REV[v] = k
+		GRAPH_SIDE_LOOKUP_ARR = append(GRAPH_SIDE_LOOKUP_ARR, k)
 	}
 	return false
 }()
@@ -58,6 +110,41 @@ var schemaGraphItem = &schema.Schema{
 				Required:     true,
 				Description:  "itemid",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
+			},
+			"function": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "min",
+				Description:  "Function, one of: " + strings.Join(GRAPH_FUNC_LOOKUP_ARR, ", "),
+				ValidateFunc: validation.StringInSlice(GRAPH_FUNC_LOOKUP_ARR, false),
+			},
+			"drawtype": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "line",
+				Description:  "Draw Type, one of: " + strings.Join(GRAPH_DRAW_LOOKUP_ARR, ", "),
+				ValidateFunc: validation.StringInSlice(GRAPH_DRAW_LOOKUP_ARR, false),
+			},
+			"sortorder": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "sort order",
+				Default:      "0",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+			},
+			"type": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "simple",
+				Description:  "Type, one of: " + strings.Join(GRAPH_ITYPE_LOOKUP_ARR, ", "),
+				ValidateFunc: validation.StringInSlice(GRAPH_ITYPE_LOOKUP_ARR, false),
+			},
+			"yaxis_side": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "left",
+				Description:  "Y Axis Side, one of: " + strings.Join(GRAPH_SIDE_LOOKUP_ARR, ", "),
+				ValidateFunc: validation.StringInSlice(GRAPH_SIDE_LOOKUP_ARR, false),
 			},
 		},
 	},
@@ -254,8 +341,47 @@ func buildGraphObject(d *schema.ResourceData) zabbix.Graph {
 	return item
 }
 
-func buildGraphItems(d *schema.ResourceData) zabbix.GraphItems {
+func buildGraphItems(d *schema.ResourceData) (els zabbix.GraphItems) {
+	count := d.Get("item.#").(int)
+	els = make(zabbix.GraphItems, count)
 
+	for i := 0; i < count; i++ {
+		prefix := fmt.Sprintf("item.%d.", i)
+
+		els[i] = zabbix.GraphItem{
+			Color:     d.Get(prefix + "color").(string),
+			ItemID:    d.Get(prefix + "itemid").(string),
+			CalcFunc:  GRAPH_FUNC_LOOKUP[d.Get(prefix+"function").(string)],
+			DrawType:  GRAPH_DRAW_LOOKUP[d.Get(prefix+"drawtype").(string)],
+			SortOrder: d.Get(prefix + "sortorder").(string),
+			Type:      GRAPH_ITYPE_LOOKUP[d.Get(prefix+"type").(string)],
+			YAxisSide: GRAPH_SIDE_LOOKUP[d.Get(prefix+"yaxis_side").(string)],
+		}
+
+		// if we have an id (i.e an update)
+		if str := d.Get(prefix + "id").(string); str != "" {
+			els[i].GItemID = str
+		}
+	}
+
+	return
+}
+
+func flattenGraphItems(items zabbix.GraphItems) []interface{} {
+	val := make([]interface{}, len(items))
+	for i := 0; i < len(items); i++ {
+		val[i] = map[string]interface{}{
+			"id":         items[i].GItemID,
+			"color":      items[i].Color,
+			"itemid":     items[i].ItemID,
+			"function":   GRAPH_FUNC_LOOKUP_REV[items[i].CalcFunc],
+			"drawtype":   GRAPH_DRAW_LOOKUP_REV[items[i].DrawType],
+			"sortorder":  items[i].SortOrder,
+			"type":       GRAPH_ITYPE_LOOKUP_REV[items[i].Type],
+			"yaxis_side": GRAPH_SIDE_LOOKUP_REV[items[i].YAxisSide],
+		}
+	}
+	return val
 }
 
 // resourceGraphRead terraform resource read handler
@@ -314,10 +440,6 @@ func resourceGraphRead(prototype bool) schema.ReadFunc {
 
 		return nil
 	}
-}
-
-func flattenGraphItems(items zabbix.GraphItems) []interface{} {
-
 }
 
 // resourceGraphUpdate terraform resource update handler
