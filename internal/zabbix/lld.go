@@ -30,6 +30,13 @@ type LLDRuleFilter struct {
 	Formula     string                  `json:"formula"`
 }
 
+type LLDMacroPath struct {
+	Macro string `json:"lld_macro"`
+	Path  string `json:"path"`
+}
+
+type LLDMacroPaths []LLDMacroPath
+
 // Item represent Zabbix lld object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type LLDRule struct {
@@ -85,6 +92,7 @@ type LLDRule struct {
 
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
 	Filter        LLDRuleFilter `json:"filter"`
+	MacroPaths    LLDMacroPaths `json:"lld_macro_paths,omitempty"`
 }
 
 // Items is an array of Item
