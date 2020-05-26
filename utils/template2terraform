@@ -295,8 +295,9 @@ def renderLLDItem(t, lld, i, args):
        '  name = "{}"'.format(i["name"]),
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
-       '  applications = [{}]'.format(", ".join(applications)),
     ]
+    if len(applications) > 0:
+       common_lines.append('  applications = [{}]'.format(", ".join(applications)))
 
     ty = i.get("type", "0")
     if ty == "0" or ty == "7": # agent
@@ -400,8 +401,9 @@ def renderItem(t, i, args):
        '  name = "{}"'.format(i["name"]),
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
-       '  applications = [{}]'.format(", ".join(applications)),
     ]
+    if len(applications) > 0:
+       common_lines.append('  applications = [{}]'.format(", ".join(applications)))
 
     ty = i.get("type", "0")
     if ty == "0" or ty == "7": # agent
@@ -505,7 +507,7 @@ def main():
     parser.add_argument('-D', '--debug', action='store_true', default=False, help='debug logging')
     parser.add_argument('-i', '--input', required=True, help='input xml file')
     parser.add_argument('-s', '--snmp', required=True, help='snmp version')
-    parser.add_argument('-p', '--prefix', help='name prefix')
+    parser.add_argument('-p', '--prefix', help='tf resource name prefix')
 
     args = parser.parse_args()
 
