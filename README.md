@@ -320,7 +320,7 @@ expression = "{${zabbix_template.a.name}:${zabbix_item_snmp.b.key}.last()}>0"
 
 Same as arguments
 
-### zabbix_item_agent
+### zabbix_item_agent / zabbix_proto_item_agent
 
 ```hcl
 resource "zabbix_item_agent" "example" {
@@ -330,6 +330,9 @@ resource "zabbix_item_agent" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+
+  # only for proto_item
+  ruleid = "8989"
 
   interfaceid = "5678"
 
@@ -358,6 +361,7 @@ resource "zabbix_item_agent" "example" {
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
 * active - (Optional) zabbix active agent (defaults to false)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -365,7 +369,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_snmp
+### zabbix_item_snmp / zabbix_proto_item_snmp
 
 ```hcl
 j
@@ -374,6 +378,9 @@ resource "zabbix_item_snmp" "example" {
   key = "zabbix.hostname"
   name = "Item Name"
   valuetype = "unsigned"
+  
+  # only for proto_item
+  ruleid = "8989"
 
   preprocessor {
     type = "5"
@@ -418,6 +425,7 @@ resource "zabbix_item_snmp" "example" {
 * snmp3_privprotocol - (Optional) SNMPv3 Priv protocol, defaults to aes, one of (des, aes)
 * snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
 * snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -425,7 +433,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_simple
+### zabbix_item_simple / zabbix_proto_item_simple
 
 ```hcl
 resource "zabbix_item_simple" "example" {
@@ -433,6 +441,9 @@ resource "zabbix_item_simple" "example" {
   key = "net.tcp.service[ftp,,155]"
   name = "Item Name"
   valuetype = "unsigned"
+
+  # only for proto_item
+  ruleid = "8989"
 
   delay = "1m"
 
@@ -457,6 +468,7 @@ resource "zabbix_item_simple" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -465,7 +477,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 
-### zabbix_item_http
+### zabbix_item_http / zabbix_proto_item_http
 
 ```hcl
 resource "zabbix_item_http" "example" {
@@ -473,6 +485,9 @@ resource "zabbix_item_http" "example" {
   key = "http_value_search"
   name = "Item Name"
   valuetype = "unsigned"
+
+  # only for proto_item
+  ruleid = "8989"
 
   delay = "1m"
 
@@ -517,6 +532,7 @@ resource "zabbix_item_http" "example" {
 * timeout - (Optional) Request timeout, defaults to 3s
 * verify_host (Optional) TLS host verification, defaults to true
 * verify_peer (Optional) TLS peer verification, defaults to true
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -524,7 +540,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_trapper
+### zabbix_item_trapper / zabbix_proto_item_trapper
 
 ```hcl
 resource "zabbix_item_trapper" "example" {
@@ -532,6 +548,9 @@ resource "zabbix_item_trapper" "example" {
   key = "trapper_item_key"
   name = "Item Name"
   valuetype = "unsigned"
+
+  # only for proto_item
+  ruleid = "8989"
 
   preprocessor {
     type = "5"
@@ -553,6 +572,7 @@ resource "zabbix_item_trapper" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -560,7 +580,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_aggregate
+### zabbix_item_aggregate / zabbix_proto_item_aggregate
 
 ```hcl
 resource "zabbix_item_aggregate" "example" {
@@ -570,6 +590,9 @@ resource "zabbix_item_aggregate" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+
+  # only for proto_item
+  ruleid = "8989"
 
   preprocessor {
     type = "5"
@@ -592,6 +615,7 @@ resource "zabbix_item_aggregate" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -599,7 +623,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_external
+### zabbix_item_external / zabbix_proto_item_external
 
 ```hcl
 resource "zabbix_item_external" "example" {
@@ -609,6 +633,9 @@ resource "zabbix_item_external" "example" {
   interfaceid = "5678"
   valuetype = "unsigned"
   delay = "1m"
+
+  # only for proto_item
+  ruleid = "8989"
 }
 ```
 
@@ -625,6 +652,7 @@ resource "zabbix_item_external" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -632,7 +660,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_internal
+### zabbix_item_internal / zabbix_proto_item_internal
 
 ```hcl
 resource "zabbix_item_internal" "example" {
@@ -642,6 +670,9 @@ resource "zabbix_item_internal" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+
+  # only for proto_item
+  ruleid = "8989"
 
   interfaceid = "5678"
 
@@ -667,6 +698,7 @@ resource "zabbix_item_internal" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
@@ -674,7 +706,7 @@ Same as arguments, plus:
 
 * preprocessor.#.id - Preprocessor assigned ID number
 
-### zabbix_item_dependent
+### zabbix_item_dependent / zabbix_proto_item_dependent
 
 ```hcl
 resource "zabbix_item_dependent" "example" {
@@ -684,6 +716,9 @@ resource "zabbix_item_dependent" "example" {
   valuetype = "text"
 
   master_itemid = "12344"
+
+  # only for proto_item
+  ruleid = "8989"
 
   preprocessor {
     type = "5"
@@ -706,6 +741,7 @@ resource "zabbix_item_dependent" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 
 #### Attributes Reference
 
