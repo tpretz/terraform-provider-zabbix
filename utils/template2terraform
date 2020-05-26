@@ -37,6 +37,7 @@ OPERATOR_P_MAP = {
 names = {}
 names_rev = {}
 item_cache = {}
+state = {}
 
 def hasCachedTfName(inname):
     return inname in names
@@ -45,6 +46,10 @@ def safeTfName(inname):
     if inname in names:
         return names[inname]
     gen = re.sub(r'[^0-9a-z]+', '-', inname, flags=re.IGNORECASE).lower().strip('-')
+
+    if state.get('prefix'):
+        gen = state.get('prefix')+'-'+gen
+
     lookup = gen
 
     i = 0
@@ -500,12 +505,15 @@ def main():
     parser.add_argument('-D', '--debug', action='store_true', default=False, help='debug logging')
     parser.add_argument('-i', '--input', required=True, help='input xml file')
     parser.add_argument('-s', '--snmp', required=True, help='snmp version')
+    parser.add_argument('-p', '--prefix', help='name prefix')
 
     args = parser.parse_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
         log.debug("debug logs enabled")
+    if args.prefix:
+        state["prefix"] = args.prefix
 
 
     tree = ET.parse(args.input)
