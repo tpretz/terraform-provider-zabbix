@@ -19,6 +19,19 @@ func resourceItemAggregate() *schema.Resource {
 		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema),
 	}
 }
+func resourceProtoItemAggregate() *schema.Resource {
+	return &schema.Resource{
+		Create: protoItemGetCreateWrapper(itemAggregateModFunc, itemAggregateReadFunc),
+		Read:   protoItemGetReadWrapper(itemAggregateReadFunc),
+		Update: protoItemGetUpdateWrapper(itemAggregateModFunc, itemAggregateReadFunc),
+		Delete: resourceProtoItemDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Schema: mergeSchemas(itemCommonSchema, itemDelaySchema, itemPrototypeSchema),
+	}
+}
 
 // Custom mod handler for item type
 func itemAggregateModFunc(d *schema.ResourceData, item *zabbix.Item) {

@@ -31,112 +31,127 @@ var _ = func() bool {
 	return false
 }()
 
+var schemaTrigger = map[string]*schema.Schema{
+	// api "description", gui rewrites to name, so shall we
+	"name": &schema.Schema{
+		Type:         schema.TypeString,
+		Required:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Description:  "Trigger name",
+	},
+	"expression": &schema.Schema{
+		Type:         schema.TypeString,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Description:  "Trigger Expression",
+		Required:     true,
+	},
+	"comments": &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "Trigger comments",
+		Optional:    true,
+	},
+	"priority": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "Trigger Priority level, one of: " + strings.Join(TRIGGER_PRIORITY_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(TRIGGER_PRIORITY_ARR, false),
+		Default:      "not_classified",
+	},
+	"enabled": &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     true,
+		Description: "Enable this trigger",
+	},
+	"multiple": &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "generate multiple events",
+	},
+	"url": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "link to url relevent to trigger",
+		ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+	},
+	"recovery_none": &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "set recovery mode to none",
+	},
+	"recovery_expression": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "use recovery expression (recovery_none must not be true)",
+	},
+	"correlation_tag": &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "correlation tag",
+		Optional:    true,
+	},
+	"manual_close": &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Manual resolution",
+	},
+	"dependencies": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Schema{
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
+		},
+		Description: "Trigger Dependencies",
+	},
+	"tag": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"key": &schema.Schema{
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Description:  "Tag Key",
+				},
+				"value": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Tag Value",
+				},
+			},
+		},
+	},
+}
+
 // terraform resource handler for triggers
 func resourceTrigger() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTriggerCreate,
-		Read:   resourceTriggerRead,
-		Update: resourceTriggerUpdate,
-		Delete: resourceTriggerDelete,
+		Create: resourceTriggerCreate(false),
+		Read:   resourceTriggerRead(false),
+		Update: resourceTriggerUpdate(false),
+		Delete: resourceTriggerDelete(false),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: map[string]*schema.Schema{
-			// api "description", gui rewrites to name, so shall we
-			"name": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Trigger name",
-			},
-			"expression": &schema.Schema{
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Trigger Expression",
-				Required:     true,
-			},
-			"comments": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "Trigger comments",
-				Optional:    true,
-			},
-			"priority": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "Trigger Priority level, one of: " + strings.Join(TRIGGER_PRIORITY_ARR, ", "),
-				ValidateFunc: validation.StringInSlice(TRIGGER_PRIORITY_ARR, false),
-				Default:      "not_classified",
-			},
-			"enabled": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Enable this trigger",
-			},
-			"multiple": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "generate multiple events",
-			},
-			"url": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "link to url relevent to trigger",
-				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
-			},
-			"recovery_none": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "set recovery mode to none",
-			},
-			"recovery_expression": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "use recovery expression (recovery_none must not be true)",
-			},
-			"correlation_tag": &schema.Schema{
-				Type:        schema.TypeString,
-				Description: "correlation tag",
-				Optional:    true,
-			},
-			"manual_close": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Manual resolution",
-			},
-			"dependencies": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
-				},
-				Description: "Trigger Dependencies",
-			},
-			"tag": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringIsNotWhiteSpace,
-							Description:  "Tag Key",
-						},
-						"value": &schema.Schema{
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "Tag Value",
-						},
-					},
-				},
-			},
+		Schema: schemaTrigger,
+	}
+}
+func resourceProtoTrigger() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceTriggerCreate(true),
+		Read:   resourceTriggerRead(true),
+		Update: resourceTriggerUpdate(true),
+		Delete: resourceTriggerDelete(true),
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
 		},
+
+		Schema: schemaTrigger,
 	}
 }
 
@@ -218,112 +233,143 @@ func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 }
 
 // create trigger terraform handler
-func resourceTriggerCreate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
+func resourceTriggerCreate(prototype bool) schema.CreateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		api := m.(*zabbix.API)
 
-	item := buildTriggerObject(d)
+		item := buildTriggerObject(d)
 
-	items := []zabbix.Trigger{item}
+		items := []zabbix.Trigger{item}
 
-	err := api.TriggersCreate(items)
+		var err error
+		if prototype {
+			err = api.ProtoTriggersCreate(items)
+		} else {
+			err = api.TriggersCreate(items)
+		}
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		log.Trace("crated trigger: %+v", items[0])
+
+		d.SetId(items[0].TriggerID)
+
+		return resourceTriggerRead(prototype)(d, m)
 	}
-
-	log.Trace("crated trigger: %+v", items[0])
-
-	d.SetId(items[0].TriggerID)
-
-	return resourceTriggerRead(d, m)
 }
 
 // read tirgger terraform handler
-func resourceTriggerRead(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
+func resourceTriggerRead(prototype bool) schema.ReadFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		api := m.(*zabbix.API)
 
-	log.Debug("Lookup of trigger with id %s", d.Id())
+		log.Debug("Lookup of trigger with id %s", d.Id())
 
-	triggers, err := api.TriggersGet(zabbix.Params{
-		"triggerids":         d.Id(),
-		"expandExpression":   "extend",
-		"selectDependencies": "extend",
-		"selectTags":         "extend",
-	})
+		params := zabbix.Params{
+			"triggerids":         d.Id(),
+			"expandExpression":   "extend",
+			"selectDependencies": "extend",
+			"selectTags":         "extend",
+		}
 
-	if err != nil {
-		return err
-	}
+		var triggers zabbix.Triggers
+		var err error
 
-	if len(triggers) < 1 {
-		d.SetId("")
+		if prototype {
+			triggers, err = api.ProtoTriggersGet(params)
+		} else {
+			triggers, err = api.TriggersGet(params)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if len(triggers) < 1 {
+			d.SetId("")
+			return nil
+		}
+		if len(triggers) > 1 {
+			return errors.New("multiple triggers found")
+		}
+		t := triggers[0]
+
+		log.Debug("Got trigger: %+v", t)
+
+		d.Set("name", t.Description)
+		d.Set("expression", t.Expression)
+		d.Set("comments", t.Comments)
+		d.Set("priority", TRIGGER_PRIORITY_REV[t.Priority])
+		d.Set("enabled", t.Status == 0)
+		d.Set("multiple", t.Type == "1")
+		d.Set("url", t.Url)
+		d.Set("recovery_expression", t.RecoveryExpression)
+		d.Set("correlation_tag", t.CorrelationTag)
+		d.Set("manual_close", t.ManualClose == "1")
+		d.Set("tag", flattenTags(t.Tags))
+
+		if t.RecoveryMode == "2" {
+			d.Set("recovery_none", true)
+		} else {
+			d.Set("recovery_none", false)
+		}
+
+		// should not occur, but need to express somehow, in a way that allows cleanup
+		if t.RecoveryMode == "1" && t.RecoveryExpression == "" {
+			// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
+			d.Set("recovery_expression", "<recovery_mode_enabled_no_expression>")
+		}
+		if t.CorrelationMode == "1" && t.CorrelationTag == "" {
+			// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
+			d.Set("correlation_tag", "<correlation_enabled_no_tag>")
+		}
+
+		dependenciesSet := schema.NewSet(schema.HashString, []interface{}{})
+		for _, v := range t.Dependencies {
+			dependenciesSet.Add(v.TriggerID)
+		}
+		d.Set("dependencies", dependenciesSet)
+
 		return nil
 	}
-	if len(triggers) > 1 {
-		return errors.New("multiple triggers found")
-	}
-	t := triggers[0]
-
-	log.Debug("Got trigger: %+v", t)
-
-	d.Set("name", t.Description)
-	d.Set("expression", t.Expression)
-	d.Set("comments", t.Comments)
-	d.Set("priority", TRIGGER_PRIORITY_REV[t.Priority])
-	d.Set("enabled", t.Status == 0)
-	d.Set("multiple", t.Type == "1")
-	d.Set("url", t.Url)
-	d.Set("recovery_expression", t.RecoveryExpression)
-	d.Set("correlation_tag", t.CorrelationTag)
-	d.Set("manual_close", t.ManualClose == "1")
-	d.Set("tag", flattenTags(t.Tags))
-
-	if t.RecoveryMode == "2" {
-		d.Set("recovery_none", true)
-	} else {
-		d.Set("recovery_none", false)
-	}
-
-	// should not occur, but need to express somehow, in a way that allows cleanup
-	if t.RecoveryMode == "1" && t.RecoveryExpression == "" {
-		// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
-		d.Set("recovery_expression", "<recovery_mode_enabled_no_expression>")
-	}
-	if t.CorrelationMode == "1" && t.CorrelationTag == "" {
-		// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
-		d.Set("correlation_tag", "<correlation_enabled_no_tag>")
-	}
-
-	dependenciesSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range t.Dependencies {
-		dependenciesSet.Add(v.TriggerID)
-	}
-	d.Set("dependencies", dependenciesSet)
-
-	return nil
 }
 
 // update trigger terraform handler
-func resourceTriggerUpdate(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
+func resourceTriggerUpdate(prototype bool) schema.UpdateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		api := m.(*zabbix.API)
 
-	item := buildTriggerObject(d)
+		item := buildTriggerObject(d)
 
-	item.TriggerID = d.Id()
+		item.TriggerID = d.Id()
 
-	items := []zabbix.Trigger{item}
+		items := []zabbix.Trigger{item}
 
-	err := api.TriggersUpdate(items)
+		var err error
 
-	if err != nil {
-		return err
+		if prototype {
+			err = api.ProtoTriggersUpdate(items)
+		} else {
+			err = api.TriggersUpdate(items)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return resourceTriggerRead(prototype)(d, m)
 	}
-
-	return resourceTriggerRead(d, m)
 }
 
 // delete trigger terraform handler
-func resourceTriggerDelete(d *schema.ResourceData, m interface{}) error {
-	api := m.(*zabbix.API)
-	return api.TriggersDeleteByIds([]string{d.Id()})
+func resourceTriggerDelete(prototype bool) schema.DeleteFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		api := m.(*zabbix.API)
+		if prototype {
+			return api.ProtoTriggersDeleteByIds([]string{d.Id()})
+		}
+		return api.TriggersDeleteByIds([]string{d.Id()})
+	}
 }
