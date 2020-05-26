@@ -148,6 +148,7 @@ data "zabbix_hostgroup" "example" {
 * name - Displayname of hostgroup
 
 ### data.zabbix_template
+[index](#index)
 
 ```hcl
 data "zabbix_template" "example" {
