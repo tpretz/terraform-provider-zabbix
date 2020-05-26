@@ -77,6 +77,7 @@ provider "zabbix" {
 ## Data Sources
 
 ### zabbix_host
+[index](#index)
 
 ```hcl
 data "zabbix_host" "example" {
@@ -113,6 +114,7 @@ data "zabbix_host" "example" {
     * macro.#.value - Macro value
 
 ### zabbix_hostgroup
+[index](#index)
 
 ```hcl
 data "zabbix_hostgroup" "example" {
@@ -154,6 +156,7 @@ data "zabbix_template" "example" {
     * macro.#.value - Macro value
 
 ### zabbix_proxy
+[index](#index)
 
 ```hcl
 data "zabbix_proxy" "example" {
@@ -172,6 +175,7 @@ data "zabbix_proxy" "example" {
 ## Resources
 
 ### zabbix_host
+[index](#index)
 
 ```hcl
 resource "zabbix_host" "example" {
@@ -226,6 +230,7 @@ Same as arguments, plus:
 
 
 ### zabbix_hostgroup
+[index](#index)
 
 ```hcl
 resource "zabbix_hostgroup" "example" {
@@ -242,6 +247,7 @@ resource "zabbix_hostgroup" "example" {
 Same as arguments
 
 ### zabbix_template
+[index](#index)
 
 ```hcl
 resource "zabbix_template" "example" {
@@ -275,6 +281,7 @@ Same as arguments, plus:
 * macro.#.id - Generated macro ID
 
 ### zabbix_trigger
+[index](#index)
 
 ```hcl
 resource "zabbix_trigger" "example" {
@@ -340,6 +347,7 @@ expression = "{${zabbix_template.a.name}:${zabbix_item_snmp.b.key}.last()}>0"
 Same as arguments
 
 ### zabbix_item_agent / zabbix_proto_item_agent
+[index](#index)
 
 ```hcl
 resource "zabbix_item_agent" "example" {
@@ -389,6 +397,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_snmp / zabbix_proto_item_snmp
+[index](#index)
 
 ```hcl
 j
@@ -453,6 +462,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_simple / zabbix_proto_item_simple
+[index](#index)
 
 ```hcl
 resource "zabbix_item_simple" "example" {
@@ -497,6 +507,7 @@ Same as arguments, plus:
 
 
 ### zabbix_item_http / zabbix_proto_item_http
+[index](#index)
 
 ```hcl
 resource "zabbix_item_http" "example" {
@@ -560,6 +571,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_trapper / zabbix_proto_item_trapper
+[index](#index)
 
 ```hcl
 resource "zabbix_item_trapper" "example" {
@@ -600,6 +612,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_aggregate / zabbix_proto_item_aggregate
+[index](#index)
 
 ```hcl
 resource "zabbix_item_aggregate" "example" {
@@ -643,6 +656,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_external / zabbix_proto_item_external
+[index](#index)
 
 ```hcl
 resource "zabbix_item_external" "example" {
@@ -680,6 +694,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_internal / zabbix_proto_item_internal
+[index](#index)
 
 ```hcl
 resource "zabbix_item_internal" "example" {
@@ -726,6 +741,7 @@ Same as arguments, plus:
 * preprocessor.#.id - Preprocessor assigned ID number
 
 ### zabbix_item_dependent / zabbix_proto_item_dependent
+[index](#index)
 
 ```hcl
 resource "zabbix_item_dependent" "example" {
