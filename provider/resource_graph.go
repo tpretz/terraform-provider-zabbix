@@ -265,7 +265,7 @@ func resourceGraph() *schema.Resource {
 		Schema: schemaGraph,
 	}
 }
-func resourceGraphProto() *schema.Resource {
+func resourceProtoGraph() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGraphCreate(true),
 		Read:   resourceGraphRead(true),
