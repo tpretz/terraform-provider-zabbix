@@ -16,9 +16,9 @@ const (
 	GraphPie      GraphType = "2"
 	GraphExploded GraphType = "3"
 
-	GraphCalculated GraphAxis = "0"
-	GraphFixed      GraphAxis = "1"
-	GraphItem       GraphAxis = "2"
+	GraphAxisCalculated GraphAxis = "0"
+	GraphAxisFixed      GraphAxis = "1"
+	GraphAxisItem       GraphAxis = "2"
 
 	GraphItemMin  GraphItemFunc = "1"
 	GraphItemAvg  GraphItemFunc = "2"
@@ -61,20 +61,20 @@ type Graph struct {
 	Name           string    `json:"name"`
 	Height         string    `json:"height"`
 	Width          string    `json:"width"`
-	GraphType      GraphType `json:"graphtype,omitempty"`
+	Type           GraphType `json:"graphtype,omitempty"`
 	PercentLeft    string    `json:"percent_left,omitempty"`
 	PercentRight   string    `json:"percent_right,omitempty"`
 	Show3d         string    `json:"show_3d,omitempty"`
 	ShowLegend     string    `json:"show_legend,omitempty"`
 	ShowWorkPeriod string    `json:"show_work_period,omitempty"`
-	YAxisMax       string    `json:"yaxismax,omitempty"`
+	YMax           string    `json:"yaxismax,omitempty"`
 	YMaxItemId     string    `json:"ymax_itemid,omitempty"`
-	YMaxType       string    `json:"ymax_type,omitempty"`
-	YAxisMin       string    `json:"yaxismin,omitempty"`
+	YMaxType       GraphAxis `json:"ymax_type,omitempty"`
+	YMin           string    `json:"yaxismin,omitempty"`
 	YMinItemId     string    `json:"ymin_itemid,omitempty"`
-	YMinType       string    `json:"ymin_type,omitempty"`
+	YMinType       GraphAxis `json:"ymin_type,omitempty"`
 
-	GItems GraphItems `json:"gitems,omitempty"`
+	GraphItems GraphItems `json:"gitems,omitempty"`
 }
 
 // HostGroups is an array of HostGroup
@@ -142,7 +142,7 @@ func (api *API) GraphsCreate(hostGroups Graphs) (err error) {
 	}
 	return
 }
-func (api *API) GraphProtossCreate(hostGroups Graphs) (err error) {
+func (api *API) GraphProtosCreate(hostGroups Graphs) (err error) {
 	response, err := api.CallWithError("graphprototype.create", hostGroups)
 	if err != nil {
 		return
@@ -184,7 +184,7 @@ func (api *API) GraphsDelete(hostGroups Graphs) (err error) {
 	}
 	return
 }
-func (api *API) GraphProtossDelete(hostGroups Graphs) (err error) {
+func (api *API) GraphProtosDelete(hostGroups Graphs) (err error) {
 	ids := make([]string, len(hostGroups))
 	for i, group := range hostGroups {
 		ids[i] = group.GraphID
