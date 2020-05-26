@@ -1,6 +1,7 @@
 package zabbix
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -121,8 +122,8 @@ type Item struct {
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
 	Params       string    `json:"params,omitempty"`
 
-	// Fields below used only when creating applications
-	ApplicationIds []string `json:"applications,omitempty"`
+	// list of strings on set, but list of objects on get
+	Applications json.RawMessage `json:"applications,omitempty"`
 
 	ItemParent Hosts `json:"hosts"`
 
@@ -361,9 +362,9 @@ func (api *API) ProtoItemsDeleteIDs(ids []string) (itemids []interface{}, err er
 	}
 
 	result := response.Result.(map[string]interface{})
-	itemids1, ok := result["itemids"].([]interface{})
+	itemids1, ok := result["prototypeids"].([]interface{})
 	if !ok {
-		itemids2 := result["itemids"].(map[string]interface{})
+		itemids2 := result["prototypeids"].(map[string]interface{})
 		for _, id := range itemids2 {
 			itemids = append(itemids, id)
 		}
