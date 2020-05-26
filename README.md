@@ -6,10 +6,29 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 
 <img src="https://assets.zabbix.com/img/logo/zabbix_logo_500x131.png" width="500px">
 
+# Index
+
+[zabbix_host](#zabbix_host)
+[zabbix_hostgroup](#zabbix_hostgroup)
+[zabbix_template](#zabbix_template)
+[zabbix_proxy](#zabbix_proxy)
+[zabbix_host](#zabbix_host)
+[zabbix_hostgroup](#zabbix_hostgroup)
+[zabbix_template](#zabbix_template)
+[zabbix_trigger](#zabbix_trigger)
+[zabbix_item_agent / zabbix_proto_item_agent](#zabbix_item_agent-/-zabbix_proto_item_agent)
+[zabbix_item_snmp / zabbix_proto_item_snmp](#zabbix_item_snmp-/-zabbix_proto_item_snmp)
+[zabbix_item_simple / zabbix_proto_item_simple](#zabbix_item_simple-/-zabbix_proto_item_simple)
+[zabbix_item_http / zabbix_proto_item_http](#zabbix_item_http-/-zabbix_proto_item_http)
+[zabbix_item_trapper / zabbix_proto_item_trapper](#zabbix_item_trapper-/-zabbix_proto_item_trapper)
+[zabbix_item_aggregate / zabbix_proto_item_aggregate](#zabbix_item_aggregate-/-zabbix_proto_item_aggregate)
+[zabbix_item_external / zabbix_proto_item_external](#zabbix_item_external-/-zabbix_proto_item_external)
+[zabbix_item_internal / zabbix_proto_item_internal](#zabbix_item_internal-/-zabbix_proto_item_internal)
+[zabbix_item_dependent / zabbix_proto_item_dependent](#zabbix_item_dependent-/-zabbix_proto_item_dependent)
+
 # Requirements
 
 - Access to Zabbix API over http or https
-
 
 # Using the provider
 
