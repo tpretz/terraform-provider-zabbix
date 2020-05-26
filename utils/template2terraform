@@ -301,8 +301,6 @@ def renderLLDItem(t, lld, i, args):
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
         lines.extend(common_lines)
         lines.append('}')
-    elif ty == "7": # active agent
-       pass
     elif ty == "8": # aggregate
         i['resource_type'] = 'zabbix_proto_item_aggregate'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -330,6 +328,15 @@ def renderLLDItem(t, lld, i, args):
         lines.extend(common_lines)
         lines.append('  master_itemid = "{}"'.format(i['master_item']))
         lines.append('}')
+    elif ty == "19": # http 
+        i['resource_type'] = 'zabbix_proto_item_http'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        # need to add extraction here
+        lines.append('}')
+    else:
+        log.warn("unsupported item type: %s" % i)
+        return
 
     print("\n".join(lines))
 
@@ -398,7 +405,10 @@ def renderItem(t, i, args):
         lines.extend(common_lines)
         lines.append('}')
     elif ty == "8": # aggregate
-       pass
+        i['resource_type'] = 'zabbix_item_aggregate'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        lines.append('}')
     elif ty == "10": # external
         i['resource_type'] = 'zabbix_item_external'
         lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
@@ -421,6 +431,15 @@ def renderItem(t, i, args):
         lines.extend(common_lines)
         lines.append('  master_itemid = "{}"'.format(i['master_item']))
         lines.append('}')
+    elif ty == "19": # http 
+        i['resource_type'] = 'zabbix_item_http'
+        lines.append('resource "{}" "{}" {{'.format(i['resource_type'], i['key_safe']))
+        lines.extend(common_lines)
+        # need to add extraction here
+        lines.append('}')
+    else:
+        log.warn("unsupported item type: %s" % i)
+        return
 
     print("\n".join(lines))
 

@@ -63,7 +63,9 @@ func Provider() *schema.Provider {
 			"zabbix_proto_item_trapper": resourceProtoItemTrapper(),
 			"zabbix_lld_trapper":        resourceLLDTrapper(),
 
-			"zabbix_item_http": resourceItemHttp(),
+			"zabbix_item_http":       resourceItemHttp(),
+			"zabbix_proto_item_http": resourceProtoItemHttp(),
+			"zabbix_lld_http":        resourceLLDHttp(),
 
 			"zabbix_item_simple":       resourceItemSimple(),
 			"zabbix_proto_item_simple": resourceProtoItemSimple(),
