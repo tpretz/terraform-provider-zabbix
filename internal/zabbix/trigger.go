@@ -106,10 +106,31 @@ func (api *API) TriggersGet(params Params) (res Triggers, err error) {
 	err = api.CallWithErrorParse("trigger.get", params, &res)
 	return
 }
+func (api *API) ProtoTriggersGet(params Params) (res Triggers, err error) {
+	if _, present := params["output"]; !present {
+		params["output"] = "extend"
+	}
+	err = api.CallWithErrorParse("triggerprototype.get", params, &res)
+	return
+}
 
 // TriggerGetByID Gets trigger by Id only if there is exactly 1 matching host.
 func (api *API) TriggerGetByID(id string) (res *Trigger, err error) {
 	triggers, err := api.TriggersGet(Params{"triggerids": id})
+	if err != nil {
+		return
+	}
+
+	if len(triggers) != 1 {
+		e := ExpectedOneResult(len(triggers))
+		err = &e
+		return
+	}
+	res = &triggers[0]
+	return
+}
+func (api *API) ProtoTriggerGetByID(id string) (res *Trigger, err error) {
+	triggers, err := api.ProtoTriggersGet(Params{"triggerids": id})
 	if err != nil {
 		return
 	}
@@ -138,11 +159,28 @@ func (api *API) TriggersCreate(triggers Triggers) (err error) {
 	}
 	return
 }
+func (api *API) ProtoTriggersCreate(triggers Triggers) (err error) {
+	response, err := api.CallWithError("triggerprototype.create", triggers)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	triggerids := result["triggerids"].([]interface{})
+	for i, id := range triggerids {
+		triggers[i].TriggerID = id.(string)
+	}
+	return
+}
 
 // TriggersUpdate Wrapper for trigger.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/update
 func (api *API) TriggersUpdate(triggers Triggers) (err error) {
 	_, err = api.CallWithError("trigger.update", triggers)
+	return
+}
+func (api *API) ProtoTriggersUpdate(triggers Triggers) (err error) {
+	_, err = api.CallWithError("triggerprototype.update", triggers)
 	return
 }
 
@@ -156,6 +194,20 @@ func (api *API) TriggersDelete(triggers Triggers) (err error) {
 	}
 
 	err = api.TriggersDeleteByIds(ids)
+	if err == nil {
+		for i := range triggers {
+			triggers[i].TriggerID = ""
+		}
+	}
+	return
+}
+func (api *API) ProtoTriggersDelete(triggers Triggers) (err error) {
+	ids := make([]string, len(triggers))
+	for i, trigger := range triggers {
+		ids[i] = trigger.TriggerID
+	}
+
+	err = api.ProtoTriggersDeleteByIds(ids)
 	if err == nil {
 		for i := range triggers {
 			triggers[i].TriggerID = ""
@@ -177,11 +229,40 @@ func (api *API) TriggersDeleteByIds(ids []string) (err error) {
 	}
 	return
 }
+func (api *API) ProtoTriggersDeleteByIds(ids []string) (err error) {
+	deleteIds, err := api.ProtoTriggersDeleteIDs(ids)
+	if err != nil {
+		return
+	}
+	l := len(deleteIds)
+	if len(ids) != l {
+		err = &ExpectedMore{len(ids), l}
+	}
+	return
+}
 
 // TriggersDeleteIDs Wrapper for trigger.delete
 // return the id of the deleted trigger
 func (api *API) TriggersDeleteIDs(ids []string) (triggerids []interface{}, err error) {
 	response, err := api.CallWithError("trigger.delete", ids)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	triggerids1, ok := result["triggerids"].([]interface{})
+	if !ok {
+		triggerids2 := result["triggerids"].(map[string]interface{})
+		for _, id := range triggerids2 {
+			triggerids = append(triggerids, id)
+		}
+	} else {
+		triggerids = triggerids1
+	}
+	return
+}
+func (api *API) ProtoTriggersDeleteIDs(ids []string) (triggerids []interface{}, err error) {
+	response, err := api.CallWithError("triggerprototype.delete", ids)
 	if err != nil {
 		return
 	}

@@ -1,6 +1,7 @@
 package zabbix
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -119,9 +120,10 @@ type Item struct {
 	History      string    `json:"history,omitempty"`
 	Trends       string    `json:"trends,omitempty"`
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
+	Params       string    `json:"params,omitempty"`
 
-	// Fields below used only when creating applications
-	ApplicationIds []string `json:"applications,omitempty"`
+	// list of strings on set, but list of objects on get
+	Applications json.RawMessage `json:"applications,omitempty"`
 
 	ItemParent Hosts `json:"hosts"`
 
@@ -138,18 +140,22 @@ type Item struct {
 	VerifyPeer    string `json:"verify_peer,omitempty"`
 
 	// SNMP Fields
-	SNMPOid string `json:"snmp_oid,omitempty"`
-	SNMPCommunity string `json:"snmp_community,omitempty"`
+	SNMPOid              string `json:"snmp_oid,omitempty"`
+	SNMPCommunity        string `json:"snmp_community,omitempty"`
 	SNMPv3AuthPassphrase string `json:"snmpv3_authpassphrase,omitempty"`
-	SNMPv3AuthProtocol string `json:"snmpv3_authprotocol,omitempty"`
-	SNMPv3ContextName string `json:"snmpv3_contextname,omitempty"`
-	SNMPv3PrivPasshrase string `json:"snmpv3_privpassphrase,omitempty"`
-	SNMPv3PrivProtocol string `json:"snmpv3_privprotocol,omitempty"`
-	SNMPv3SecurityLevel string `json:"snmpv3_securitylevel,omitempty"`
-	SNMPv3SecurityName string `json:"snmpv3_securityname,omitempty"`
+	SNMPv3AuthProtocol   string `json:"snmpv3_authprotocol,omitempty"`
+	SNMPv3ContextName    string `json:"snmpv3_contextname,omitempty"`
+	SNMPv3PrivPasshrase  string `json:"snmpv3_privpassphrase,omitempty"`
+	SNMPv3PrivProtocol   string `json:"snmpv3_privprotocol,omitempty"`
+	SNMPv3SecurityLevel  string `json:"snmpv3_securitylevel,omitempty"`
+	SNMPv3SecurityName   string `json:"snmpv3_securityname,omitempty"`
 
 	// Dependent Fields
 	MasterItemID string `json:"master_itemid,omitempty"`
+
+	// Prototype
+	RuleID        string   `json:"ruleid,omitempty"`
+	DiscoveryRule *LLDRule `json:"discoveryRule,omitEmpty"`
 }
 
 type Preprocessors []Preprocessor
@@ -186,10 +192,31 @@ func (api *API) ItemsGet(params Params) (res Items, err error) {
 	err = api.CallWithErrorParse("item.get", params, &res)
 	return
 }
+func (api *API) ProtoItemsGet(params Params) (res Items, err error) {
+	if _, present := params["output"]; !present {
+		params["output"] = "extend"
+	}
+	err = api.CallWithErrorParse("itemprototype.get", params, &res)
+	return
+}
 
 // ItemGetByID Gets item by Id only if there is exactly 1 matching host.
 func (api *API) ItemGetByID(id string) (res *Item, err error) {
 	items, err := api.ItemsGet(Params{"itemids": id})
+	if err != nil {
+		return
+	}
+
+	if len(items) != 1 {
+		e := ExpectedOneResult(len(items))
+		err = &e
+		return
+	}
+	res = &items[0]
+	return
+}
+func (api *API) ProtoItemGetByID(id string) (res *Item, err error) {
+	items, err := api.ProtoItemsGet(Params{"itemids": id})
 	if err != nil {
 		return
 	}
@@ -207,6 +234,9 @@ func (api *API) ItemGetByID(id string) (res *Item, err error) {
 func (api *API) ItemsGetByApplicationID(id string) (res Items, err error) {
 	return api.ItemsGet(Params{"applicationids": id})
 }
+func (api *API) ProtoItemsGetByApplicationID(id string) (res Items, err error) {
+	return api.ProtoItemsGet(Params{"applicationids": id})
+}
 
 // ItemsCreate Wrapper for item.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
@@ -223,11 +253,28 @@ func (api *API) ItemsCreate(items Items) (err error) {
 	}
 	return
 }
+func (api *API) ProtoItemsCreate(items Items) (err error) {
+	response, err := api.CallWithError("itemprototype.create", items)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	itemids := result["itemids"].([]interface{})
+	for i, id := range itemids {
+		items[i].ItemID = id.(string)
+	}
+	return
+}
 
 // ItemsUpdate Wrapper for item.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
 func (api *API) ItemsUpdate(items Items) (err error) {
 	_, err = api.CallWithError("item.update", items)
+	return
+}
+func (api *API) ProtoItemsUpdate(items Items) (err error) {
+	_, err = api.CallWithError("itemprototype.update", items)
 	return
 }
 
@@ -248,11 +295,36 @@ func (api *API) ItemsDelete(items Items) (err error) {
 	}
 	return
 }
+func (api *API) ProtoItemsDelete(items Items) (err error) {
+	ids := make([]string, len(items))
+	for i, item := range items {
+		ids[i] = item.ItemID
+	}
+
+	err = api.ProtoItemsDeleteByIds(ids)
+	if err == nil {
+		for i := range items {
+			items[i].ItemID = ""
+		}
+	}
+	return
+}
 
 // ItemsDeleteByIds Wrapper for item.delete
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/delete
 func (api *API) ItemsDeleteByIds(ids []string) (err error) {
 	deleteIds, err := api.ItemsDeleteIDs(ids)
+	if err != nil {
+		return
+	}
+	l := len(deleteIds)
+	if len(ids) != l {
+		err = &ExpectedMore{len(ids), l}
+	}
+	return
+}
+func (api *API) ProtoItemsDeleteByIds(ids []string) (err error) {
+	deleteIds, err := api.ProtoItemsDeleteIDs(ids)
 	if err != nil {
 		return
 	}
@@ -275,6 +347,24 @@ func (api *API) ItemsDeleteIDs(ids []string) (itemids []interface{}, err error) 
 	itemids1, ok := result["itemids"].([]interface{})
 	if !ok {
 		itemids2 := result["itemids"].(map[string]interface{})
+		for _, id := range itemids2 {
+			itemids = append(itemids, id)
+		}
+	} else {
+		itemids = itemids1
+	}
+	return
+}
+func (api *API) ProtoItemsDeleteIDs(ids []string) (itemids []interface{}, err error) {
+	response, err := api.CallWithError("itemprototype.delete", ids)
+	if err != nil {
+		return
+	}
+
+	result := response.Result.(map[string]interface{})
+	itemids1, ok := result["prototypeids"].([]interface{})
+	if !ok {
+		itemids2 := result["prototypeids"].(map[string]interface{})
 		for _, id := range itemids2 {
 			itemids = append(itemids, id)
 		}
