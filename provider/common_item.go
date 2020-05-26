@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -62,6 +63,15 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Required:     true,
 	},
 	"preprocessor": itemPreprocessorSchema,
+	"applications": &schema.Schema{
+		Type:        schema.TypeSet,
+		Description: "Application IDs to associate this item with",
+		Elem: &schema.Schema{
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
+		},
+		Optional: true,
+	},
 }
 
 // Delay schema
@@ -82,6 +92,17 @@ var itemInterfaceSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Description: "Host Interface ID",
 		Default:     "0",
+	},
+}
+
+// Prototype schema
+var itemPrototypeSchema = map[string]*schema.Schema{
+	"ruleid": &schema.Schema{
+		Type:         schema.TypeString,
+		Required:     true,
+		ForceNew:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Description:  "LLD Rule ID",
 	},
 }
 
@@ -130,29 +151,44 @@ type ItemHandler func(*schema.ResourceData, *zabbix.Item)
 // return a terraform CreateFunc
 func itemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemCreate(d, m, c, r)
+		return resourceItemCreate(d, m, c, r, false)
+	}
+}
+func protoItemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemCreate(d, m, c, r, true)
 	}
 }
 
 // return a terraform UpdateFunc
 func itemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemUpdate(d, m, c, r)
+		return resourceItemUpdate(d, m, c, r, false)
+	}
+}
+func protoItemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemUpdate(d, m, c, r, true)
 	}
 }
 
 // return a terraform ReadFunc
 func itemGetReadWrapper(r ItemHandler) schema.ReadFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemRead(d, m, r)
+		return resourceItemRead(d, m, r, false)
+	}
+}
+func protoItemGetReadWrapper(r ItemHandler) schema.ReadFunc {
+	return func(d *schema.ResourceData, m interface{}) error {
+		return resourceItemRead(d, m, r, true)
 	}
 }
 
 // Create Item Resource Handler
-func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
+func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d)
+	item := buildItemObject(d, prototype)
 
 	// run custom function
 	c(d, item)
@@ -161,7 +197,13 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 
 	items := []zabbix.Item{*item}
 
-	err := api.ItemsCreate(items)
+	var err error
+
+	if prototype {
+		err = api.ProtoItemsCreate(items)
+	} else {
+		err = api.ItemsCreate(items)
+	}
 
 	if err != nil {
 		return err
@@ -171,14 +213,14 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 
 	d.SetId(items[0].ItemID)
 
-	return resourceItemRead(d, m, r)
+	return resourceItemRead(d, m, r, prototype)
 }
 
 // Update Item Resource Handler
-func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler) error {
+func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d)
+	item := buildItemObject(d, prototype)
 	item.ItemID = d.Id()
 
 	// run custom function
@@ -188,25 +230,42 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 
 	items := []zabbix.Item{*item}
 
-	err := api.ItemsUpdate(items)
+	var err error
+
+	if prototype {
+		err = api.ProtoItemsUpdate(items)
+	} else {
+		err = api.ItemsUpdate(items)
+	}
 
 	if err != nil {
 		return err
 	}
 
-	return resourceItemRead(d, m, r)
+	return resourceItemRead(d, m, r, prototype)
 }
 
 // Read Item Resource Handler
-func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) error {
+func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of item with id %s", d.Id())
 
-	items, err := api.ItemsGet(zabbix.Params{
+	var items zabbix.Items
+	var err error
+
+	params := zabbix.Params{
 		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
-	})
+		"selectApplications":  "extend",
+	}
+
+	if prototype {
+		params["selectDiscoveryRule"] = "extend"
+		items, err = api.ProtoItemsGet(params)
+	} else {
+		items, err = api.ItemsGet(params)
+	}
 
 	if err != nil {
 		return err
@@ -229,6 +288,21 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) erro
 	d.Set("name", item.Name)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
 	d.Set("preprocessor", flattenItemPreprocessors(item))
+	if prototype && item.DiscoveryRule != nil {
+		d.Set("ruleid", item.DiscoveryRule.ItemID)
+	}
+
+	var applications zabbix.Applications
+	err = json.Unmarshal(item.Applications, &applications)
+	if err != nil {
+		return err
+	}
+
+	applicationSet := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range applications {
+		applicationSet.Add(v.ApplicationID)
+	}
+	d.Set("applications", applicationSet)
 
 	// run custom
 	r(d, &item)
@@ -237,7 +311,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler) erro
 }
 
 // Build the base Item Object
-func buildItemObject(d *schema.ResourceData) *zabbix.Item {
+func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 	item := zabbix.Item{
 		Key:       d.Get("key").(string),
 		HostID:    d.Get("hostid").(string),
@@ -245,6 +319,14 @@ func buildItemObject(d *schema.ResourceData) *zabbix.Item {
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
+
+	text, _ := json.Marshal(d.Get("applications").(*schema.Set).List())
+	raw := json.RawMessage(text)
+	item.Applications = raw
+
+	if prototype {
+		item.RuleID = d.Get("ruleid").(string)
+	}
 
 	return &item
 }
@@ -293,4 +375,8 @@ func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 func resourceItemDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 	return api.ItemsDeleteByIds([]string{d.Id()})
+}
+func resourceProtoItemDelete(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+	return api.ProtoItemsDeleteByIds([]string{d.Id()})
 }

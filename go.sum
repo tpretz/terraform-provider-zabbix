@@ -191,6 +191,7 @@ github.com/hashicorp/terraform v0.12.23 h1:3fTWHq6JkHk4VJ8Z6A+8MvvAVtlSXbXViPJSW
 github.com/hashicorp/terraform v0.12.23/go.mod h1:eJcloDEx5ywM4a1tetIuVrlqklM0bUVRYJBYAh4CYzA=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20191115094559-17f92b0546e8 h1:+RyjwU+Gnd/aTJBPZVDNm903eXVjjqhbaR4Ypx3xYyY=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20191115094559-17f92b0546e8/go.mod h1:p+ivJws3dpqbp1iP84+npOyAmTTOLMgCzrXd3GSdn/A=
+github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7 h1:Pc5TCv9mbxFN6UVX0LH6CpQrdTM5YjbVI2w15237Pjk=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7/go.mod h1:p+ivJws3dpqbp1iP84+npOyAmTTOLMgCzrXd3GSdn/A=
 github.com/hashicorp/terraform-json v0.4.0/go.mod h1:eAbqb4w0pSlRmdvl8fOyHAi/+8jnkVYN28gJkSJrLhU=
 github.com/hashicorp/terraform-plugin-sdk v1.7.0 h1:B//oq0ZORG+EkVrIJy0uPGSonvmXqxSzXe8+GhknoW0=
@@ -343,6 +344,8 @@ github.com/tpretz/go-zabbix-api v0.4.6 h1:3f1tzS3wG7B3ZciAp8jB2g0/EXEHPY4OQ5PfOL
 github.com/tpretz/go-zabbix-api v0.4.6/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=
 github.com/tpretz/go-zabbix-api v0.4.7 h1:IPdx4JNp2dcyqf3C6S99o8uqZ2X1Qz87lprl4wwBwd4=
 github.com/tpretz/go-zabbix-api v0.4.7/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=
+github.com/tpretz/go-zabbix-api v0.5.0 h1:LGlxLFIKmB2ZxXeZmLlclSId/f/WVPHh9pLhvnn2qmg=
+github.com/tpretz/go-zabbix-api v0.5.0/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=
 github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5/go.mod h1:hnLbHMwcvSihnDhEfx2/BzKp2xb0Y+ErdfYcrs9tkJQ=
 github.com/ulikunitz/xz v0.5.5 h1:pFrO0lVpTBXLpYw+pnLj6TbvHuyjXMfjGeCwSqCVwok=
 github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
