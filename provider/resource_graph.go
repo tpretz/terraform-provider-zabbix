@@ -190,7 +190,7 @@ var schemaGraph = map[string]*schema.Schema{
 		Default:      "0",
 		Optional:     true,
 	},
-	"3d": &schema.Schema{
+	"do3d": &schema.Schema{
 		Type:        schema.TypeBool,
 		Description: "Show 3d graph",
 		Default:     false,
@@ -326,7 +326,7 @@ func buildGraphObject(d *schema.ResourceData) zabbix.Graph {
 		YMinType:       GRAPH_AXIS_LOOKUP[d.Get("ymin_type").(string)],
 	}
 	//item.GItems = []
-	if d.Get("3d").(bool) {
+	if d.Get("do3d").(bool) {
 		item.Show3d = "1"
 	}
 	if d.Get("legend").(bool) {
@@ -426,7 +426,7 @@ func resourceGraphRead(prototype bool) schema.ReadFunc {
 		d.Set("type", GRAPH_TYPE_LOOKUP_REV[t.Type])
 		d.Set("percent_left", t.PercentLeft)
 		d.Set("percent_right", t.PercentRight)
-		d.Set("3d", t.Show3d == "1")
+		d.Set("do3d", t.Show3d == "1")
 		d.Set("legend", t.ShowLegend == "1")
 		d.Set("work_period", t.ShowWorkPeriod == "1")
 		d.Set("ymax", t.YMax)
