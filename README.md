@@ -22,6 +22,7 @@ A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com)
 * [zabbix_hostgroup](#zabbix_hostgroup)
 * [zabbix_template](#zabbix_template)
 * [zabbix_application](#zabbix_application)
+* [zabbix_graph / zabbix_proto_graph](#zabbix_graph--zabbix_proto_graph)
 * [zabbix_trigger / zabbix_proto_trigger](#zabbix_trigger--zabbix_proto_trigger)
 * [zabbix_item_agent / zabbix_proto_item_agent](#zabbix_item_agent--zabbix_proto_item_agent)
 * [zabbix_item_snmp / zabbix_proto_item_snmp](#zabbix_item_snmp--zabbix_proto_item_snmp)
@@ -331,6 +332,72 @@ resource "zabbix_application" "example" {
 
 * name - (Required) Name of application
 * hostid - (Required) ID of host / template
+
+#### Attributes Reference
+
+Same as arguments
+
+### zabbix_graph / zabbix_proto_graph
+[index](#index)
+
+```hcl
+resource "zabbix_graph" "example" {
+  name = "Graph Name"
+  height = "100"
+  width = "100"
+  type = "normal"
+  percent_left = "0"
+  percent_right = "0"
+
+  do3d = true
+  legend = true
+  work_period = true
+
+  ymax = "100"
+  ymax_itemid = "1234"
+  ymax_type = "calculated"
+  
+  ymin = "100"
+  ymin_itemid = "1234"
+  ymin_type = "calculated"
+
+  item {
+    color = "#ffffff"
+    itemid = "1234"
+    function = "min"
+    drawtype = "line"
+    sortorder = "0"
+    type = "simple"
+    yaxis_side = "left"
+  }
+}
+```
+
+#### Argument Reference
+
+* name - (Required) Name of graph
+* height - (Required) Height of graph
+* width - (Required) Width of graph
+* type - (Optional) Graph type, defaults to "normal" one of "normal", "stacked", "pie", "exploded"
+* percent_left - (Optional) Left percentile, defaults to 0
+* percent_right - (Optional) Right percentile, defaults to 0
+* do3d - (Optional) 3D graph, defaults to false
+* legend - (Optional) Show legend, defaults to true
+* work_period - (Optional) Show work period, defaults to true
+* ymax - (Optional) Max value of y axis, defaults to 100
+* ymax_itemid - (Optional) ItemID to use as the y axis maximum
+* ymax_type - (Optional) Type of yaxis max limit, defaults to "calculated", one of "calculated", "fixed", "item"
+* ymin - (Optional) Min value of y axis, defaults to 0
+* ymin_itemid - (Optional) ItemID to use as the y axis minimum
+* ymin_type - (Optional) Type of yaxis min limit, defaults to "calculated", one of "calculated", "fixed", "item"
+* item - (Required) List of item objects
+    * color - (Required) Item Color
+    * itemid - (Required) ID of item
+    * function - (Optional) Data Function, defaults to "min", one of "min", "average", "max", "all", "last"
+    * drawtype - (Optional) Draw Type, defaults to "line", one of "line", "filled", "bold", "dot", "dashed", "gradient"
+    * sortorder - (Optional) Position of item in graph, defaults to 0
+    * type - (Optional) Type of graph item, defaults to "simple", one of "simple", "sum"
+    * yaxis_side - (Optional) Side of Y Axis, defaults to "left", one of "left", "right"
 
 #### Attributes Reference
 

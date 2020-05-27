@@ -61,6 +61,9 @@ func Provider() *schema.Provider {
 			"zabbix_host":          resourceHost(),
 			"zabbix_application":   resourceApplication(),
 
+			"zabbix_graph":       resourceGraph(),
+			"zabbix_proto_graph": resourceProtoGraph(),
+
 			"zabbix_item_trapper":       resourceItemTrapper(),
 			"zabbix_proto_item_trapper": resourceProtoItemTrapper(),
 			"zabbix_lld_trapper":        resourceLLDTrapper(),
