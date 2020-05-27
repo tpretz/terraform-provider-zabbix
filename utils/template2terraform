@@ -217,7 +217,8 @@ def extractLLDRules(root):
             items.append(iobj)
 
         tobj['items'] = items
-        
+
+        tobj['graphs'] = extractProtoGraphs(t)
         
         triggers = []
         # nested things too
@@ -256,33 +257,45 @@ def extractTriggers(root):
     log.debug("got triggers %s" % triggers)
     return triggers
 
+def extractGraphCommon(t):
+    tobj = {"items": []}
+    for child in t:
+        if child.text is None:
+            continue
+        tobj[child.tag] = child.text
+        log.debug("%s: %s" % (child.tag, child.text)) 
+    tobj['name_safe'] = safeTfName(tobj['name'])
+
+    for i in t.findall("graph_items/graph_item"):
+        iobj = {}
+        for child in i:
+            if child.text is None:
+                continue
+            iobj[child.tag] = child.text
+            log.debug("%s: %s" % (child.tag, child.text)) 
+        iobj['item_host'] = i.find('item/host').text
+        iobj['item_key'] = i.find('item/key').text
+        tobj["items"].append(iobj)
+    return tobj
+
 def extractGraphs(root):
     graphs = []
 
     # extract triggers
     for t in root.findall("graphs/graph"):
-        tobj = {"items": []}
-        for child in t:
-            if child.text is None:
-                continue
-            tobj[child.tag] = child.text
-            log.debug("%s: %s" % (child.tag, child.text)) 
-        tobj['name_safe'] = safeTfName(tobj['name'])
-
-        for i in t.findall("graph_items/graph_item"):
-            iobj = {}
-            for child in i:
-                if child.text is None:
-                    continue
-                iobj[child.tag] = child.text
-                log.debug("%s: %s" % (child.tag, child.text)) 
-            iobj['item_host'] = i.find('item/host').text
-            iobj['item_key'] = i.find('item/key').text
-            tobj["items"].append(iobj)
-
-        graphs.append(tobj)
+        graphs.append(extractGraphCommon(t))
 
     log.debug("got graphs %s" % graphs)
+    return graphs 
+
+def extractProtoGraphs(root):
+    graphs = []
+
+    # extract triggers
+    for t in root.findall("graph_prototypes/graph_prototype"):
+        graphs.append(extractGraphCommon(t))
+
+    log.debug("got graph prototypes %s" % graphs)
     return graphs 
 
 def renderTemplate(t, args):
@@ -345,6 +358,10 @@ def renderLLDRule(t, i, args):
     # process its triggers too
     for trigger in i['triggers']:
         renderLLDTrigger(t, i, trigger, args)
+    
+    # process its graphs
+    for graph in i['graphs']:
+        renderGraph(graph, 'zabbix_proto_graph')
 
 def renderLLDItem(t, lld, i, args):
     log.info("got lld item %s" % i)
@@ -559,10 +576,10 @@ def renderTrigger(t):
 
     print("\n".join(lines))
 
-def renderGraph(t):
+def renderGraph(t, resource_type):
     lines = []
 
-    lines.append('resource "zabbix_graph" "{}" {{'.format(t['name_safe']))
+    lines.append('resource "{}" "{}" {{'.format(resource_type, t['name_safe']))
     lines.append('  name = "{}"'.format(t["name"]))
     lines.append('  height = "{}"'.format(t["height"]))
     lines.append('  width = "{}"'.format(t["width"]))
@@ -645,7 +662,7 @@ data "zabbix_hostgroup" "{}" {{
       renderTrigger(t)
     
     for t in graphs:
-      renderGraph(t)
+      renderGraph(t, 'zabbix_graph')
 
 
 if __name__ == "__main__":
