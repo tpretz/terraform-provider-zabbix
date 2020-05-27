@@ -608,9 +608,9 @@ def renderGraph(t, resource_type):
         if itm:
             lines.append('    itemid = {}.{}.id'.format(itm["resource_type"], itm["key_safe"]))
         else:
-            # build discovery data types here, todo
-            log.error("cant render graph, no item ref")
-            return
+            log.error("cant render graph, no item ref, leaving blank, user needs to fill")
+            lines.append('    # INPUT NEEDED')
+            lines.append('    itemid = ""')
 
         lines.append('    function = "{}"'.format(GRAPH_F_MAP[i["calc_fnc"]]))
         lines.append('    drawtype = "{}"'.format(GRAPH_D_MAP[i["drawtype"]]))
