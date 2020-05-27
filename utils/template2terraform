@@ -33,6 +33,40 @@ OPERATOR_P_MAP = {
   "8": "match",
   "9": "notmatch",
 }
+GRAPH_T_MAP = {
+    "0": "normal",
+    "1": "stacked",
+    "2": "pie",
+    "3": "exploded",
+}
+GRAPH_A_MAP = {
+    "0": "calculated",
+    "1": "fixed",
+    "2": "item",
+}
+GRAPH_F_MAP = {
+    "1": "min",
+    "2": "average",
+    "4": "max",
+    "7": "all",
+    "9": "last",
+}
+GRAPH_D_MAP = {
+    "0": "line",
+    "1": "filled",
+    "2": "bold",
+    "3": "dot",
+    "4": "dashed",
+    "5": "gradient",
+}
+GRAPH_IT_MAP = {
+    "0": "simple",
+    "2": "sum",
+}
+GRAPH_S_MAP = {
+    "0": "left",
+    "1": "right",
+}
 
 names = {}
 names_rev = {}
@@ -117,8 +151,6 @@ def extractTemplates(root):
         # extract discovery rules
         obj["rules"] = extractLLDRules(tmpl)
         log.debug("got rules %s" % obj['rules'])
-
-        # extract groups
 
         # extract applications
         for item in tmpl.findall("applications/application/name"):
@@ -223,6 +255,36 @@ def extractTriggers(root):
 
     log.debug("got triggers %s" % triggers)
     return triggers
+
+def extractGraphs(root):
+    graphs = []
+
+    # extract triggers
+    for t in root.findall("graphs/graph"):
+        tobj = {"items": []}
+        for child in t:
+            if child.text is None:
+                continue
+            tobj[child.tag] = child.text
+            log.debug("%s: %s" % (child.tag, child.text)) 
+        tobj['name_safe'] = safeTfName(tobj['name'])
+
+        for i in t.findall("graph_items/graph_item"):
+            iobj = {}
+            for child in i:
+                if child.text is None:
+                    continue
+                iobj[child.tag] = child.text
+                log.debug("%s: %s" % (child.tag, child.text)) 
+            iobj['name_safe'] = safeTfName(iobj['name'])
+            iobj['item_host'] = i.find('item/host').text
+            iobj['item_key'] = i.find('item/key').text
+            tobj["items"].append(iobj)
+
+        graphs.append(tobj)
+
+    log.debug("got graphs %s" % graphs)
+    return graphs 
 
 def renderTemplate(t, args):
     if t.get("name") is None:
@@ -498,6 +560,51 @@ def renderTrigger(t):
 
     print("\n".join(lines))
 
+def renderGraph(t):
+    lines = []
+
+    lines.append('resource "zabbix_graph" "{}" {{'.format(t['name_safe']))
+    lines.append('  name = "{}"'.format(t["name"]))
+    lines.append('  height = "{}"'.format(t["height"]))
+    lines.append('  width = "{}"'.format(t["width"]))
+    lines.append('  type = "{}"'.format(GRAPH_T_MAP[t["type"]]))
+    # type
+    lines.append('  percent_left = "{}"'.format(t["percent_left"]))
+    lines.append('  percent_right = "{}"'.format(t["percent_right"]))
+    lines.append('  3d = {}'.format("true" if t["show_3d"] == "1" else "false"))
+    lines.append('  legend = {}'.format("true" if t["show_legend"] == "1" else "false"))
+    lines.append('  work_period = {}'.format("true" if t["show_work_period"] == "1" else "false"))
+    
+    lines.append('  ymax = "{}"'.format(t["yaxismax"]))
+    lines.append('  ymax_itemid = "{}"'.format(t["ymax_itemid"]))
+    lines.append('  ymax_type = "{}"'.format(GRAPH_A_MAP[t["ymax_type"]]))
+    lines.append('  ymin = "{}"'.format(t["yaxismin"]))
+    lines.append('  ymin_itemid = "{}"'.format(t["ymin_itemid"]))
+    lines.append('  ymin_type = "{}"'.format(GRAPH_A_MAP[t["ymin_type"]]))
+
+    for i in t["items"]:
+        lines.append('')
+        lines.append('  item {')
+        lines.append('    color = "{}"'.format(i["color"]))
+        lines.append('    sortorder = "{}"'.format(i["sortorder"]))
+
+        itm = item_cache.get(i["item_key"])
+        if itm:
+            lines.append('    itemid = {}.{}.id'.format(itm["resource_type"], itm["key_safe"]))
+        else:
+            # build discovery data types here, todo
+            log.error("cant render graph, no item ref")
+            return
+
+        lines.append('    function = "{}"'.format(GRAPH_F_MAP[i["calc_fun"]]))
+        lines.append('    drawtype = "{}"'.format(GRAPH_D_MAP[i["drawtype"]]))
+        lines.append('    type = "{}"'.format(GRAPH_IT_MAP[i["type"]]))
+        lines.append('    yaxis_side = "{}"'.format(GRAPH_S_MAP[i["yaxisside"]]))
+        lines.append('  }')
+    lines.append('}')
+
+    print("\n".join(lines))
+
 def main():
     logging.basicConfig(level=logging.INFO)
     global log
@@ -524,6 +631,7 @@ def main():
 
     templates = extractTemplates(root)
     triggers = extractTriggers(root)
+    graphs = extractGraphs(root)
 
     print("""
 data "zabbix_hostgroup" "{}" {{
@@ -536,6 +644,9 @@ data "zabbix_hostgroup" "{}" {{
 
     for t in triggers:
       renderTrigger(t)
+    
+    for t in graphs:
+      renderGraph(t)
 
 
 if __name__ == "__main__":
