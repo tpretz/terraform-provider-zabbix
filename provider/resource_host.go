@@ -410,6 +410,17 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	// templates may need a bit extra effort
+	if d.HasChange("templates") {
+		old, new := d.GetChange("templates")
+		diff := old.(*schema.Set).Difference(new.(*schema.Set))
+
+		// removals, we need to unlink and clear
+		if diff.Len() > 0 {
+			item.TemplateIDsClear = buildTemplateIds(diff)
+		}
+	}
+
 	item.HostID = d.Id()
 
 	items := []zabbix.Host{*item}
