@@ -171,87 +171,104 @@ func resourceLLDSnmp() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemSnmpModFunc(d *schema.ResourceData, item *zabbix.Item) {
-	item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
+func itemSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
+	api := m.(*zabbix.API)
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Delay = d.Get("delay").(string)
 
 	item.SNMPOid = d.Get("snmp_oid").(string)
 
-	switch item.Type {
-	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
-		item.SNMPCommunity = d.Get("snmp_community").(string)
-	case zabbix.SNMPv3Agent:
-		item.SNMPv3AuthPassphrase = d.Get("snmp3_authpassphrase").(string)
-		item.SNMPv3AuthProtocol = SNMP_AUTHPROTO[d.Get("snmp3_authprotocol").(string)]
-		item.SNMPv3ContextName = d.Get("snmp3_contextname").(string)
-		item.SNMPv3PrivPasshrase = d.Get("snmp3_privpassphrase").(string)
-		item.SNMPv3PrivProtocol = SNMP_PRIVPROTO[d.Get("snmp3_privprotocol").(string)]
-		item.SNMPv3SecurityLevel = SNMP_SECLEVEL[d.Get("snmp3_securitylevel").(string)]
-		item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
+	// new mode
+	if api.Config.Version >= 5 {
+		item.Type = zabbix.SNMPAgent
+	} else { // old mode
+		item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
+		switch item.Type {
+		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+			item.SNMPCommunity = d.Get("snmp_community").(string)
+		case zabbix.SNMPv3Agent:
+			item.SNMPv3AuthPassphrase = d.Get("snmp3_authpassphrase").(string)
+			item.SNMPv3AuthProtocol = SNMP_AUTHPROTO[d.Get("snmp3_authprotocol").(string)]
+			item.SNMPv3ContextName = d.Get("snmp3_contextname").(string)
+			item.SNMPv3PrivPasshrase = d.Get("snmp3_privpassphrase").(string)
+			item.SNMPv3PrivProtocol = SNMP_PRIVPROTO[d.Get("snmp3_privprotocol").(string)]
+			item.SNMPv3SecurityLevel = SNMP_SECLEVEL[d.Get("snmp3_securitylevel").(string)]
+			item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
+		}
 	}
 }
 
 // Also for LLD Discovery SNMP
-func lldSnmpModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
-	item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
+func lldSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	api := m.(*zabbix.API)
 	item.InterfaceID = d.Get("interfaceid").(string)
 
 	item.SNMPOid = d.Get("snmp_oid").(string)
 
-	switch item.Type {
-	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
-		item.SNMPCommunity = d.Get("snmp_community").(string)
-	case zabbix.SNMPv3Agent:
-		item.SNMPv3AuthPassphrase = d.Get("snmp3_authpassphrase").(string)
-		item.SNMPv3AuthProtocol = SNMP_AUTHPROTO[d.Get("snmp3_authprotocol").(string)]
-		item.SNMPv3ContextName = d.Get("snmp3_contextname").(string)
-		item.SNMPv3PrivPasshrase = d.Get("snmp3_privpassphrase").(string)
-		item.SNMPv3PrivProtocol = SNMP_PRIVPROTO[d.Get("snmp3_privprotocol").(string)]
-		item.SNMPv3SecurityLevel = SNMP_SECLEVEL[d.Get("snmp3_securitylevel").(string)]
-		item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
+	if api.Config.Version >= 5 {
+		item.Type = zabbix.SNMPAgent
+	} else { // old mode
+		item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
+		switch item.Type {
+		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+			item.SNMPCommunity = d.Get("snmp_community").(string)
+		case zabbix.SNMPv3Agent:
+			item.SNMPv3AuthPassphrase = d.Get("snmp3_authpassphrase").(string)
+			item.SNMPv3AuthProtocol = SNMP_AUTHPROTO[d.Get("snmp3_authprotocol").(string)]
+			item.SNMPv3ContextName = d.Get("snmp3_contextname").(string)
+			item.SNMPv3PrivPasshrase = d.Get("snmp3_privpassphrase").(string)
+			item.SNMPv3PrivProtocol = SNMP_PRIVPROTO[d.Get("snmp3_privprotocol").(string)]
+			item.SNMPv3SecurityLevel = SNMP_SECLEVEL[d.Get("snmp3_securitylevel").(string)]
+			item.SNMPv3SecurityName = d.Get("snmp3_securityname").(string)
+		}
 	}
 }
 
 // Custom read handler for item type
-func itemSnmpReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
+	api := m.(*zabbix.API)
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
-	d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 
 	d.Set("snmp_oid", item.SNMPOid)
 
-	switch item.Type {
-	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
-		d.Set("snmp_community", item.SNMPCommunity)
-	case zabbix.SNMPv3Agent:
-		d.Set("snmp3_authpassphrase", item.SNMPv3AuthPassphrase)
-		d.Set("snmp3_authprotocol", SNMP_AUTHPROTO_REV[item.SNMPv3AuthProtocol])
-		d.Set("snmp3_contextname", item.SNMPv3ContextName)
-		d.Set("snmp3_privpassphrase", item.SNMPv3PrivPasshrase)
-		d.Set("snmp3_privprotocol", SNMP_PRIVPROTO_REV[item.SNMPv3PrivProtocol])
-		d.Set("snmp3_securitylevel", SNMP_SECLEVEL_REV[item.SNMPv3SecurityLevel])
-		d.Set("snmp3_securityname", item.SNMPv3SecurityName)
+	if api.Config.Version < 5 {
+		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
+		switch item.Type {
+		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+			d.Set("snmp_community", item.SNMPCommunity)
+		case zabbix.SNMPv3Agent:
+			d.Set("snmp3_authpassphrase", item.SNMPv3AuthPassphrase)
+			d.Set("snmp3_authprotocol", SNMP_AUTHPROTO_REV[item.SNMPv3AuthProtocol])
+			d.Set("snmp3_contextname", item.SNMPv3ContextName)
+			d.Set("snmp3_privpassphrase", item.SNMPv3PrivPasshrase)
+			d.Set("snmp3_privprotocol", SNMP_PRIVPROTO_REV[item.SNMPv3PrivProtocol])
+			d.Set("snmp3_securitylevel", SNMP_SECLEVEL_REV[item.SNMPv3SecurityLevel])
+			d.Set("snmp3_securityname", item.SNMPv3SecurityName)
+		}
 	}
 }
 
 // Also for LLD Discovery SNMP
-func lldSnmpReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	api := m.(*zabbix.API)
 	d.Set("interfaceid", item.InterfaceID)
-	d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 
 	d.Set("snmp_oid", item.SNMPOid)
 
-	switch item.Type {
-	case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
-		d.Set("snmp_community", item.SNMPCommunity)
-	case zabbix.SNMPv3Agent:
-		d.Set("snmp3_authpassphrase", item.SNMPv3AuthPassphrase)
-		d.Set("snmp3_authprotocol", SNMP_AUTHPROTO_REV[item.SNMPv3AuthProtocol])
-		d.Set("snmp3_contextname", item.SNMPv3ContextName)
-		d.Set("snmp3_privpassphrase", item.SNMPv3PrivPasshrase)
-		d.Set("snmp3_privprotocol", SNMP_PRIVPROTO_REV[item.SNMPv3PrivProtocol])
-		d.Set("snmp3_securitylevel", SNMP_SECLEVEL_REV[item.SNMPv3SecurityLevel])
-		d.Set("snmp3_securityname", item.SNMPv3SecurityName)
+	if api.Config.Version < 5 {
+		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
+		switch item.Type {
+		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
+			d.Set("snmp_community", item.SNMPCommunity)
+		case zabbix.SNMPv3Agent:
+			d.Set("snmp3_authpassphrase", item.SNMPv3AuthPassphrase)
+			d.Set("snmp3_authprotocol", SNMP_AUTHPROTO_REV[item.SNMPv3AuthProtocol])
+			d.Set("snmp3_contextname", item.SNMPv3ContextName)
+			d.Set("snmp3_privpassphrase", item.SNMPv3PrivPasshrase)
+			d.Set("snmp3_privprotocol", SNMP_PRIVPROTO_REV[item.SNMPv3PrivProtocol])
+			d.Set("snmp3_securitylevel", SNMP_SECLEVEL_REV[item.SNMPv3SecurityLevel])
+			d.Set("snmp3_securityname", item.SNMPv3SecurityName)
+		}
 	}
 }

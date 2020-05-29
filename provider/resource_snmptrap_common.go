@@ -34,10 +34,10 @@ func resourceProtoItemSnmpTrap() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemSnmpTrapModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemSnmpTrapModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.SNMPTrap
 }
 
 // Custom read handler for item type
-func itemSnmpTrapReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemSnmpTrapReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 }

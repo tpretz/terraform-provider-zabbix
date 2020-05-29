@@ -132,7 +132,7 @@ func resourceLLDHttp() *schema.Resource {
 }
 
 // http item modify custom function
-func itemHttpModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Url = d.Get("url").(string)
 	item.Delay = d.Get("delay").(string)
@@ -153,7 +153,7 @@ func itemHttpModFunc(d *schema.ResourceData, item *zabbix.Item) {
 		item.VerifyPeer = "1"
 	}
 }
-func lldHttpModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Url = d.Get("url").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
@@ -175,7 +175,7 @@ func lldHttpModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
 }
 
 // http item read custom function
-func itemHttpReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("url", item.Url)
 	d.Set("delay", item.Delay)
@@ -187,7 +187,7 @@ func itemHttpReadFunc(d *schema.ResourceData, item *zabbix.Item) {
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
 }
-func lldHttpReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("url", item.Url)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])

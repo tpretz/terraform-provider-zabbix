@@ -47,21 +47,21 @@ func resourceLLDSimple() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemSimpleModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemSimpleModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Delay = d.Get("delay").(string)
 	item.Type = zabbix.SimpleCheck
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
-func lldSimpleModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldSimpleModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.SimpleCheck
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
 
 // Custom read handler for item type
-func itemSimpleReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemSimpleReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 }
-func lldSimpleReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldSimpleReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
 }

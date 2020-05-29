@@ -47,21 +47,21 @@ func resourceLLDExternal() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemExternalModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemExternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.ExternalCheck
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Delay = d.Get("delay").(string)
 }
-func lldExternalModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldExternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.ExternalCheck
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
 
 // Custom read handler for item type
-func itemExternalReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemExternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 }
-func lldExternalReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldExternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
 }

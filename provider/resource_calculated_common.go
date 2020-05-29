@@ -44,14 +44,14 @@ func resourceProtoItemCalculated() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemCalculatedModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemCalculatedModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.Calculated
 	item.Delay = d.Get("delay").(string)
 	item.Params = d.Get("formula").(string)
 }
 
 // Custom read handler for item type
-func itemCalculatedReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemCalculatedReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("delay", item.Delay)
 	d.Set("formula", item.Params)
 }

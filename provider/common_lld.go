@@ -208,7 +208,7 @@ var lldFilterConditionSchema = &schema.Schema{
 }
 
 // Function signature for context manipulation
-type LLDHandler func(*schema.ResourceData, *zabbix.LLDRule)
+type LLDHandler func(*schema.ResourceData, interface{}, *zabbix.LLDRule)
 
 // return a terraform CreateFunc
 func lldGetCreateWrapper(c LLDHandler, r LLDHandler) schema.CreateFunc {
@@ -238,7 +238,7 @@ func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 	lld := buildLLDObject(d)
 
 	// run custom function
-	c(d, lld)
+	c(d, m, lld)
 
 	log.Trace("preparing lld object for create/update: %#v", lld)
 
@@ -265,7 +265,7 @@ func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 	lld.ItemID = d.Id()
 
 	// run custom function
-	c(d, lld)
+	c(d, m, lld)
 
 	log.Trace("preparing lld object for create/update: %#v", lld)
 
@@ -321,7 +321,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("macro", flattenlldMacroPaths(lld))
 
 	// run custom
-	r(d, &lld)
+	r(d, m, &lld)
 
 	return nil
 }

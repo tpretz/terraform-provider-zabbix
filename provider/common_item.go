@@ -153,7 +153,7 @@ var itemPreprocessorSchema = &schema.Schema{
 }
 
 // Function signature for context manipulation
-type ItemHandler func(*schema.ResourceData, *zabbix.Item)
+type ItemHandler func(*schema.ResourceData, interface{}, *zabbix.Item)
 
 // return a terraform CreateFunc
 func itemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
@@ -198,7 +198,7 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	item := buildItemObject(d, prototype)
 
 	// run custom function
-	c(d, item)
+	c(d, m, item)
 
 	log.Trace("preparing item object for create/update: %#v", item)
 
@@ -231,7 +231,7 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	item.ItemID = d.Id()
 
 	// run custom function
-	c(d, item)
+	c(d, m, item)
 
 	log.Trace("preparing item object for create/update: %#v", item)
 
@@ -313,7 +313,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	d.Set("applications", applicationSet)
 
 	// run custom
-	r(d, &item)
+	r(d, m, &item)
 
 	return nil
 }

@@ -90,10 +90,6 @@ func Provider() *schema.Provider {
 			"zabbix_proto_item_snmp": resourceProtoItemSnmp(),
 			"zabbix_lld_snmp":        resourceLLDSnmp(),
 
-			"zabbix_item_snmp_agent":       resourceItemSnmpAgent(),
-			"zabbix_proto_item_snmp_agent": resourceProtoItemSnmpAgent(),
-			"zabbix_lld_snmp_agent":        resourceLLDSnmpAgent(),
-
 			"zabbix_item_snmptrap":       resourceItemSnmpTrap(),
 			"zabbix_proto_item_snmptrap": resourceProtoItemSnmpTrap(),
 

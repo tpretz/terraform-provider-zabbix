@@ -34,12 +34,12 @@ func resourceProtoItemAggregate() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemAggregateModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemAggregateModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.ZabbixAggregate
 	item.Delay = d.Get("delay").(string)
 }
 
 // Custom read handler for item type
-func itemAggregateReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemAggregateReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("delay", item.Delay)
 }
