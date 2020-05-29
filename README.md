@@ -233,6 +233,17 @@ resource "zabbix_host" "example" {
 
     main = false
     port = 1161
+
+    # if zabbix version >= 5 and type is snmp
+    snmp_version = "3"
+    snmp_community = "public"
+    snmp3_authpassphrase = "supersecretpassword"
+    snmp3_authprotocol = "md5"
+    snmp3_contextname = "context"
+    snmp3_privpassphrase = "anotherpassword"
+    snmp3_privprotocol = "des"
+    snmp3_securitylevel = "noauthnopriv"
+    snmp3_securityname = "secname"
   }
 
   macro {
@@ -246,18 +257,33 @@ resource "zabbix_host" "example" {
 
 * host - (Required) FQDN of host
 * name - (Optional) Displayname of host
-* interface - (Required) Host Interfaces
-    * interface.#.type - (Required) Type of interface (agent,snmp,ipmi,jmx)
-    * interface.#.dns - (Optional) DNS name
-    * interface.#.ip - (Optional) IP Address
-    * interface.#.main - (Optional) Primary interface of this type
-    * interface.#.port - (Optional) Interface port to use
 * groups - (Required) List of hostgroup IDs
 * templates - (Optional) List of template IDs
 * proxyid - (Optional) Zabbix proxy id for this host
 * macro - (Optional) List of Macros
     * macro.#.name - Macro name
     * macro.#.value - Macro value
+* interface - (Required) Host Interfaces
+    * interface.#.type - (Required) Type of interface (agent,snmp,ipmi,jmx)
+    * interface.#.dns - (Optional) DNS name
+    * interface.#.ip - (Optional) IP Address
+    * interface.#.main - (Optional) Primary interface of this type
+    * interface.#.port - (Optional) Interface port to use
+
+The following only have affect on zabbix versions >= 5 and where type == snmp
+
+* interface.#.snmp_version - (Optional) SNMP Version, defaults to 2, one of (1, 2, 3)
+* interface.#.snmp_community - (Optional) SNMPv1/v2 community string, defaults to {$SNMP_COMMUNITY}
+* interface.#.snmp3_authpassphrase - (Optional) SNMPv3 Auth passphrase, defaults to {$SNMP3_AUTHPASSPHRASE}
+* interface.#.snmp3_authprotocol - (Optional) SNMPv3 Auth protocol, defaults to sha, one of (md5, sha)
+* interface.#.snmp3_contextname - (Optional) SNMPv3 Context Name, defaults to {$SNMP3_CONTEXTNAME} 
+* interface.#.snmp3_privpassphrase - (Optional) SNMPv3 Priv passphrase, defaults to {$SNMP3_PRIVPASSPHRASE}
+* interface.#.snmp3_privprotocol - (Optional) SNMPv3 Priv protocol, defaults to aes, one of (des, aes)
+* interface.#.snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
+* interface.#.snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
+
+
+
 
 #### Attributes Reference
 
@@ -544,9 +570,10 @@ resource "zabbix_item_snmp" "example" {
     error_handler_params = ""
   }
 
-  snmp_version = "3"
   snmp_oid = "1.2.3.4
   
+  # below should only be used on zabbix versions < 5
+  snmp_version = "3"
   snmp_community = "public"
 
   snmp3_authpassphrase = "supersecretpassword"
@@ -570,8 +597,13 @@ resource "zabbix_item_snmp" "example" {
     * params - (Optional) Preprocessor params
     * error_handler - (Optional) error handler type (see above docs, only relevent in > 4.0)
     * error_handler_params - (Optional) error handler params (see above docs, only relevent in > 4.0)
-* snmp_version - (Optional) SNMP Version, defaults to 2, one of (1, 2, 3)
+* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
+* applications - (Optional) list of application IDs to associate
 * snmp_oid - (Required) SNMP OID Number
+
+The following only have an effect in zabbix versions < 5
+
+* snmp_version - (Optional) SNMP Version, defaults to 2, one of (1, 2, 3)
 * snmp_community - (Optional) SNMPv1/v2 community string, defaults to {$SNMP_COMMUNITY}
 * snmp3_authpassphrase - (Optional) SNMPv3 Auth passphrase, defaults to {$SNMP3_AUTHPASSPHRASE}
 * snmp3_authprotocol - (Optional) SNMPv3 Auth protocol, defaults to sha, one of (md5, sha)
@@ -580,8 +612,6 @@ resource "zabbix_item_snmp" "example" {
 * snmp3_privprotocol - (Optional) SNMPv3 Priv protocol, defaults to aes, one of (des, aes)
 * snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
 * snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
-* ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
-* applications - (Optional) list of application IDs to associate
 
 #### Attributes Reference
 
