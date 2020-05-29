@@ -309,6 +309,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 			interfaces[i].InterfaceID = str
 		}
 
+		log.Debug("interface config abc: %+v", api.Config)
 		// version 5 and snmp
 		if api.Config.Version >= 5 && typeId == zabbix.SNMP {
 			details := zabbix.HostInterfaceDetail{}
@@ -330,6 +331,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 			//} else {
 			details.Community = d.Get(prefix + "snmp_community").(string)
 			//}
+			//interfaces[i].Details = zabbix.HostInterfaceDetails{details}
 			interfaces[i].Details = &details
 		}
 	}
@@ -459,7 +461,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("proxyid", host.ProxyID)
 	d.Set("enabled", host.Status == 0)
 
-	d.Set("interface", flattenHostInterfaces(host))
+	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
@@ -468,7 +470,8 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 }
 
 // flattenHostInterfaces convert API response into terraform structs
-func flattenHostInterfaces(host zabbix.Host) []interface{} {
+func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface{}) []interface{} {
+	api := m.(*zabbix.API)
 	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
 		port, _ := strconv.ParseInt(host.Interfaces[i].Port, 10, 64)
@@ -483,20 +486,42 @@ func flattenHostInterfaces(host zabbix.Host) []interface{} {
 
 		// need to handle detail
 		details := host.Interfaces[i].Details
-		if params["type"] == "snmp" && details != nil {
-			params["snmp_version"] = details.Version
-			params["snmp_bulk"] = details.Bulk == "1"
+		log.Debug("got details: %+v", details)
+		if api.Config.Version >= 5 && params["type"] == "snmp" && details != nil {
+			log.Debug("interface new logic")
+			d := details
+			params["snmp_version"] = d.Version
+			params["snmp_bulk"] = d.Bulk == "1"
 
-			params["snmp_community"] = details.Community
+			params["snmp_community"] = d.Community
 
-			params["snmp_securityname"] = details.SecurityName
-			params["snmp_securitylevel"] = SNMP_SECLEVEL_REV[details.SecurityLevel]
-			params["snmp_authpassphrase"] = details.AuthPassphrase
-			params["snmp_privpassphrase"] = details.PrivPassphrase
-			params["snmp_authprotocol"] = SNMP_AUTHPROTO_REV[details.AuthProtocol]
-			params["snmp_privprotocol"] = SNMP_PRIVPROTO_REV[details.PrivProtocol]
-			params["snmp_contextname"] = details.ContextName
+			params["snmp_securityname"] = d.SecurityName
+			params["snmp_securitylevel"] = SNMP_SECLEVEL_REV[d.SecurityLevel]
+			params["snmp_authpassphrase"] = d.AuthPassphrase
+			params["snmp_privpassphrase"] = d.PrivPassphrase
+			params["snmp_authprotocol"] = SNMP_AUTHPROTO_REV[d.AuthProtocol]
+			params["snmp_privprotocol"] = SNMP_PRIVPROTO_REV[d.PrivProtocol]
+			params["snmp_contextname"] = d.ContextName
+		} else { // echo back current values, keep state happy
+			log.Debug("interface old logic")
+			arr := []string{
+				"snmp_version",
+				"snmp_community",
+				"snmp3_authpassphrase",
+				"snmp3_authprotocol",
+				"snmp3_contextname",
+				"snmp3_privpassphrase",
+				"snmp3_privprotocol",
+				"snmp3_securitylevel",
+				"snmp3_securityname",
+				"snmp_bulk",
+			}
+
+			for _, v := range arr {
+				params[v] = hostSchemaBase["interface"].Elem.(*schema.Resource).Schema[v].Default
+			}
 		}
+		log.Debug("Got host interface: %+v", params)
 		val[i] = params
 	}
 	return val
