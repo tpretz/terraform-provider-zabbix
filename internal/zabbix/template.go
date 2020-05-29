@@ -9,8 +9,9 @@ type Template struct {
 	Name            string       `json:"name,omitempty"`
 	Groups          HostGroupIDs `json:"groups"`
 	UserMacros      Macros       `json:"macros"`
-	LinkedTemplates Templates    `json:"templates,omitempty"`
-	TemplatesClear  Templates    `json:"templates_clear,omitempty"`
+	LinkedTemplates TemplateIDs  `json:"templates,omitempty"`
+	ParentTemplates TemplateIDs  `json:"parentTemplates,omitempty"`
+	TemplatesClear  TemplateIDs  `json:"templates_clear,omitempty"`
 	LinkedHosts     []string     `json:"hosts,omitempty"`
 }
 

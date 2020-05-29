@@ -58,6 +58,7 @@ const (
 	SNMPTrap  ItemType = 17
 	Dependent ItemType = 18
 	HTTPAgent ItemType = 19
+	SNMPAgent ItemType = 20
 )
 
 const (

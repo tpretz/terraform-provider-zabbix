@@ -1,5 +1,7 @@
 # Go zabbix api
 
+Note, this is not tested and is adjusted for use of tpretz/terraform-provider-zabbix
+
 [![GoDoc](https://godoc.org/github.com/tpretz/go-zabbix-api?status.svg)](https://godoc.org/github.com/tpretz/go-zabbix-api) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Build Status](https://travis-ci.org/tpretz/go-zabbix-api.svg?branch=master)](https://travis-ci.org/tpretz/go-zabbix-api)
 
 This Go package provides access to Zabbix API.
