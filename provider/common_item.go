@@ -359,13 +359,14 @@ func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Pre
 func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 	val := make([]interface{}, len(item.Preprocessors))
 	for i := 0; i < len(item.Preprocessors); i++ {
-		parr := strings.Split(item.Preprocessors[i].Params, "\n")
 		val[i] = map[string]interface{}{
 			//"id": host.Interfaces[i].InterfaceID,
 			"type":                 item.Preprocessors[i].Type,
-			"params":               parr,
 			"error_handler":        item.Preprocessors[i].ErrorHandler,
 			"error_handler_params": item.Preprocessors[i].ErrorHandlerParams,
+		}
+		if item.Preprocessors[i].Params != "" {
+			val[i].(map[string]interface{})["params"] = strings.Split(item.Preprocessors[i].Params, "\n")
 		}
 	}
 	return val
