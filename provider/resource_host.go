@@ -13,6 +13,57 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+var HSNMP_LOOKUP = map[string]zabbix.ItemType{
+	"1": zabbix.SNMPv1Agent,
+	"2": zabbix.SNMPv2Agent,
+	"3": zabbix.SNMPv3Agent,
+}
+var HSNMP_LOOKUP_REV = map[zabbix.ItemType]string{}
+var HSNMP_LOOKUP_ARR = []string{}
+
+var HSNMP_AUTHPROTO = map[string]string{
+	"md5": "0",
+	"sha": "1",
+}
+var HSNMP_AUTHPROTO_REV = map[string]string{}
+var HSNMP_AUTHPROTO_ARR = []string{}
+
+var HSNMP_PRIVPROTO = map[string]string{
+	"des": "0",
+	"aes": "1",
+}
+var HSNMP_PRIVPROTO_REV = map[string]string{}
+var HSNMP_PRIVPROTO_ARR = []string{}
+
+var HSNMP_SECLEVEL = map[string]string{
+	"noauthnopriv": "0",
+	"authnopriv":   "1",
+	"authpriv":     "2",
+}
+var HSNMP_SECLEVEL_REV = map[string]string{}
+var HSNMP_SECLEVEL_ARR = []string{}
+
+// generate the above structures
+var _ = func() bool {
+	for k, v := range HSNMP_LOOKUP {
+		HSNMP_LOOKUP_REV[v] = k
+		HSNMP_LOOKUP_ARR = append(HSNMP_LOOKUP_ARR, k)
+	}
+	for k, v := range HSNMP_AUTHPROTO {
+		HSNMP_AUTHPROTO_REV[v] = k
+		HSNMP_AUTHPROTO_ARR = append(HSNMP_AUTHPROTO_ARR, k)
+	}
+	for k, v := range HSNMP_PRIVPROTO {
+		HSNMP_PRIVPROTO_REV[v] = k
+		HSNMP_PRIVPROTO_ARR = append(HSNMP_PRIVPROTO_ARR, k)
+	}
+	for k, v := range HSNMP_SECLEVEL {
+		HSNMP_SECLEVEL_REV[v] = k
+		HSNMP_SECLEVEL_ARR = append(HSNMP_SECLEVEL_ARR, k)
+	}
+	return false
+}()
+
 // interface type conversions
 var HOST_IFACE_TYPES = map[string]zabbix.InterfaceType{
 	"agent": zabbix.Agent,
@@ -107,8 +158,8 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
 					Default:      "2",
-					Description:  "SNMP Version, one of: " + strings.Join(SNMP_LOOKUP_ARR, ", "),
-					ValidateFunc: validation.StringInSlice(SNMP_LOOKUP_ARR, false),
+					Description:  "SNMP Version, one of: " + strings.Join(HSNMP_LOOKUP_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(HSNMP_LOOKUP_ARR, false),
 				},
 				"snmp_bulk": &schema.Schema{
 					Type:        schema.TypeBool,
@@ -119,7 +170,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp_community": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "SNMP Community (v1/v2 only)",
+					Description:  "HSNMP Community (v1/v2 only)",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP_COMMUNITY}",
 				},
@@ -133,8 +184,8 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_authprotocol": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Authentication Protocol (v3 only), one of: " + strings.Join(SNMP_AUTHPROTO_ARR, ", "),
-					ValidateFunc: validation.StringInSlice(SNMP_AUTHPROTO_ARR, false),
+					Description:  "Authentication Protocol (v3 only), one of: " + strings.Join(HSNMP_AUTHPROTO_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(HSNMP_AUTHPROTO_ARR, false),
 					Default:      "sha",
 				},
 				"snmp3_contextname": &schema.Schema{
@@ -154,15 +205,15 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_privprotocol": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Priv Protocol (v3 only), one of: " + strings.Join(SNMP_PRIVPROTO_ARR, ", "),
-					ValidateFunc: validation.StringInSlice(SNMP_PRIVPROTO_ARR, false),
+					Description:  "Priv Protocol (v3 only), one of: " + strings.Join(HSNMP_PRIVPROTO_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(HSNMP_PRIVPROTO_ARR, false),
 					Default:      "aes",
 				},
 				"snmp3_securitylevel": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Security Level (v3 only), one of: " + strings.Join(SNMP_SECLEVEL_ARR, ", "),
-					ValidateFunc: validation.StringInSlice(SNMP_SECLEVEL_ARR, false),
+					Description:  "Security Level (v3 only), one of: " + strings.Join(HSNMP_SECLEVEL_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(HSNMP_SECLEVEL_ARR, false),
 					Default:      "authpriv",
 				},
 				"snmp3_securityname": &schema.Schema{
@@ -321,13 +372,13 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 
 			// only pull relevent params
 			//if details.Version == "3" {
-			details.SecurityName = d.Get(prefix + "snmp_securityname").(string)
-			details.SecurityLevel = SNMP_SECLEVEL[d.Get(prefix+"snmp_securitylevel").(string)]
-			details.AuthPassphrase = d.Get(prefix + "snmp_authpassphrase").(string)
-			details.PrivPassphrase = d.Get(prefix + "snmp_privpassphrase").(string)
-			details.AuthProtocol = SNMP_AUTHPROTO[d.Get(prefix+"snmp_authprotocol").(string)]
-			details.PrivProtocol = SNMP_PRIVPROTO[d.Get(prefix+"snmp_privprotocol").(string)]
-			details.ContextName = d.Get(prefix + "snmp_contextname").(string)
+			details.SecurityName = d.Get(prefix + "snmp3_securityname").(string)
+			details.SecurityLevel = HSNMP_SECLEVEL[d.Get(prefix+"snmp3_securitylevel").(string)]
+			details.AuthPassphrase = d.Get(prefix + "snmp3_authpassphrase").(string)
+			details.PrivPassphrase = d.Get(prefix + "snmp3_privpassphrase").(string)
+			details.AuthProtocol = HSNMP_AUTHPROTO[d.Get(prefix+"snmp3_authprotocol").(string)]
+			details.PrivProtocol = HSNMP_PRIVPROTO[d.Get(prefix+"snmp3_privprotocol").(string)]
+			details.ContextName = d.Get(prefix + "snmp3_contextname").(string)
 			//} else {
 			details.Community = d.Get(prefix + "snmp_community").(string)
 			//}
@@ -496,11 +547,11 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 			params["snmp_community"] = d.Community
 
 			params["snmp_securityname"] = d.SecurityName
-			params["snmp_securitylevel"] = SNMP_SECLEVEL_REV[d.SecurityLevel]
+			params["snmp_securitylevel"] = HSNMP_SECLEVEL_REV[d.SecurityLevel]
 			params["snmp_authpassphrase"] = d.AuthPassphrase
 			params["snmp_privpassphrase"] = d.PrivPassphrase
-			params["snmp_authprotocol"] = SNMP_AUTHPROTO_REV[d.AuthProtocol]
-			params["snmp_privprotocol"] = SNMP_PRIVPROTO_REV[d.PrivProtocol]
+			params["snmp_authprotocol"] = HSNMP_AUTHPROTO_REV[d.AuthProtocol]
+			params["snmp_privprotocol"] = HSNMP_PRIVPROTO_REV[d.PrivProtocol]
 			params["snmp_contextname"] = d.ContextName
 		} else { // echo back current values, keep state happy
 			log.Debug("interface old logic")
