@@ -119,10 +119,10 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	params := zabbix.Params{
-		"filter":          map[string]interface{}{},
-		"selectMacros":    "extend",
-		"selectTemplates": "extend",
-		"selectGroups":    "extend",
+		"filter":                map[string]interface{}{},
+		"selectMacros":          "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
 	}
 
 	if v := d.Get("host").(string); v != "" {
@@ -146,10 +146,10 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of template with id %s", d.Id())
 
 	return templateRead(d, m, zabbix.Params{
-		"templateids":     d.Id(),
-		"selectMacros":    "extend",
-		"selectTemplates": "extend",
-		"selectGroups":    "extend",
+		"templateids":           d.Id(),
+		"selectMacros":          "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
 	})
 }
 
@@ -179,7 +179,7 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	d.Set("name", t.Name)
 	d.Set("macro", flattenMacros(t.UserMacros))
 	d.Set("groups", flattenHostGroupIds(t.Groups))
-	d.Set("templates", flattenTemplateIds(t.LinkedTemplates))
+	d.Set("templates", flattenTemplateIds(t.ParentTemplates))
 	d.SetId(t.TemplateID)
 
 	return nil
