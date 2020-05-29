@@ -1,5 +1,7 @@
 package zabbix
 
+import "encoding/json"
+
 type (
 	// AvailableType (readonly) Availability of Zabbix agent
 	// see "available" in: https://www.zabbix.com/documentation/3.2/manual/api/reference/host/object
@@ -57,6 +59,33 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("host.get", params, &res)
+
+	// fix up host details if present
+	for i := 0; i < len(res); i++ {
+		h := res[i]
+		for j := 0; j < len(h.Interfaces); j++ {
+			in := h.Interfaces[j]
+			res[i].Interfaces[j].Details = nil
+			if len(in.RawDetails) == 0 {
+				continue
+			}
+
+			asStr := string(in.RawDetails)
+			if asStr == "[]" {
+				continue
+			}
+
+			out := HostInterfaceDetail{}
+			// assume singular, if api changes, this will fault
+			err := json.Unmarshal(in.RawDetails, &out)
+			if err != nil {
+				api.printf("got error during unmarshal %s", err)
+				panic(err)
+			}
+			res[i].Interfaces[j].Details = &out
+		}
+
+	}
 	return
 }
 
@@ -106,9 +135,28 @@ func (api *API) HostGetByHost(host string) (res *Host, err error) {
 	return
 }
 
+// handle manual marshal
+func prepHosts(hosts Hosts) {
+	for i := 0; i < len(hosts); i++ {
+		h := hosts[i]
+		for j := 0; j < len(h.Interfaces); j++ {
+			in := h.Interfaces[j]
+
+			if in.Details == nil {
+				continue
+			}
+
+			asB, _ := json.Marshal(in.Details)
+			hosts[i].Interfaces[j].RawDetails = json.RawMessage(asB)
+		}
+
+	}
+}
+
 // HostsCreate Wrapper for host.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/create
 func (api *API) HostsCreate(hosts Hosts) (err error) {
+	prepHosts(hosts)
 	response, err := api.CallWithError("host.create", hosts)
 	if err != nil {
 		return
@@ -125,6 +173,7 @@ func (api *API) HostsCreate(hosts Hosts) (err error) {
 // HostsUpdate Wrapper for host.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/update
 func (api *API) HostsUpdate(hosts Hosts) (err error) {
+	prepHosts(hosts)
 	_, err = api.CallWithError("host.update", hosts)
 	return
 }

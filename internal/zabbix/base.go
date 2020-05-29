@@ -78,7 +78,7 @@ type API struct {
 	c         http.Client
 	id        int32
 	ex        sync.Mutex
-	config    Config
+	Config    Config
 }
 
 type Config struct {
@@ -86,6 +86,7 @@ type Config struct {
 	TlsNoVerify bool
 	Log         *log.Logger
 	Serialize   bool
+	Version     int
 }
 
 // NewAPI Creates new API access object.
@@ -98,7 +99,7 @@ func NewAPI(c Config) (api *API) {
 		c:         http.Client{},
 		UserAgent: "github.com/tpretz/go-zabbix-api",
 		Logger:    c.Log,
-		config:    c,
+		Config:    c,
 	}
 
 	if c.TlsNoVerify {
@@ -144,7 +145,7 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	req.Header.Add("Content-Type", "application/json-rpc")
 	req.Header.Add("User-Agent", api.UserAgent)
 
-	if api.config.Serialize {
+	if api.Config.Serialize {
 		api.ex.Lock()
 		defer api.ex.Unlock()
 	}
