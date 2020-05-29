@@ -46,6 +46,15 @@ func resourceTemplate() *schema.Resource {
 				Optional:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
+			"templates": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
+				},
+				Description: "linked templates",
+			},
 			"macro": macroListSchema,
 		},
 	}
@@ -110,8 +119,10 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	params := zabbix.Params{
-		"filter":       map[string]interface{}{},
-		"selectMacros": "extend",
+		"filter":                map[string]interface{}{},
+		"selectMacros":          "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
 	}
 
 	if v := d.Get("host").(string); v != "" {
@@ -135,8 +146,10 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of template with id %s", d.Id())
 
 	return templateRead(d, m, zabbix.Params{
-		"templateids":  d.Id(),
-		"selectMacros": "extend",
+		"templateids":           d.Id(),
+		"selectMacros":          "extend",
+		"selectParentTemplates": "extend",
+		"selectGroups":          "extend",
 	})
 }
 
@@ -165,6 +178,8 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	d.Set("host", t.Host)
 	d.Set("name", t.Name)
 	d.Set("macro", flattenMacros(t.UserMacros))
+	d.Set("groups", flattenHostGroupIds(t.Groups))
+	d.Set("templates", flattenTemplateIds(t.ParentTemplates))
 	d.SetId(t.TemplateID)
 
 	return nil
@@ -173,10 +188,11 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 // build a template object from terraform data
 func buildTemplateObject(d *schema.ResourceData) *zabbix.Template {
 	item := zabbix.Template{
-		Description: d.Get("description").(string),
-		Name:        d.Get("name").(string),
-		Host:        d.Get("host").(string),
-		Groups:      buildHostGroupIds(d.Get("groups").(*schema.Set)),
+		Description:     d.Get("description").(string),
+		Name:            d.Get("name").(string),
+		Host:            d.Get("host").(string),
+		Groups:          buildHostGroupIds(d.Get("groups").(*schema.Set)),
+		LinkedTemplates: buildTemplateIds(d.Get("templates").(*schema.Set)),
 	}
 
 	item.UserMacros = macroGenerate(d)
@@ -189,6 +205,17 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 
 	item := buildTemplateObject(d)
 	item.TemplateID = d.Id()
+
+	// templates may need a bit extra effort
+	if d.HasChange("templates") {
+		old, new := d.GetChange("templates")
+		diff := old.(*schema.Set).Difference(new.(*schema.Set))
+
+		// removals, we need to unlink and clear
+		if diff.Len() > 0 {
+			item.TemplatesClear = buildTemplateIds(diff)
+		}
+	}
 
 	items := []zabbix.Template{*item}
 

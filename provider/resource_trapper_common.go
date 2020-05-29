@@ -47,15 +47,15 @@ func resourceLLDTrapper() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemTrapperModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.ZabbixTrapper
 }
-func lldTrapperModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.ZabbixTrapper
 }
 
 // Custom read handler for item type
-func itemTrapperReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemTrapperReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 }
-func lldTrapperReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldTrapperReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 }

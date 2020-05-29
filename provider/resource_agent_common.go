@@ -55,7 +55,7 @@ func resourceLLDAgent() *schema.Resource {
 	}
 }
 
-func itemAgentModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemAgentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	t := zabbix.ZabbixAgent
 	if d.Get("active").(bool) {
 		t = zabbix.ZabbixAgentActive
@@ -65,7 +65,7 @@ func itemAgentModFunc(d *schema.ResourceData, item *zabbix.Item) {
 	item.Delay = d.Get("delay").(string)
 }
 
-func lldAgentModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldAgentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	t := zabbix.ZabbixAgent
 	if d.Get("active").(bool) {
 		t = zabbix.ZabbixAgentActive
@@ -74,13 +74,13 @@ func lldAgentModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
 
-func itemAgentReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemAgentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 	d.Set("active", item.Type == zabbix.ZabbixAgentActive)
 }
 
-func lldAgentReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldAgentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("active", item.Type == zabbix.ZabbixAgentActive)
 }

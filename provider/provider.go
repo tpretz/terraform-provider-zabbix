@@ -2,6 +2,8 @@ package provider
 
 import (
 	logger "log"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -120,6 +122,15 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		Log:         l,
 		Serialize:   d.Get("serialize").(bool),
 	})
+
+	version, err := api.Version()
+	log.Trace("api version got error: %+v", err)
+
+	major := strings.Split(version, ".")[0]
+	u, err := strconv.ParseInt(major, 10, 64)
+	log.Trace("parseint error: %+v", err)
+	api.Config.Version = int(u)
+	log.Trace("version is: %d", api.Config.Version)
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
 	meta = api

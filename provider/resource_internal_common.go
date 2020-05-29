@@ -47,21 +47,21 @@ func resourceLLDInternal() *schema.Resource {
 }
 
 // Custom mod handler for item type
-func itemInternalModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemInternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.ZabbixInternal
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Delay = d.Get("delay").(string)
 }
-func lldInternalModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldInternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.ZabbixInternal
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
 
 // Custom read handler for item type
-func itemInternalReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemInternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("delay", item.Delay)
 }
-func lldInternalReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldInternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
 }

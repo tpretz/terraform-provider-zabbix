@@ -53,18 +53,18 @@ func resourceLLDDependent() *schema.Resource {
 	}
 }
 
-func itemDependentModFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.Dependent
 	item.MasterItemID = d.Get("master_itemid").(string)
 }
-func lldDependentModFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.Dependent
 	item.MasterItemID = d.Get("master_itemid").(string)
 }
 
-func itemDependentReadFunc(d *schema.ResourceData, item *zabbix.Item) {
+func itemDependentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	d.Set("master_itemid", item.MasterItemID)
 }
-func lldDependentReadFunc(d *schema.ResourceData, item *zabbix.LLDRule) {
+func lldDependentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("master_itemid", item.MasterItemID)
 }

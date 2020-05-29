@@ -5,6 +5,22 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
+func flattenHostGroupIds(list zabbix.HostGroupIDs) *schema.Set {
+	s := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range list {
+		s.Add(v.GroupID)
+	}
+	return s
+}
+
+func flattenTemplateIds(list zabbix.TemplateIDs) *schema.Set {
+	s := schema.NewSet(schema.HashString, []interface{}{})
+	for _, v := range list {
+		s.Add(v.TemplateID)
+	}
+	return s
+}
+
 func buildHostGroupIds(s *schema.Set) zabbix.HostGroupIDs {
 	list := s.List()
 
