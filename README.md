@@ -282,9 +282,6 @@ The following only have affect on zabbix versions >= 5 and where type == snmp
 * interface.#.snmp3_securitylevel - (Optional) SNMPv3 Security Level, defaults to authpriv, one of (noauthnopriv, authnopriv, authpriv)
 * interface.#.snmp3_securityname - (Optional) SNMPv3 Security Name, defaults to {$SNMP3_SECURITYNAME}
 
-
-
-
 #### Attributes Reference
 
 Same as arguments, plus:
