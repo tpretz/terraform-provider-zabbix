@@ -38,9 +38,10 @@ type Host struct {
 	UserMacros Macros        `json:"macros,omitempty"`
 
 	// Fields below used only when creating hosts
-	GroupIds    HostGroupIDs   `json:"groups,omitempty"`
-	Interfaces  HostInterfaces `json:"interfaces,omitempty"`
-	TemplateIDs TemplateIDs    `json:"templates,omitempty"`
+	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
+	Interfaces       HostInterfaces `json:"interfaces,omitempty"`
+	TemplateIDs      TemplateIDs    `json:"templates,omitempty"`
+	TemplateIDsClear TemplateIDs    `json:"templates_clear,omitempty"`
 	// templates are read back from this one
 	ParentTemplateIDs TemplateIDs `json:"parentTemplates,omitempty"`
 	ProxyID           string      `json:"proxy_hostid,omitempty"`
