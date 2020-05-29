@@ -45,6 +45,12 @@ func Provider() *schema.Provider {
 				Default:     false,
 				Description: "Serialize API requests, if required due to API race conditions",
 			},
+			"version": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     4,
+				Description: "Major version number of zabbix service",
+			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"zabbix_host":        dataHost(),
@@ -88,6 +94,10 @@ func Provider() *schema.Provider {
 			"zabbix_proto_item_snmp": resourceProtoItemSnmp(),
 			"zabbix_lld_snmp":        resourceLLDSnmp(),
 
+			"zabbix_item_snmp_agent":       resourceItemSnmpAgent(),
+			"zabbix_proto_item_snmp_agent": resourceProtoItemSnmpAgent(),
+			"zabbix_lld_snmp_agent":        resourceLLDSnmpAgent(),
+
 			"zabbix_item_snmptrap":       resourceItemSnmpTrap(),
 			"zabbix_proto_item_snmptrap": resourceProtoItemSnmpTrap(),
 
@@ -119,6 +129,7 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
 		Serialize:   d.Get("serialize").(bool),
+		Version:     d.Get("version").(int),
 	})
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))

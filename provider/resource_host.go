@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -102,6 +103,75 @@ var hostSchemaBase = map[string]*schema.Schema{
 					}, false),
 					Description: "Interface type",
 				},
+				"snmp_version": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Default:      "2",
+					Description:  "SNMP Version, one of: " + strings.Join(SNMP_LOOKUP_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(SNMP_LOOKUP_ARR, false),
+				},
+				"snmp_bulk": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     true,
+					Description: "SNMP Bulk",
+				},
+				"snmp_community": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "SNMP Community (v1/v2 only)",
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Default:      "{$SNMP_COMMUNITY}",
+				},
+				"snmp3_authpassphrase": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Authentication Passphrase (v3 only)",
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Default:      "{$SNMP3_AUTHPASSPHRASE}",
+				},
+				"snmp3_authprotocol": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Authentication Protocol (v3 only), one of: " + strings.Join(SNMP_AUTHPROTO_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(SNMP_AUTHPROTO_ARR, false),
+					Default:      "sha",
+				},
+				"snmp3_contextname": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Context Name (v3 only)",
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Default:      "{$SNMP3_CONTEXTNAME}",
+				},
+				"snmp3_privpassphrase": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Priv Passphrase (v3 only)",
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Default:      "{$SNMP3_PRIVPASSPHRASE}",
+				},
+				"snmp3_privprotocol": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Priv Protocol (v3 only), one of: " + strings.Join(SNMP_PRIVPROTO_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(SNMP_PRIVPROTO_ARR, false),
+					Default:      "aes",
+				},
+				"snmp3_securitylevel": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Security Level (v3 only), one of: " + strings.Join(SNMP_SECLEVEL_ARR, ", "),
+					ValidateFunc: validation.StringInSlice(SNMP_SECLEVEL_ARR, false),
+					Default:      "authpriv",
+				},
+				"snmp3_securityname": &schema.Schema{
+					Type:         schema.TypeString,
+					Optional:     true,
+					Description:  "Security Name (v3 only)",
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Default:      "{$SNMP3_SECURITYNAME}",
+				},
 			},
 		},
 	},
@@ -196,7 +266,8 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 }
 
 // hostGenerateInterfaces generate interface object array
-func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInterfaces, err error) {
+func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces zabbix.HostInterfaces, err error) {
+	api := m.(*zabbix.API)
 	interfaceCount := d.Get("interface.#").(int)
 	interfaces = make(zabbix.HostInterfaces, interfaceCount)
 
@@ -237,13 +308,37 @@ func hostGenerateInterfaces(d *schema.ResourceData) (interfaces zabbix.HostInter
 		if str := d.Get(prefix + "id").(string); str != "" {
 			interfaces[i].InterfaceID = str
 		}
+
+		// version 5 and snmp
+		if api.Config.Version >= 5 && typeId == zabbix.SNMP {
+			details := zabbix.HostInterfaceDetail{}
+			details.Version = d.Get(prefix + "snmp_version").(string)
+			details.Bulk = "0"
+			if d.Get(prefix + "snmp_bulk").(bool) {
+				details.Bulk = "1"
+			}
+
+			// only pull relevent params
+			//if details.Version == "3" {
+			details.SecurityName = d.Get(prefix + "snmp_securityname").(string)
+			details.SecurityLevel = SNMP_SECLEVEL[d.Get(prefix+"snmp_securitylevel").(string)]
+			details.AuthPassphrase = d.Get(prefix + "snmp_authpassphrase").(string)
+			details.PrivPassphrase = d.Get(prefix + "snmp_privpassphrase").(string)
+			details.AuthProtocol = SNMP_AUTHPROTO[d.Get(prefix+"snmp_authprotocol").(string)]
+			details.PrivProtocol = SNMP_PRIVPROTO[d.Get(prefix+"snmp_privprotocol").(string)]
+			details.ContextName = d.Get(prefix + "snmp_contextname").(string)
+			//} else {
+			details.Community = d.Get(prefix + "snmp_community").(string)
+			//}
+			interfaces[i].Details = &details
+		}
 	}
 
 	return
 }
 
 // buildHostObject create host struct
-func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
+func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error) {
 	item := zabbix.Host{
 		Host:    d.Get("host").(string),
 		Name:    d.Get("name").(string),
@@ -258,7 +353,7 @@ func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 	item.GroupIds = buildHostGroupIds(d.Get("groups").(*schema.Set))
 	item.TemplateIDs = buildTemplateIds(d.Get("templates").(*schema.Set))
 
-	interfaces, err := hostGenerateInterfaces(d)
+	interfaces, err := hostGenerateInterfaces(d, m)
 
 	if err != nil {
 		return nil, err
@@ -276,7 +371,7 @@ func buildHostObject(d *schema.ResourceData) (*zabbix.Host, error) {
 func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item, err := buildHostObject(d)
+	item, err := buildHostObject(d, m)
 
 	if err != nil {
 		return err
@@ -365,19 +460,8 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("enabled", host.Status == 0)
 
 	d.Set("interface", flattenHostInterfaces(host))
-
-	templateSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range host.ParentTemplateIDs {
-		templateSet.Add(v.TemplateID)
-	}
-	d.Set("templates", templateSet)
-
-	groupSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range host.GroupIds {
-		groupSet.Add(v.GroupID)
-	}
-	d.Set("groups", groupSet)
-
+	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
+	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
 
 	return nil
@@ -388,7 +472,7 @@ func flattenHostInterfaces(host zabbix.Host) []interface{} {
 	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
 		port, _ := strconv.ParseInt(host.Interfaces[i].Port, 10, 64)
-		val[i] = map[string]interface{}{
+		params := map[string]interface{}{
 			"id":   host.Interfaces[i].InterfaceID,
 			"ip":   host.Interfaces[i].IP,
 			"dns":  host.Interfaces[i].DNS,
@@ -396,6 +480,24 @@ func flattenHostInterfaces(host zabbix.Host) []interface{} {
 			"port": port,
 			"type": HOST_IFACE_TYPES_REV[host.Interfaces[i].Type],
 		}
+
+		// need to handle detail
+		details := host.Interfaces[i].Details
+		if params["type"] == "snmp" && details != nil {
+			params["snmp_version"] = details.Version
+			params["snmp_bulk"] = details.Bulk == "1"
+
+			params["snmp_community"] = details.Community
+
+			params["snmp_securityname"] = details.SecurityName
+			params["snmp_securitylevel"] = SNMP_SECLEVEL_REV[details.SecurityLevel]
+			params["snmp_authpassphrase"] = details.AuthPassphrase
+			params["snmp_privpassphrase"] = details.PrivPassphrase
+			params["snmp_authprotocol"] = SNMP_AUTHPROTO_REV[details.AuthProtocol]
+			params["snmp_privprotocol"] = SNMP_PRIVPROTO_REV[details.PrivProtocol]
+			params["snmp_contextname"] = details.ContextName
+		}
+		val[i] = params
 	}
 	return val
 }
@@ -404,7 +506,7 @@ func flattenHostInterfaces(host zabbix.Host) []interface{} {
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
 
-	item, err := buildHostObject(d)
+	item, err := buildHostObject(d, m)
 
 	if err != nil {
 		return err
