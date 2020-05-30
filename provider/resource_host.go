@@ -535,6 +535,24 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 			"type": HOST_IFACE_TYPES_REV[host.Interfaces[i].Type],
 		}
 
+		// Set defaults, as these may or may not be bounced back
+		arr := []string{
+			"snmp_version",
+			"snmp_community",
+			"snmp3_authpassphrase",
+			"snmp3_authprotocol",
+			"snmp3_contextname",
+			"snmp3_privpassphrase",
+			"snmp3_privprotocol",
+			"snmp3_securitylevel",
+			"snmp3_securityname",
+			"snmp_bulk",
+		}
+
+		for _, v := range arr {
+			params[v] = hostSchemaBase["interface"].Elem.(*schema.Resource).Schema[v].Default
+		}
+
 		// need to handle detail
 		details := host.Interfaces[i].Details
 		log.Debug("got details: %+v", details)
@@ -544,34 +562,19 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 			params["snmp_version"] = d.Version
 			params["snmp_bulk"] = d.Bulk == "1"
 
-			params["snmp_community"] = d.Community
-
-			params["snmp_securityname"] = d.SecurityName
-			params["snmp_securitylevel"] = HSNMP_SECLEVEL_REV[d.SecurityLevel]
-			params["snmp_authpassphrase"] = d.AuthPassphrase
-			params["snmp_privpassphrase"] = d.PrivPassphrase
-			params["snmp_authprotocol"] = HSNMP_AUTHPROTO_REV[d.AuthProtocol]
-			params["snmp_privprotocol"] = HSNMP_PRIVPROTO_REV[d.PrivProtocol]
-			params["snmp_contextname"] = d.ContextName
-		} else { // echo back current values, keep state happy
-			log.Debug("interface old logic")
-			arr := []string{
-				"snmp_version",
-				"snmp_community",
-				"snmp3_authpassphrase",
-				"snmp3_authprotocol",
-				"snmp3_contextname",
-				"snmp3_privpassphrase",
-				"snmp3_privprotocol",
-				"snmp3_securitylevel",
-				"snmp3_securityname",
-				"snmp_bulk",
-			}
-
-			for _, v := range arr {
-				params[v] = hostSchemaBase["interface"].Elem.(*schema.Resource).Schema[v].Default
+			if params["snmp_version"] != "3" {
+				params["snmp_community"] = d.Community
+			} else {
+				params["snmp_securityname"] = d.SecurityName
+				params["snmp_securitylevel"] = HSNMP_SECLEVEL_REV[d.SecurityLevel]
+				params["snmp_authpassphrase"] = d.AuthPassphrase
+				params["snmp_privpassphrase"] = d.PrivPassphrase
+				params["snmp_authprotocol"] = HSNMP_AUTHPROTO_REV[d.AuthProtocol]
+				params["snmp_privprotocol"] = HSNMP_PRIVPROTO_REV[d.PrivProtocol]
+				params["snmp_contextname"] = d.ContextName
 			}
 		}
+
 		log.Debug("Got host interface: %+v", params)
 		val[i] = params
 	}
