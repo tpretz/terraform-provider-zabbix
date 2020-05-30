@@ -25,6 +25,15 @@ var HTTP_POSTTYPE = map[string]string{
 var HTTP_POSTTYPE_REV = map[string]string{}
 var HTTP_POSTTYPE_ARR = []string{}
 
+var HTTP_AUTHTYPE = map[string]string{
+	"none":     "0",
+	"basic":    "1",
+	"ntlm":     "2",
+	"kerberos": "3",
+}
+var HTTP_AUTHTYPE_REV = map[string]string{}
+var HTTP_AUTHTYPE_ARR = []string{}
+
 // generate the above structures
 var _ = func() bool {
 	for k, v := range HTTP_METHODS {
@@ -35,6 +44,10 @@ var _ = func() bool {
 		HTTP_POSTTYPE_REV[v] = k
 		HTTP_POSTTYPE_ARR = append(HTTP_POSTTYPE_ARR, k)
 	}
+	for k, v := range HTTP_AUTHTYPE {
+		HTTP_AUTHTYPE_REV[v] = k
+		HTTP_AUTHTYPE_ARR = append(HTTP_AUTHTYPE_ARR, k)
+	}
 	return false
 }()
 
@@ -42,7 +55,7 @@ var schemaHttp = map[string]*schema.Schema{
 	"url": &schema.Schema{
 		Type:         schema.TypeString,
 		Description:  "url to probe",
-		ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
 	"request_method": &schema.Schema{
@@ -58,6 +71,24 @@ var schemaHttp = map[string]*schema.Schema{
 		Description:  "HTTP post type, one of: " + strings.Join(HTTP_POSTTYPE_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(HTTP_POSTTYPE_ARR, false),
 		Default:      "body",
+	},
+	"auth_type": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "HTTP auth type, one of: " + strings.Join(HTTP_AUTHTYPE_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HTTP_AUTHTYPE_ARR, false),
+		Default:      "none",
+	},
+	"username": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Authentication Username",
+	},
+	"password": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Authentication Password",
 	},
 	"posts": &schema.Schema{
 		Type:        schema.TypeString,
@@ -138,6 +169,9 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Delay = d.Get("delay").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
+	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
+	item.Username = d.Get("username").(string)
+	item.Password = d.Get("password").(string)
 	item.Posts = d.Get("posts").(string)
 	item.StatusCodes = d.Get("status_codes").(string)
 	item.Timeout = d.Get("timeout").(string)
@@ -158,6 +192,9 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	item.Url = d.Get("url").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
+	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
+	item.Username = d.Get("username").(string)
+	item.Password = d.Get("password").(string)
 	item.Posts = d.Get("posts").(string)
 	item.StatusCodes = d.Get("status_codes").(string)
 	item.Timeout = d.Get("timeout").(string)
@@ -181,6 +218,9 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("delay", item.Delay)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
+	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
+	d.Set("username", item.Username)
+	d.Set("password", item.Password)
 	d.Set("posts", item.Posts)
 	d.Set("status_codes", item.StatusCodes)
 	d.Set("timeout", item.Timeout)
@@ -192,6 +232,9 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("url", item.Url)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
+	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
+	d.Set("username", item.Username)
+	d.Set("password", item.Password)
 	d.Set("posts", item.Posts)
 	d.Set("status_codes", item.StatusCodes)
 	d.Set("timeout", item.Timeout)
