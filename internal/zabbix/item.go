@@ -139,6 +139,9 @@ type Item struct {
 	Timeout       string `json:"timeout,omitempty"`
 	VerifyHost    string `json:"verify_host,omitempty"`
 	VerifyPeer    string `json:"verify_peer,omitempty"`
+	AuthType      string `json:"authtype,omitempty"`
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
