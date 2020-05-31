@@ -1,5 +1,7 @@
 package zabbix
 
+import "encoding/json"
+
 type (
 	LLDEvalType     string
 	LLDOperatorType string
@@ -69,15 +71,17 @@ type LLDRule struct {
 	Port     string `json:"port,omitempty"`
 
 	// HTTP Agent Fields
-	Url           string `json:"url,omitempty"`
-	RequestMethod string `json:"request_method,omitempty"`
-	AllowTraps    string `json:"allow_traps,omitempty"`
-	PostType      string `json:"post_type,omitempty"`
-	Posts         string `json:"posts,omitempty"`
-	StatusCodes   string `json:"status_codes,omitempty"`
-	Timeout       string `json:"timeout,omitempty"`
-	VerifyHost    string `json:"verify_host,omitempty"`
-	VerifyPeer    string `json:"verify_peer,omitempty"`
+	Url           string          `json:"url,omitempty"`
+	RequestMethod string          `json:"request_method,omitempty"`
+	AllowTraps    string          `json:"allow_traps,omitempty"`
+	PostType      string          `json:"post_type,omitempty"`
+	Posts         string          `json:"posts,omitempty"`
+	StatusCodes   string          `json:"status_codes,omitempty"`
+	Timeout       string          `json:"timeout,omitempty"`
+	VerifyHost    string          `json:"verify_host,omitempty"`
+	VerifyPeer    string          `json:"verify_peer,omitempty"`
+	Headers       HttpHeaders     `json:"-"`
+	RawHeaders    json.RawMessage `json:"headers,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
@@ -98,6 +102,43 @@ type LLDRule struct {
 // Items is an array of Item
 type LLDRules []LLDRule
 
+func (api *API) lldsHeadersUnmarshal(item LLDRules) {
+	for i := 0; i < len(item); i++ {
+		h := item[i]
+
+		item[i].Headers = HttpHeaders{}
+
+		if len(h.RawHeaders) == 0 {
+			continue
+		}
+
+		asStr := string(h.RawHeaders)
+		if asStr == "[]" {
+			continue
+		}
+
+		out := HttpHeaders{}
+		err := json.Unmarshal(h.RawHeaders, &out)
+		if err != nil {
+			api.printf("got error during unmarshal %s", err)
+			panic(err)
+		}
+		item[i].Headers = out
+	}
+}
+
+func prepLLDs(item LLDRules) {
+	for i := 0; i < len(item); i++ {
+		h := item[i]
+
+		if h.Headers == nil {
+			continue
+		}
+		asB, _ := json.Marshal(h.Headers)
+		item[i].RawHeaders = json.RawMessage(asB)
+	}
+}
+
 // ItemsGet Wrapper for item.get
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/get
 func (api *API) LLDsGet(params Params) (res LLDRules, err error) {
@@ -105,6 +146,7 @@ func (api *API) LLDsGet(params Params) (res LLDRules, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("discoveryrule.get", params, &res)
+	api.lldsHeadersUnmarshal(res)
 	return
 }
 
@@ -127,6 +169,7 @@ func (api *API) LLDGetByID(id string) (res *LLDRule, err error) {
 // ItemsCreate Wrapper for item.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
 func (api *API) LLDsCreate(items LLDRules) (err error) {
+	prepLLDs(items)
 	response, err := api.CallWithError("discoveryrule.create", items)
 	if err != nil {
 		return
@@ -143,6 +186,7 @@ func (api *API) LLDsCreate(items LLDRules) (err error) {
 // ItemsUpdate Wrapper for item.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
 func (api *API) LLDsUpdate(items LLDRules) (err error) {
+	prepLLDs(items)
 	_, err = api.CallWithError("discoveryrule.update", items)
 	return
 }

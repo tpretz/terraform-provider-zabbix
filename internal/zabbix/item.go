@@ -103,6 +103,8 @@ const (
 	Delta DeltaType = 2
 )
 
+type HttpHeaders map[string]string
+
 // Item represent Zabbix item object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type Item struct {
@@ -131,17 +133,19 @@ type Item struct {
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
 
 	// HTTP Agent Fields
-	Url           string `json:"url,omitempty"`
-	RequestMethod string `json:"request_method,omitempty"`
-	PostType      string `json:"post_type,omitempty"`
-	Posts         string `json:"posts,omitempty"`
-	StatusCodes   string `json:"status_codes,omitempty"`
-	Timeout       string `json:"timeout,omitempty"`
-	VerifyHost    string `json:"verify_host,omitempty"`
-	VerifyPeer    string `json:"verify_peer,omitempty"`
-	AuthType      string `json:"authtype,omitempty"`
-	Username      string `json:"username,omitempty"`
-	Password      string `json:"password,omitempty"`
+	Url           string          `json:"url,omitempty"`
+	RequestMethod string          `json:"request_method,omitempty"`
+	PostType      string          `json:"post_type,omitempty"`
+	Posts         string          `json:"posts,omitempty"`
+	StatusCodes   string          `json:"status_codes,omitempty"`
+	Timeout       string          `json:"timeout,omitempty"`
+	VerifyHost    string          `json:"verify_host,omitempty"`
+	VerifyPeer    string          `json:"verify_peer,omitempty"`
+	AuthType      string          `json:"authtype,omitempty"`
+	Username      string          `json:"username,omitempty"`
+	Password      string          `json:"password,omitempty"`
+	Headers       HttpHeaders     `json:"-"`
+	RawHeaders    json.RawMessage `json:"headers,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
@@ -194,6 +198,7 @@ func (api *API) ItemsGet(params Params) (res Items, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("item.get", params, &res)
+	api.itemsHeadersUnmarshal(res)
 	return
 }
 func (api *API) ProtoItemsGet(params Params) (res Items, err error) {
@@ -201,7 +206,45 @@ func (api *API) ProtoItemsGet(params Params) (res Items, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("itemprototype.get", params, &res)
+	api.itemsHeadersUnmarshal(res)
 	return
+}
+
+func (api *API) itemsHeadersUnmarshal(item Items) {
+	for i := 0; i < len(item); i++ {
+		h := item[i]
+
+		item[i].Headers = HttpHeaders{}
+
+		if len(h.RawHeaders) == 0 {
+			continue
+		}
+
+		asStr := string(h.RawHeaders)
+		if asStr == "[]" {
+			continue
+		}
+
+		out := HttpHeaders{}
+		err := json.Unmarshal(h.RawHeaders, &out)
+		if err != nil {
+			api.printf("got error during unmarshal %s", err)
+			panic(err)
+		}
+		item[i].Headers = out
+	}
+}
+
+func prepItems(item Items) {
+	for i := 0; i < len(item); i++ {
+		h := item[i]
+
+		if h.Headers == nil {
+			continue
+		}
+		asB, _ := json.Marshal(h.Headers)
+		item[i].RawHeaders = json.RawMessage(asB)
+	}
 }
 
 // ItemGetByID Gets item by Id only if there is exactly 1 matching host.
@@ -245,6 +288,7 @@ func (api *API) ProtoItemsGetByApplicationID(id string) (res Items, err error) {
 // ItemsCreate Wrapper for item.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
 func (api *API) ItemsCreate(items Items) (err error) {
+	prepItems(items)
 	response, err := api.CallWithError("item.create", items)
 	if err != nil {
 		return
@@ -258,6 +302,7 @@ func (api *API) ItemsCreate(items Items) (err error) {
 	return
 }
 func (api *API) ProtoItemsCreate(items Items) (err error) {
+	prepItems(items)
 	response, err := api.CallWithError("itemprototype.create", items)
 	if err != nil {
 		return
@@ -274,10 +319,12 @@ func (api *API) ProtoItemsCreate(items Items) (err error) {
 // ItemsUpdate Wrapper for item.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
 func (api *API) ItemsUpdate(items Items) (err error) {
+	prepItems(items)
 	_, err = api.CallWithError("item.update", items)
 	return
 }
 func (api *API) ProtoItemsUpdate(items Items) (err error) {
+	prepItems(items)
 	_, err = api.CallWithError("itemprototype.update", items)
 	return
 }
