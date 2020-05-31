@@ -51,6 +51,16 @@ var _ = func() bool {
 	return false
 }()
 
+var schemaHttpHeader = &schema.Schema{
+	Type:     schema.TypeMap,
+	Optional: true,
+	Elem: &schema.Schema{
+		Type:         schema.TypeString,
+		Description:  "Header Value",
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+	},
+}
+
 var schemaHttp = map[string]*schema.Schema{
 	"url": &schema.Schema{
 		Type:         schema.TypeString,
@@ -90,6 +100,7 @@ var schemaHttp = map[string]*schema.Schema{
 		Sensitive:   true,
 		Description: "Authentication Password",
 	},
+	"headers": schemaHttpHeader,
 	"posts": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -162,6 +173,25 @@ func resourceLLDHttp() *schema.Resource {
 	}
 }
 
+func httpGenerateHeaders(d *schema.ResourceData) (headers zabbix.HttpHeaders) {
+	m := d.Get("headers").(map[string]interface{})
+	headers = zabbix.HttpHeaders{}
+
+	for k, v := range m {
+		headers[k] = v.(string)
+	}
+
+	return
+}
+
+func httpFlattenHeaders(headers zabbix.HttpHeaders) (ret map[string]interface{}) {
+	ret = map[string]interface{}{}
+	for k, v := range headers {
+		ret[k] = v
+	}
+	return
+}
+
 // http item modify custom function
 func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.InterfaceID = d.Get("interfaceid").(string)
@@ -186,6 +216,7 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	if d.Get("verify_peer").(bool) {
 		item.VerifyPeer = "1"
 	}
+	item.Headers = httpGenerateHeaders(d)
 }
 func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.InterfaceID = d.Get("interfaceid").(string)
@@ -209,6 +240,7 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	if d.Get("verify_peer").(bool) {
 		item.VerifyPeer = "1"
 	}
+	item.Headers = httpGenerateHeaders(d)
 }
 
 // http item read custom function
@@ -226,6 +258,7 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("timeout", item.Timeout)
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
+	d.Set("headers", httpFlattenHeaders(item.Headers))
 }
 func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	d.Set("interfaceid", item.InterfaceID)
@@ -240,4 +273,5 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("timeout", item.Timeout)
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
+	d.Set("headers", httpFlattenHeaders(item.Headers))
 }
