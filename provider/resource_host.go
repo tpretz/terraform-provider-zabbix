@@ -558,20 +558,19 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 		log.Debug("got details: %+v", details)
 		if api.Config.Version >= 5 && params["type"] == "snmp" && details != nil {
 			log.Debug("interface new logic")
-			d := details
-			params["snmp_version"] = d.Version
-			params["snmp_bulk"] = d.Bulk == "1"
+			params["snmp_version"] = details.Version
+			params["snmp_bulk"] = details.Bulk == "1"
 
 			if params["snmp_version"] != "3" {
-				params["snmp_community"] = d.Community
+				params["snmp_community"] = details.Community
 			} else {
-				params["snmp_securityname"] = d.SecurityName
-				params["snmp_securitylevel"] = HSNMP_SECLEVEL_REV[d.SecurityLevel]
-				params["snmp_authpassphrase"] = d.AuthPassphrase
-				params["snmp_privpassphrase"] = d.PrivPassphrase
-				params["snmp_authprotocol"] = HSNMP_AUTHPROTO_REV[d.AuthProtocol]
-				params["snmp_privprotocol"] = HSNMP_PRIVPROTO_REV[d.PrivProtocol]
-				params["snmp_contextname"] = d.ContextName
+				params["snmp3_securityname"] = details.SecurityName
+				params["snmp3_securitylevel"] = HSNMP_SECLEVEL_REV[details.SecurityLevel]
+				params["snmp3_authpassphrase"] = details.AuthPassphrase
+				params["snmp3_privpassphrase"] = details.PrivPassphrase
+				params["snmp3_authprotocol"] = HSNMP_AUTHPROTO_REV[details.AuthProtocol]
+				params["snmp3_privprotocol"] = HSNMP_PRIVPROTO_REV[details.PrivProtocol]
+				params["snmp3_contextname"] = details.ContextName
 			}
 		}
 
