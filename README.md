@@ -317,6 +317,8 @@ resource "zabbix_template" "example" {
 
   groups = [ "1234" ]
   description = "Template Description"
+
+  templates = [ "5678" ]
   
   macro {
     key = "{$MACROABC}"
@@ -331,6 +333,7 @@ resource "zabbix_template" "example" {
 * name - (Optional) Displayname of template
 * description - (Optional) Template description
 * groups - (Required) List of hostgroup IDs
+* templates - (Optional) List of template IDs to link to this template
 * macro - (Optional) List of Macros
     * macro.#.name - Macro name
     * macro.#.value - Macro value
@@ -503,6 +506,7 @@ resource "zabbix_item_agent" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+  history = "90d"
 
   # only for proto_item
   ruleid = "8989"
@@ -528,6 +532,7 @@ resource "zabbix_item_agent" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -632,6 +637,7 @@ resource "zabbix_item_simple" "example" {
   applications = [ "4567" ]
 
   delay = "1m"
+  history = "90d"
 
   preprocessor {
     type = "5"
@@ -649,6 +655,7 @@ resource "zabbix_item_simple" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -680,6 +687,7 @@ resource "zabbix_item_http" "example" {
   applications = [ "4567" ]
 
   delay = "1m"
+  history = "90d"
 
   interfaceid = "5678"
 
@@ -698,6 +706,14 @@ resource "zabbix_item_http" "example" {
   timeout = "3s"
   verify_host = true
   verify_peer = true
+
+  auth_type = "basic"
+  username = "bob"
+  password = "supersecretpassword"
+
+  headers = {
+    "Accept": "application/json"
+  }
 }
 ```
 
@@ -708,6 +724,7 @@ resource "zabbix_item_http" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -724,6 +741,10 @@ resource "zabbix_item_http" "example" {
 * verify_peer (Optional) TLS peer verification, defaults to true
 * ruleid - (Required for proto_item) LLD Discovery rule ID to attach prototype item to
 * applications - (Optional) list of application IDs to associate
+* auth_type - (Optional) Authentication type, defaults to "none", one of none, basic, digest, ntlm, kerberos
+* username - (Optional) Username
+* password - (Optional) Password
+* headers - (Optional) Map of http headers to include
 
 #### Attributes Reference
 
@@ -786,6 +807,7 @@ resource "zabbix_item_aggregate" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+  history = "90d"
 
   # only for proto_item
   ruleid = "8989"
@@ -808,6 +830,7 @@ resource "zabbix_item_aggregate" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -833,6 +856,7 @@ resource "zabbix_item_external" "example" {
   interfaceid = "5678"
   valuetype = "unsigned"
   delay = "1m"
+  history = "90d"
 
   # only for proto_item
   ruleid = "8989"
@@ -849,6 +873,7 @@ resource "zabbix_item_external" "example" {
 * interfaceid - (Required) Host interface ID
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -874,6 +899,7 @@ resource "zabbix_item_internal" "example" {
   valuetype = "unsigned"
 
   delay = "1m"
+  history = "90d"
 
   # only for proto_item
   ruleid = "8989"
@@ -898,6 +924,7 @@ resource "zabbix_item_internal" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
+* history - (Optional) Item retention period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
