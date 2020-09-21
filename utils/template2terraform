@@ -295,6 +295,7 @@ def renderLLDItem(t, lld, i, args):
        '  name = "{}"'.format(i["name"]),
        '  key = "{}"'.format(i["key"]),
        '  valuetype = "{}"'.format(ITEM_T_MAP[i["value_type"]]),
+       '  history = "{}"'.format(i["history"]),
     ]
     if len(applications) > 0:
        common_lines.append('  applications = [{}]'.format(", ".join(applications)))

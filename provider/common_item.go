@@ -62,6 +62,13 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Description:  "Item Value Type, one of: " + strings.Join(ITEM_VALUE_TYPES_ARR, ", "),
 		Required:     true,
 	},
+	"history": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		Description:  "Item history, in days",
+		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
+	},
 	"preprocessor": itemPreprocessorSchema,
 	"applications": &schema.Schema{
 		Type:        schema.TypeSet,
@@ -287,6 +294,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	d.Set("key", item.Key)
 	d.Set("name", item.Name)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
+	d.Set("history", item.History)
 	d.Set("preprocessor", flattenItemPreprocessors(item))
 	if prototype && item.DiscoveryRule != nil {
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
@@ -317,6 +325,7 @@ func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 		HostID:    d.Get("hostid").(string),
 		Name:      d.Get("name").(string),
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
+		History:   d.Get("history").(string),
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
 

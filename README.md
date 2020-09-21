@@ -411,6 +411,7 @@ resource "zabbix_item_agent" "example" {
   key = "zabbix.hostname"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   delay = "1m"
 
@@ -437,6 +438,7 @@ resource "zabbix_item_agent" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
@@ -464,6 +466,7 @@ resource "zabbix_item_snmp" "example" {
   key = "zabbix.hostname"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
   
   # only for proto_item
   ruleid = "8989"
@@ -498,6 +501,7 @@ resource "zabbix_item_snmp" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -531,6 +535,7 @@ resource "zabbix_item_simple" "example" {
   key = "net.tcp.service[ftp,,155]"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   # only for proto_item
   ruleid = "8989"
@@ -554,6 +559,7 @@ resource "zabbix_item_simple" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -579,6 +585,7 @@ resource "zabbix_item_http" "example" {
   key = "http_value_search"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   # only for proto_item
   ruleid = "8989"
@@ -613,6 +620,7 @@ resource "zabbix_item_http" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
@@ -646,6 +654,7 @@ resource "zabbix_item_trapper" "example" {
   key = "trapper_item_key"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   # only for proto_item
   ruleid = "8989"
@@ -667,6 +676,7 @@ resource "zabbix_item_trapper" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -690,6 +700,7 @@ resource "zabbix_item_aggregate" "example" {
   key = "grpsum()"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   delay = "1m"
 
@@ -713,6 +724,7 @@ resource "zabbix_item_aggregate" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -738,6 +750,7 @@ resource "zabbix_item_external" "example" {
   name = "Item Name"
   interfaceid = "5678"
   valuetype = "unsigned"
+  history = "90"
   delay = "1m"
 
   # only for proto_item
@@ -754,6 +767,7 @@ resource "zabbix_item_external" "example" {
 * name - (Required) Item Name
 * interfaceid - (Required) Host interface ID
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -778,6 +792,7 @@ resource "zabbix_item_internal" "example" {
   key = "zabbix.hostname"
   name = "Item Name"
   valuetype = "unsigned"
+  history = "90"
 
   delay = "1m"
 
@@ -803,6 +818,7 @@ resource "zabbix_item_internal" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * delay - (Optional) Item collection interval, defaults to 1m
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
@@ -828,6 +844,7 @@ resource "zabbix_item_dependent" "example" {
   key = "custom.hostname"
   name = "Item Name"
   valuetype = "text"
+  history = "90"
 
   master_itemid = "12344"
 
@@ -851,6 +868,7 @@ resource "zabbix_item_dependent" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * master_itemid - (Required) Master Item ID
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -875,6 +893,7 @@ resource "zabbix_item_dependent" "example" {
   key = "custom.hostname"
   name = "Item Name"
   valuetype = "text"
+  history = "90"
 
   formula = "1+1"
 
@@ -898,6 +917,7 @@ resource "zabbix_item_dependent" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * formula - (Required) Calculated Item Formula
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -922,6 +942,7 @@ resource "zabbix_item_snmptrap" "example" {
   key = "custom.hostname"
   name = "Item Name"
   valuetype = "text"
+  history = "90"
 
   # only for proto_item
   ruleid = "8989"
@@ -943,6 +964,7 @@ resource "zabbix_item_snmptrap" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item history, in seconds
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
