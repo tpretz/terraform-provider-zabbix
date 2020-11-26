@@ -126,7 +126,6 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"ip": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					ValidateFunc: validation.IsIPAddress,
 					Description:  "Interface IP address",
 				},
 				"main": &schema.Schema{
