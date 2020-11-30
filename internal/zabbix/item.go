@@ -125,9 +125,6 @@ type Item struct {
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
 	Params       string    `json:"params,omitempty"`
 
-	// list of strings on set, but list of objects on get
-	Applications json.RawMessage `json:"applications,omitempty"`
-
 	ItemParent Hosts `json:"hosts"`
 
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`

@@ -11,7 +11,7 @@ import (
 
 func CreateHost(group *zapi.HostGroup, t *testing.T) *zapi.Host {
 	name := fmt.Sprintf("%s-%d", getHost(), rand.Int())
-	iface := zapi.HostInterface{DNS: name, Port: "42", Type: zapi.Agent, UseIP: 0, Main: 1}
+	iface := zapi.HostInterface{DNS: name, Port: "42", Type: zapi.Agent, UseIP: "0", Main: "1"}
 	hosts := zapi.Hosts{{
 		Host:       name,
 		Name:       "Name for " + name,
@@ -53,6 +53,7 @@ func TestHosts(t *testing.T) {
 	}
 	host.GroupIds = nil
 	host.Interfaces = nil
+	host.ProxyID = "0"
 
 	newName := fmt.Sprintf("%s-%d", getHost(), rand.Int())
 	host.Host = newName

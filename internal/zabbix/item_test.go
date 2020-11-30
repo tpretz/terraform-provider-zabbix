@@ -8,11 +8,10 @@ import (
 
 func CreateItem(app *zapi.Application, t *testing.T) *zapi.Item {
 	items := zapi.Items{{
-		HostID:         app.HostID,
-		Key:            "key.lala.laa",
-		Name:           "name for key",
-		Type:           zapi.ZabbixTrapper,
-		ApplicationIds: []string{app.ApplicationID},
+		HostID: app.HostID,
+		Key:    "key.lala.laa",
+		Name:   "name for key",
+		Type:   zapi.ZabbixTrapper,
 	}}
 	err := getAPI(t).ItemsCreate(items)
 	if err != nil {
