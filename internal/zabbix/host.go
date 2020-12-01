@@ -38,7 +38,9 @@ type Host struct {
 	Name       string        `json:"name"`
 	Status     StatusType    `json:"status,string"`
 	UserMacros Macros        `json:"macros,omitempty"`
-	Inventory  Inventory     `json:"inventory,omitempty"`
+	// for empty inventory Zabbix returns empty array
+	// otherwise returns object
+	Inventory json.RawMessage `json:"inventory,omitempty"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
