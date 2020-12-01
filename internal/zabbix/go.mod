@@ -1,3 +1,3 @@
-module github.com/tpretz/go-zabbix-api
+module github.com/tomasherout/go-zabbix-api
 
 go 1.12
