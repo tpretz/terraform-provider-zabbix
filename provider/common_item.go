@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -9,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tomasherout/go-zabbix-api"
 )
 
 // Item Type Conversion and lookup tables
@@ -301,7 +300,6 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	}
 
 	var applications zabbix.Applications
-	err = json.Unmarshal(item.Applications, &applications)
 	if err != nil {
 		return err
 	}
@@ -328,10 +326,6 @@ func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
-
-	text, _ := json.Marshal(d.Get("applications").(*schema.Set).List())
-	raw := json.RawMessage(text)
-	item.Applications = raw
 
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)

@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tomasherout/go-zabbix-api"
 )
 
 var TRIGGER_PRIORITY = map[string]zabbix.SeverityType{
@@ -194,36 +194,36 @@ func buildTriggerObject(d *schema.ResourceData) zabbix.Trigger {
 		Comments:           d.Get("comments").(string),
 		Priority:           TRIGGER_PRIORITY[d.Get("priority").(string)],
 		Status:             0,
-		Type:               "0",
+		Type:               0,
 		Url:                d.Get("url").(string),
-		RecoveryMode:       "0",
+		RecoveryMode:       0,
 		RecoveryExpression: "",
-		CorrelationMode:    "0",
+		CorrelationMode:    0,
 		CorrelationTag:     "",
-		ManualClose:        "0",
+		ManualClose:        0,
 	}
 
 	if !d.Get("enabled").(bool) {
 		item.Status = 1
 	}
 	if d.Get("multiple").(bool) {
-		item.Type = "1"
+		item.Type = 1
 	}
 
 	if d.Get("recovery_none").(bool) {
-		item.RecoveryMode = "2"
+		item.RecoveryMode = 2
 	} else if v := d.Get("recovery_expression").(string); v != "" {
-		item.RecoveryMode = "1"
+		item.RecoveryMode = 1
 		item.RecoveryExpression = v
 	}
 
 	if v := d.Get("correlation_tag").(string); v != "" {
-		item.CorrelationMode = "1"
+		item.CorrelationMode = 1
 		item.CorrelationTag = v
 	}
 
 	if d.Get("manual_close").(bool) {
-		item.ManualClose = "1"
+		item.ManualClose = 1
 	}
 
 	item.Dependencies = buildTriggerIds(d.Get("dependencies").(*schema.Set))
@@ -303,25 +303,25 @@ func resourceTriggerRead(prototype bool) schema.ReadFunc {
 		d.Set("comments", t.Comments)
 		d.Set("priority", TRIGGER_PRIORITY_REV[t.Priority])
 		d.Set("enabled", t.Status == 0)
-		d.Set("multiple", t.Type == "1")
+		d.Set("multiple", t.Type == 1)
 		d.Set("url", t.Url)
 		d.Set("recovery_expression", t.RecoveryExpression)
 		d.Set("correlation_tag", t.CorrelationTag)
-		d.Set("manual_close", t.ManualClose == "1")
+		d.Set("manual_close", t.ManualClose == 1)
 		d.Set("tag", flattenTags(t.Tags))
 
-		if t.RecoveryMode == "2" {
+		if t.RecoveryMode == 2 {
 			d.Set("recovery_none", true)
 		} else {
 			d.Set("recovery_none", false)
 		}
 
 		// should not occur, but need to express somehow, in a way that allows cleanup
-		if t.RecoveryMode == "1" && t.RecoveryExpression == "" {
+		if t.RecoveryMode == 1 && t.RecoveryExpression == "" {
 			// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
 			d.Set("recovery_expression", "<recovery_mode_enabled_no_expression>")
 		}
-		if t.CorrelationMode == "1" && t.CorrelationTag == "" {
+		if t.CorrelationMode == 1 && t.CorrelationTag == "" {
 			// this should trigger a mismatch, and by setting to 0 len str it should flip recovery mode
 			d.Set("correlation_tag", "<correlation_enabled_no_tag>")
 		}

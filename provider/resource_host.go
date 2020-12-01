@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -10,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tomasherout/go-zabbix-api"
 )
 
 var HSNMP_LOOKUP = map[string]zabbix.ItemType{
@@ -243,6 +244,22 @@ var hostSchemaBase = map[string]*schema.Schema{
 		},
 	},
 	"macro": macroListSchema,
+	"inventory_location": {
+		Type:     schema.TypeString,
+		Optional: true,
+	},
+	"inventory_model": {
+		Type:     schema.TypeString,
+		Optional: true,
+	},
+	"inventory_name": {
+		Type:     schema.TypeString,
+		Optional: true,
+	},
+	"inventory_notes": {
+		Type:     schema.TypeString,
+		Optional: true,
+	},
 }
 
 // resourceHost terraform host resource entrypoint
@@ -415,6 +432,39 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
 
+	var inventory zabbix.Inventory
+	inventorySet := false
+
+	if val, ok := d.GetOk("inventory_name"); ok {
+		inventory.Name = val.(string)
+		inventorySet = true
+	}
+
+	if val, ok := d.GetOk("inventory_location"); ok {
+		inventory.Location = val.(string)
+		inventorySet = true
+	}
+
+	if val, ok := d.GetOk("inventory_model"); ok {
+		inventory.Model = val.(string)
+		inventorySet = true
+	}
+
+	if val, ok := d.GetOk("inventory_notes"); ok {
+		inventory.Notes = val.(string)
+		inventorySet = true
+	}
+
+	if inventorySet {
+		bytes, err := json.Marshal(inventory)
+
+		if err != nil {
+			return nil, err
+		}
+
+		item.Inventory = bytes
+	}
+
 	log.Trace("build host object: %#v", item)
 
 	return &item, nil
@@ -452,6 +502,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
 		"selectMacros":          "extend",
+		"selectInventory":       "extend",
 		"filter":                map[string]interface{}{},
 	}
 
@@ -479,6 +530,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
 		"selectMacros":          "extend",
+		"selectInventory":       "extend",
 		"hostids":               d.Id(),
 	})
 }
@@ -516,6 +568,32 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
+
+	// inventory
+	var invVal interface{}
+
+	if err := json.Unmarshal(host.Inventory, &invVal); err != nil {
+		return err
+	}
+
+	switch invValType := invVal.(type) {
+	case map[string]interface{}:
+		fmt.Println(invValType)
+
+		var invData zabbix.Inventory
+
+		json.Unmarshal(host.Inventory, &invData)
+
+		d.Set("inventory_name", invData.Name)
+		d.Set("inventory_location", invData.Location)
+		d.Set("inventory_model", invData.Model)
+		d.Set("inventory_notes", invData.Notes)
+	default:
+		d.Set("inventory_name", "")
+		d.Set("inventory_location", "")
+		d.Set("inventory_model", "")
+		d.Set("inventory_notes", "")
+	}
 
 	return nil
 }

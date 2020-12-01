@@ -2,7 +2,7 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tomasherout/go-zabbix-api"
 )
 
 func flattenHostGroupIds(list zabbix.HostGroupIDs) *schema.Set {
