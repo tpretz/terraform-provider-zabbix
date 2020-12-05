@@ -38,7 +38,9 @@ type Host struct {
 	Name       string        `json:"name"`
 	Status     StatusType    `json:"status,string"`
 	UserMacros Macros        `json:"macros,omitempty"`
-	Inventory  Inventory     `json:"inventory,omitempty"`
+
+	RawInventory json.RawMessage `json:"inventory,omitempty"`
+	Inventory    *Inventory      `json:"-"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
@@ -61,7 +63,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 	}
 	err = api.CallWithErrorParse("host.get", params, &res)
 
-	// fix up host details if present
+	// fix up host interface details if present
 	for i := 0; i < len(res); i++ {
 		h := res[i]
 		for j := 0; j < len(h.Interfaces); j++ {
@@ -86,7 +88,26 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			res[i].Interfaces[j].Details = &out
 		}
 
+		// fix up host inventory if present
+		if len(h.RawInventory) == 0 {
+			continue
+		}
+
+		// if its an empty array
+		asStr := string(h.RawInventory)
+		if asStr == "[]" {
+			continue
+		}
+
+		// lets unbox
+		var inv Inventory
+		if err := json.Unmarshal(h.RawInventory, &inv); err != nil {
+			api.printf("got error during unmarshal %s", err)
+			panic(err)
+		}
+		h.Inventory = &inv
 	}
+
 	return
 }
 
@@ -150,7 +171,10 @@ func prepHosts(hosts Hosts) {
 			asB, _ := json.Marshal(in.Details)
 			hosts[i].Interfaces[j].RawDetails = json.RawMessage(asB)
 		}
-
+		if h.Inventory != nil {
+			asB, _ := json.Marshal(h.Inventory)
+			hosts[i].RawInventory = json.RawMessage(asB)
+		}
 	}
 }
 
