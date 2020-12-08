@@ -1,3 +1,5 @@
-module github.com/tomasherout/go-zabbix-api
+module github.com/tpretz/go-zabbix-api
 
 go 1.12
+
+require github.com/AlekSi/reflector v0.4.1 // indirect

@@ -63,7 +63,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 	}
 	err = api.CallWithErrorParse("host.get", params, &res)
 
-	// fix up host interface details if present
+	// fix up host details if present
 	for i := 0; i < len(res); i++ {
 		h := res[i]
 		for j := 0; j < len(h.Interfaces); j++ {
@@ -105,7 +105,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			api.printf("got error during unmarshal %s", err)
 			panic(err)
 		}
-		h.Inventory = &inv
+		res[i].Inventory = &inv
 	}
 
 	return
