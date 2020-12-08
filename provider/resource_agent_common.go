@@ -2,7 +2,7 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/tomasherout/go-zabbix-api"
+	"github.com/tpretz/go-zabbix-api"
 )
 
 var schemaAgent = map[string]*schema.Schema{

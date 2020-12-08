@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
-	"github.com/tomasherout/go-zabbix-api"
+	"github.com/tpretz/go-zabbix-api"
 )
 
 // proxySchemaBase base proxy schema

@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -11,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
-	"github.com/tomasherout/go-zabbix-api"
+	"github.com/tpretz/go-zabbix-api"
 )
 
 var HSNMP_LOOKUP = map[string]zabbix.ItemType{
@@ -407,6 +406,29 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 	return
 }
 
+func hostGenerateInventory(d *schema.ResourceData) (interfaces *zabbix.Inventory, err error) {
+
+	var inventory zabbix.Inventory
+
+	if val, ok := d.GetOk("inventory_name"); ok {
+		inventory.Name = val.(string)
+	}
+
+	if val, ok := d.GetOk("inventory_location"); ok {
+		inventory.Location = val.(string)
+	}
+
+	if val, ok := d.GetOk("inventory_model"); ok {
+		inventory.Model = val.(string)
+	}
+
+	if val, ok := d.GetOk("inventory_notes"); ok {
+		inventory.Notes = val.(string)
+	}
+
+	return &inventory, nil
+}
+
 // buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error) {
 	item := zabbix.Host{
@@ -432,38 +454,13 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
 
-	var inventory zabbix.Inventory
-	inventorySet := false
+	inventory, err := hostGenerateInventory(d)
 
-	if val, ok := d.GetOk("inventory_name"); ok {
-		inventory.Name = val.(string)
-		inventorySet = true
+	if err != nil {
+		return nil, err
 	}
 
-	if val, ok := d.GetOk("inventory_location"); ok {
-		inventory.Location = val.(string)
-		inventorySet = true
-	}
-
-	if val, ok := d.GetOk("inventory_model"); ok {
-		inventory.Model = val.(string)
-		inventorySet = true
-	}
-
-	if val, ok := d.GetOk("inventory_notes"); ok {
-		inventory.Notes = val.(string)
-		inventorySet = true
-	}
-
-	if inventorySet {
-		bytes, err := json.Marshal(inventory)
-
-		if err != nil {
-			return nil, err
-		}
-
-		item.Inventory = bytes
-	}
+	item.Inventory = inventory
 
 	log.Trace("build host object: %#v", item)
 
@@ -570,25 +567,12 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("macro", flattenMacros(host.UserMacros))
 
 	// inventory
-	var invVal interface{}
-
-	if err := json.Unmarshal(host.Inventory, &invVal); err != nil {
-		return err
-	}
-
-	switch invValType := invVal.(type) {
-	case map[string]interface{}:
-		fmt.Println(invValType)
-
-		var invData zabbix.Inventory
-
-		json.Unmarshal(host.Inventory, &invData)
-
-		d.Set("inventory_name", invData.Name)
-		d.Set("inventory_location", invData.Location)
-		d.Set("inventory_model", invData.Model)
-		d.Set("inventory_notes", invData.Notes)
-	default:
+	if host.Inventory != nil {
+		d.Set("inventory_name", host.Inventory.Name)
+		d.Set("inventory_location", host.Inventory.Location)
+		d.Set("inventory_model", host.Inventory.Model)
+		d.Set("inventory_notes", host.Inventory.Notes)
+	} else {
 		d.Set("inventory_name", "")
 		d.Set("inventory_location", "")
 		d.Set("inventory_model", "")

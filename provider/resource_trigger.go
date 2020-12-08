@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/tomasherout/go-zabbix-api"
+	"github.com/tpretz/go-zabbix-api"
 )
 
 var TRIGGER_PRIORITY = map[string]zabbix.SeverityType{
