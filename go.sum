@@ -320,8 +320,7 @@ github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible/go.mod h1:0PfYo
 github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c/go.mod h1:wk2XFUg6egk4tSDNZtXeKfe2G6690UVyt163PuUxBZk=
 github.com/terraform-providers/terraform-provider-openstack v1.15.0/go.mod h1:2aQ6n/BtChAl1y2S60vebhyJyZXBsuAI5G4+lHrT1Ew=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/tomasherout/go-zabbix-api v0.8.1-0.20201201120037-8ef9acbff6ed h1:PCyxIJFU2Ou0EiDMOIEyzzUWKfsBlc1tWQht07jP5hI=
-github.com/tomasherout/go-zabbix-api v0.8.1-0.20201201120037-8ef9acbff6ed/go.mod h1:NYG6IiYhkdGR2u5j+ZWi5uBnypDJRWlqsFzMQhK649M=
+github.com/tpretz/go-zabbix-api v0.3.1 h1:zkk592zyS3C7rBk+C0JB8vjDO4xvzaLqHG+MnrY856s=
 github.com/tpretz/go-zabbix-api v0.3.1/go.mod h1:vCzbm8q1QYUHmeWisZSfJzt5MfPj+JeRoNW5o4sG72o=
 github.com/tpretz/go-zabbix-api v0.8.0 h1:5xlz9QCcwApIvrPru/WzTUkPltlo+x8tBpbExW9mrjU=
 github.com/tpretz/go-zabbix-api v0.8.0/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=

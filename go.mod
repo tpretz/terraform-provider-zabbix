@@ -1,4 +1,4 @@
-module github.com/tomasherout/terraform-provider-zabbix
+module github.com/tpretz/terraform-provider-zabbix
 
 go 1.11
 
