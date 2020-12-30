@@ -75,13 +75,13 @@ type Trigger struct {
 	//Value ValueType `json:""`
 
 	Opdata             string `json:"opdata,omitempty"`
-	Type               int    `json:"type"`
+	Type               int    `json:"type,string"`
 	Url                string `json:"url,omitempty"`
-	RecoveryMode       int    `json:"recovery_mode"`
+	RecoveryMode       int    `json:"recovery_mode,string"`
 	RecoveryExpression string `json:"recovery_expression,omitempty"`
-	CorrelationMode    int    `json:"correlation_mode"`
+	CorrelationMode    int    `json:"correlation_mode,string"`
 	CorrelationTag     string `json:"correlation_tag,omitempty"`
-	ManualClose        int    `json:"manual_close"`
+	ManualClose        int    `json:"manual_close,string"`
 
 	Priority     SeverityType     `json:"priority,string"`
 	Status       StatusType       `json:"status,string"`

@@ -10,6 +10,8 @@ type (
 	// StatusType Status and function of the host.
 	// see "status" in:	https://www.zabbix.com/documentation/3.2/manual/api/reference/host/object
 	StatusType int
+
+	InventoryMode int
 )
 
 const (
@@ -19,6 +21,12 @@ const (
 	Available AvailableType = 1
 	// Unavailable host is unavailable
 	Unavailable AvailableType = 2
+)
+
+const (
+	InventoryDisabled  InventoryMode = -1
+	InventoryManual    InventoryMode = 0
+	InventoryAutomatic InventoryMode = 1
 )
 
 const (
@@ -39,8 +47,9 @@ type Host struct {
 	Status     StatusType    `json:"status,string"`
 	UserMacros Macros        `json:"macros,omitempty"`
 
-	RawInventory json.RawMessage `json:"inventory,omitempty"`
-	Inventory    *Inventory      `json:"-"`
+	RawInventory  json.RawMessage `json:"inventory,omitempty"`
+	Inventory     Inventory       `json:"-"`
+	InventoryMode InventoryMode   `json:"inventory_mode,string"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
@@ -95,7 +104,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 
 		// if its an empty array
 		asStr := string(h.RawInventory)
-		if asStr == "[]" {
+		if asStr == "[]" || asStr == "{}" {
 			continue
 		}
 
@@ -105,7 +114,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			api.printf("got error during unmarshal %s", err)
 			panic(err)
 		}
-		res[i].Inventory = &inv
+		res[i].Inventory = inv
 	}
 
 	return

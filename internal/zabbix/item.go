@@ -125,6 +125,10 @@ type Item struct {
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
 	Params       string    `json:"params,omitempty"`
 
+	// list of strings on set, but list of objects on get
+	RawApplications json.RawMessage `json:"applications,omitempty"`
+	Applications    []string        `json:"-"`
+
 	ItemParent Hosts `json:"hosts"`
 
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
@@ -211,6 +215,22 @@ func (api *API) itemsHeadersUnmarshal(item Items) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
 
+		if len(h.RawApplications) != 0 {
+			asStr := string(h.RawApplications)
+			if asStr != "[]" {
+				var applications Applications
+				err := json.Unmarshal(h.RawApplications, &applications)
+				if err != nil {
+					panic(err)
+				}
+				ids := []string{}
+				for _, a := range applications {
+					ids = append(ids, a.ApplicationID)
+				}
+				item[i].Applications = ids
+			}
+		}
+
 		item[i].Headers = HttpHeaders{}
 
 		if len(h.RawHeaders) == 0 {
@@ -235,6 +255,12 @@ func (api *API) itemsHeadersUnmarshal(item Items) {
 func prepItems(item Items) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
+
+		if h.Applications != nil {
+			text, _ := json.Marshal(h.Applications)
+			raw := json.RawMessage(text)
+			h.RawApplications = raw
+		}
 
 		if h.Headers == nil {
 			continue
