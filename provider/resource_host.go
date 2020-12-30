@@ -84,6 +84,40 @@ var HOST_IFACE_PORTS = map[string]int{
 	"jmx":   8686,
 }
 
+var inventorySchema = &schema.Schema{
+        Type:     schema.TypeList,
+        Elem: &schema.Resource{
+                Schema: map[string]*schema.Schema{
+                        "automatic": &schema.Schema{
+                                Type:         schema.TypeBool,
+                                Optional:     true,
+				Default:      false,
+                                Description:  "Inventory Automatic Mode",
+                        },
+                        "name": &schema.Schema{
+                                Type:         schema.TypeString,
+                                Optional:     true,
+                                Description:  "Inventory Name",
+                        },
+                        "location": &schema.Schema{
+                                Type:         schema.TypeString,
+                                Optional:     true,
+                                Description:  "Inventory Location",
+                        },
+                        "model": &schema.Schema{
+                                Type:         schema.TypeString,
+                                Optional:     true,
+                                Description:  "Inventory Model",
+                        },
+                        "notes": &schema.Schema{
+                                Type:         schema.TypeString,
+                                Optional:     true,
+                                Description:  "Inventory Notes",
+                        },
+                },
+        },
+}
+
 // hostSchemaBase base host schema
 var hostSchemaBase = map[string]*schema.Schema{
 	"name": &schema.Schema{
@@ -108,6 +142,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Default:     true,
 		Description: "Enable host for monitoring",
 	},
+	"inventory": inventorySchema,
 	"interface": &schema.Schema{
 		Type:        schema.TypeList,
 		Description: "Host interfaces",
@@ -243,22 +278,6 @@ var hostSchemaBase = map[string]*schema.Schema{
 		},
 	},
 	"macro": macroListSchema,
-	"inventory_location": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_model": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_name": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_notes": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
 }
 
 // resourceHost terraform host resource entrypoint
@@ -293,7 +312,7 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 		switch k {
 		case "host", "interface", "groups":
 			schema.Required = true
-		case "templates", "proxyid":
+		case "templates", "proxyid", "inventory":
 			schema.Optional = true
 		}
 
@@ -316,7 +335,7 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 		case "host", "templates":
 			schema.Optional = true
 			fallthrough
-		case "interface", "groups", "macro", "proxyid":
+		case "interface", "groups", "macro", "proxyid", "inventory":
 			schema.Computed = true
 		}
 
@@ -406,27 +425,40 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 	return
 }
 
-func hostGenerateInventory(d *schema.ResourceData) (interfaces *zabbix.Inventory, err error) {
+func hostGenerateInventory(d *schema.ResourceData) (inventory *zabbix.Inventory, err error) {
 
-	var inventory zabbix.Inventory
-
-	if val, ok := d.GetOk("inventory_name"); ok {
-		inventory.Name = val.(string)
+        inventoryCount := d.Get("inventory.#").(int)
+	if inventoryCount > 1 {
+		return nil, errors.New("must be 0 or 1 instances of inventory block")
+	}
+	if inventoryCount < 1 {
+		return nil, nil
 	}
 
-	if val, ok := d.GetOk("inventory_location"); ok {
-		inventory.Location = val.(string)
-	}
+	inventory = &zabbix.Inventory{}
+        for i := 0; i < inventoryCount; i++ {
+                prefix := fmt.Sprintf("inventory.%d.", i)
 
-	if val, ok := d.GetOk("inventory_model"); ok {
-		inventory.Model = val.(string)
-	}
+		if ok := d.Get(prefix + "automatic").(bool); ok {
+			inventory.Automatic = true
+		}
+		if val, ok := d.GetOk(prefix + "name"); ok {
+			inventory.Name = val.(string)
+		}
+		if val, ok := d.GetOk(prefix + "location"); ok {
+			inventory.Location = val.(string)
+		}
 
-	if val, ok := d.GetOk("inventory_notes"); ok {
-		inventory.Notes = val.(string)
-	}
+		if val, ok := d.GetOk(prefix + "model"); ok {
+			inventory.Model = val.(string)
+		}
 
-	return &inventory, nil
+		if val, ok := d.GetOk(prefix + "notes"); ok {
+			inventory.Notes = val.(string)
+		}
+        }
+
+	return
 }
 
 // buildHostObject create host struct
@@ -435,6 +467,7 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 		Host:    d.Get("host").(string),
 		Name:    d.Get("name").(string),
 		ProxyID: d.Get("proxyid").(string),
+		InventoryMode: zabbix.InventoryDisabled,
 		Status:  0,
 	}
 
@@ -453,14 +486,21 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
-
-	inventory, err := hostGenerateInventory(d)
+	item.Inventory, err = hostGenerateInventory(d)
 
 	if err != nil {
 		return nil, err
 	}
 
-	item.Inventory = inventory
+	// adjust inventory mode
+	if item.Inventory != nil {
+		item.InventoryMode = zabbix.InventoryManual
+
+		if item.Inventory.Automatic {
+			item.InventoryMode = zabbix.InventoryAutomatic
+		}
+	}
+
 
 	log.Trace("build host object: %#v", item)
 
@@ -563,24 +603,40 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 
 	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
+	d.Set("inventory", flattenInventory(host))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
 
-	// inventory
-	if host.Inventory != nil {
-		d.Set("inventory_name", host.Inventory.Name)
-		d.Set("inventory_location", host.Inventory.Location)
-		d.Set("inventory_model", host.Inventory.Model)
-		d.Set("inventory_notes", host.Inventory.Notes)
-	} else {
-		d.Set("inventory_name", "")
-		d.Set("inventory_location", "")
-		d.Set("inventory_model", "")
-		d.Set("inventory_notes", "")
-	}
-
 	return nil
 }
+
+// flattenInventory converts API response into terraform structs
+func flattenInventory(host zabbix.Host) []interface{} {
+	if host.Inventory == nil {
+		// return an empty inventory block if inventory is not off, yet empty
+		if host.InventoryMode == zabbix.InventoryManual {
+			return []interface{}{map[string]interface{}{"automatic": false}}
+		}
+		if host.InventoryMode == zabbix.InventoryAutomatic {
+			return []interface{}{map[string]interface{}{"automatic": true}}
+		}
+		return []interface{}{}
+	}
+	obj := map[string]interface{}{
+		"automatic": false,
+		"name": host.Inventory.Name,
+		"location": host.Inventory.Location,
+		"model": host.Inventory.Model,
+		"notes": host.Inventory.Notes,
+	}
+	if host.InventoryMode == zabbix.InventoryAutomatic {
+		obj["automatic"] = true
+	}
+	// what is disabled, with inventory?
+
+	return []interface{}{obj}
+}
+
 
 // flattenHostInterfaces convert API response into terraform structs
 func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface{}) []interface{} {
