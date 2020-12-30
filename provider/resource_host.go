@@ -21,6 +21,14 @@ var HSNMP_LOOKUP = map[string]zabbix.ItemType{
 var HSNMP_LOOKUP_REV = map[zabbix.ItemType]string{}
 var HSNMP_LOOKUP_ARR = []string{}
 
+var HINV_LOOKUP = map[string]zabbix.InventoryMode{
+	"disabled":  zabbix.InventoryDisabled,
+	"manual":    zabbix.InventoryManual,
+	"automatic": zabbix.InventoryAutomatic,
+}
+var HINV_LOOKUP_REV = map[zabbix.InventoryMode]string{}
+var HINV_LOOKUP_ARR = []string{}
+
 var HSNMP_AUTHPROTO = map[string]string{
 	"md5": "0",
 	"sha": "1",
@@ -43,27 +51,6 @@ var HSNMP_SECLEVEL = map[string]string{
 var HSNMP_SECLEVEL_REV = map[string]string{}
 var HSNMP_SECLEVEL_ARR = []string{}
 
-// generate the above structures
-var _ = func() bool {
-	for k, v := range HSNMP_LOOKUP {
-		HSNMP_LOOKUP_REV[v] = k
-		HSNMP_LOOKUP_ARR = append(HSNMP_LOOKUP_ARR, k)
-	}
-	for k, v := range HSNMP_AUTHPROTO {
-		HSNMP_AUTHPROTO_REV[v] = k
-		HSNMP_AUTHPROTO_ARR = append(HSNMP_AUTHPROTO_ARR, k)
-	}
-	for k, v := range HSNMP_PRIVPROTO {
-		HSNMP_PRIVPROTO_REV[v] = k
-		HSNMP_PRIVPROTO_ARR = append(HSNMP_PRIVPROTO_ARR, k)
-	}
-	for k, v := range HSNMP_SECLEVEL {
-		HSNMP_SECLEVEL_REV[v] = k
-		HSNMP_SECLEVEL_ARR = append(HSNMP_SECLEVEL_ARR, k)
-	}
-	return false
-}()
-
 // interface type conversions
 var HOST_IFACE_TYPES = map[string]zabbix.InterfaceType{
 	"agent": zabbix.Agent,
@@ -83,6 +70,118 @@ var HOST_IFACE_PORTS = map[string]int{
 	"ipmi":  623,
 	"jmx":   8686,
 }
+
+var INVENTORY_KEYS = []string{
+	"alias",
+	"asset_tag",
+	"chassis",
+	"contact",
+	"contract_number",
+	"date_hw_decomm",
+	"date_hw_expiry",
+	"date_hw_install",
+	"date_hw_purchase",
+	"deployment_status",
+	"hardware",
+	"hardware_full",
+	"host_netmask",
+	"host_networks",
+	"host_router",
+	"hw_arch",
+	"installer_name",
+	"location",
+	"location_lat",
+	"location_lon",
+	"macaddress_a",
+	"macaddress_b",
+	"model",
+	"name",
+	"notes",
+	"oob_ip",
+	"oob_netmask",
+	"oob_router",
+	"os",
+	"os_full",
+	"os_short",
+	"poc_1_cell",
+	"poc_1_email",
+	"poc_1_name",
+	"poc_1_notes",
+	"poc_1_phone_a",
+	"poc_1_phone_b",
+	"poc_1_screen",
+	"poc_2_cell",
+	"poc_2_email",
+	"poc_2_name",
+	"poc_2_notes",
+	"poc_2_phone_a",
+	"poc_2_phone_b",
+	"poc_2_screen",
+	"serialno_a",
+	"serialno_b",
+	"site_address_a",
+	"site_address_b",
+	"site_address_c",
+	"site_city",
+	"site_country",
+	"site_notes",
+	"site_rack",
+	"site_state",
+	"site_zip",
+	"software",
+	"software_app_a",
+	"software_app_b",
+	"software_app_c",
+	"software_app_d",
+	"software_app_e",
+	"software_full",
+	"tag",
+	"type",
+	"type_full",
+	"url_a",
+	"url_b",
+	"url_c",
+	"vendor",
+}
+
+var inventorySchema = &schema.Schema{
+	Type: schema.TypeList,
+	Elem: &schema.Resource{
+		Schema: map[string]*schema.Schema{},
+	},
+}
+
+// generate the above structures
+var _ = func() bool {
+	for k, v := range HSNMP_LOOKUP {
+		HSNMP_LOOKUP_REV[v] = k
+		HSNMP_LOOKUP_ARR = append(HSNMP_LOOKUP_ARR, k)
+	}
+	for k, v := range HINV_LOOKUP {
+		HINV_LOOKUP_REV[v] = k
+		HINV_LOOKUP_ARR = append(HINV_LOOKUP_ARR, k)
+	}
+	for k, v := range HSNMP_AUTHPROTO {
+		HSNMP_AUTHPROTO_REV[v] = k
+		HSNMP_AUTHPROTO_ARR = append(HSNMP_AUTHPROTO_ARR, k)
+	}
+	for k, v := range HSNMP_PRIVPROTO {
+		HSNMP_PRIVPROTO_REV[v] = k
+		HSNMP_PRIVPROTO_ARR = append(HSNMP_PRIVPROTO_ARR, k)
+	}
+	for k, v := range HSNMP_SECLEVEL {
+		HSNMP_SECLEVEL_REV[v] = k
+		HSNMP_SECLEVEL_ARR = append(HSNMP_SECLEVEL_ARR, k)
+	}
+	for _, v := range INVENTORY_KEYS {
+		inventorySchema.Elem.(*schema.Resource).Schema[v] = &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Inventory " + v,
+		}
+	}
+	return false
+}()
 
 // hostSchemaBase base host schema
 var hostSchemaBase = map[string]*schema.Schema{
@@ -107,6 +206,14 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Optional:    true,
 		Default:     true,
 		Description: "Enable host for monitoring",
+	},
+	"inventory": inventorySchema,
+	"inventory_mode": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "disabled",
+		Description:  "Inventory Mode, one of: " + strings.Join(HINV_LOOKUP_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HINV_LOOKUP_ARR, false),
 	},
 	"interface": &schema.Schema{
 		Type:        schema.TypeList,
@@ -243,22 +350,6 @@ var hostSchemaBase = map[string]*schema.Schema{
 		},
 	},
 	"macro": macroListSchema,
-	"inventory_location": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_model": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_name": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
-	"inventory_notes": {
-		Type:     schema.TypeString,
-		Optional: true,
-	},
 }
 
 // resourceHost terraform host resource entrypoint
@@ -293,7 +384,7 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 		switch k {
 		case "host", "interface", "groups":
 			schema.Required = true
-		case "templates", "proxyid":
+		case "templates", "proxyid", "inventory":
 			schema.Optional = true
 		}
 
@@ -316,7 +407,7 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 		case "host", "templates":
 			schema.Optional = true
 			fallthrough
-		case "interface", "groups", "macro", "proxyid":
+		case "interface", "groups", "macro", "proxyid", "inventory":
 			schema.Computed = true
 		}
 
@@ -406,36 +497,38 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 	return
 }
 
-func hostGenerateInventory(d *schema.ResourceData) (interfaces *zabbix.Inventory, err error) {
+func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 
-	var inventory zabbix.Inventory
-
-	if val, ok := d.GetOk("inventory_name"); ok {
-		inventory.Name = val.(string)
+	inventoryCount := d.Get("inventory.#").(int)
+	if inventoryCount > 1 {
+		return nil, errors.New("must be 0 or 1 instances of inventory block")
+	}
+	if inventoryCount < 1 {
+		return nil, nil
 	}
 
-	if val, ok := d.GetOk("inventory_location"); ok {
-		inventory.Location = val.(string)
+	inventory := zabbix.Inventory{}
+	for i := 0; i < inventoryCount; i++ {
+		prefix := fmt.Sprintf("inventory.%d.", i)
+
+		for _, k := range INVENTORY_KEYS {
+			if val, ok := d.GetOk(prefix + k); ok {
+				inventory[k] = val.(string)
+			}
+		}
 	}
 
-	if val, ok := d.GetOk("inventory_model"); ok {
-		inventory.Model = val.(string)
-	}
-
-	if val, ok := d.GetOk("inventory_notes"); ok {
-		inventory.Notes = val.(string)
-	}
-
-	return &inventory, nil
+	return inventory, nil
 }
 
 // buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error) {
 	item := zabbix.Host{
-		Host:    d.Get("host").(string),
-		Name:    d.Get("name").(string),
-		ProxyID: d.Get("proxyid").(string),
-		Status:  0,
+		Host:          d.Get("host").(string),
+		Name:          d.Get("name").(string),
+		ProxyID:       d.Get("proxyid").(string),
+		InventoryMode: HINV_LOOKUP[d.Get("inventory_mode").(string)],
+		Status:        0,
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -453,14 +546,16 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
-
-	inventory, err := hostGenerateInventory(d)
+	item.Inventory, err = hostGenerateInventory(d)
 
 	if err != nil {
 		return nil, err
 	}
 
-	item.Inventory = inventory
+	// adjust inventory mode if block is included
+	if item.Inventory != nil && item.InventoryMode == zabbix.InventoryDisabled {
+		return nil, errors.New("inventory_mode must be enabled for inventory to be used")
+	}
 
 	log.Trace("build host object: %#v", item)
 
@@ -560,26 +655,27 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("host", host.Host)
 	d.Set("proxyid", host.ProxyID)
 	d.Set("enabled", host.Status == 0)
+	d.Set("inventory_mode", HINV_LOOKUP_REV[host.InventoryMode])
 
 	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
+	d.Set("inventory", flattenInventory(host))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
 
-	// inventory
-	if host.Inventory != nil {
-		d.Set("inventory_name", host.Inventory.Name)
-		d.Set("inventory_location", host.Inventory.Location)
-		d.Set("inventory_model", host.Inventory.Model)
-		d.Set("inventory_notes", host.Inventory.Notes)
-	} else {
-		d.Set("inventory_name", "")
-		d.Set("inventory_location", "")
-		d.Set("inventory_model", "")
-		d.Set("inventory_notes", "")
-	}
-
 	return nil
+}
+
+// flattenInventory converts API response into terraform structs
+func flattenInventory(host zabbix.Host) []interface{} {
+	if host.Inventory == nil {
+		return []interface{}{}
+	}
+	obj := map[string]interface{}{}
+	for k, v := range host.Inventory {
+		obj[k] = v
+	}
+	return []interface{}{obj}
 }
 
 // flattenHostInterfaces convert API response into terraform structs

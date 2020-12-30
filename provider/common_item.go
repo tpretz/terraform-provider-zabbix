@@ -299,14 +299,9 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
 	}
 
-	var applications zabbix.Applications
-	if err != nil {
-		return err
-	}
-
 	applicationSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range applications {
-		applicationSet.Add(v.ApplicationID)
+	for _, v := range item.Applications {
+		applicationSet.Add(v)
 	}
 	d.Set("applications", applicationSet)
 
@@ -319,13 +314,19 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 // Build the base Item Object
 func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 	item := zabbix.Item{
-		Key:       d.Get("key").(string),
-		HostID:    d.Get("hostid").(string),
-		Name:      d.Get("name").(string),
-		History:   d.Get("history").(string),
-		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
+		Key:          d.Get("key").(string),
+		HostID:       d.Get("hostid").(string),
+		Name:         d.Get("name").(string),
+		History:      d.Get("history").(string),
+		ValueType:    ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
+	apps := d.Get("applications").(*schema.Set).List()
+	lst := []string{}
+	for _, a := range apps {
+		lst = append(lst, a.(string))
+	}
+	item.Applications = lst
 
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)
