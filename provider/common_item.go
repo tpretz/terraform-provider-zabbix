@@ -314,11 +314,11 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 // Build the base Item Object
 func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 	item := zabbix.Item{
-		Key:          d.Get("key").(string),
-		HostID:       d.Get("hostid").(string),
-		Name:         d.Get("name").(string),
-		History:      d.Get("history").(string),
-		ValueType:    ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
+		Key:       d.Get("key").(string),
+		HostID:    d.Get("hostid").(string),
+		Name:      d.Get("name").(string),
+		History:   d.Get("history").(string),
+		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
 	apps := d.Get("applications").(*schema.Set).List()

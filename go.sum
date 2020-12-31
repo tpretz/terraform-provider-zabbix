@@ -325,6 +325,8 @@ github.com/tpretz/go-zabbix-api v0.3.1 h1:zkk592zyS3C7rBk+C0JB8vjDO4xvzaLqHG+Mnr
 github.com/tpretz/go-zabbix-api v0.3.1/go.mod h1:vCzbm8q1QYUHmeWisZSfJzt5MfPj+JeRoNW5o4sG72o=
 github.com/tpretz/go-zabbix-api v0.8.0 h1:5xlz9QCcwApIvrPru/WzTUkPltlo+x8tBpbExW9mrjU=
 github.com/tpretz/go-zabbix-api v0.8.0/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=
+github.com/tpretz/go-zabbix-api v0.9.0 h1:OuqLx8OeW4cBmHngG+MjuDrx2cmtWJXSL2ukJrZ5pLI=
+github.com/tpretz/go-zabbix-api v0.9.0/go.mod h1:VIcrGoUyHSl91glPiOPIViL2rrmfVBZHG/IkbGnL7II=
 github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5/go.mod h1:hnLbHMwcvSihnDhEfx2/BzKp2xb0Y+ErdfYcrs9tkJQ=
 github.com/ulikunitz/xz v0.5.5 h1:pFrO0lVpTBXLpYw+pnLj6TbvHuyjXMfjGeCwSqCVwok=
 github.com/ulikunitz/xz v0.5.5/go.mod h1:2bypXElzHzzJZwzH67Y6wb67pO62Rzfn7BSiF4ABRW8=
