@@ -42,7 +42,12 @@ func getAPI(t *testing.T) *zapi.API {
 	}
 
 	url, user, password := os.Getenv("TEST_ZABBIX_URL"), os.Getenv("TEST_ZABBIX_USER"), os.Getenv("TEST_ZABBIX_PASSWORD")
-	_api = zapi.NewAPI(url)
+
+	// Zabbix client connection configuration
+	var c zapi.Config
+	c.Url = url
+
+	_api = zapi.NewAPI(c)
 	_api.SetClient(http.DefaultClient)
 	v := os.Getenv("TEST_ZABBIX_VERBOSE")
 	if v != "" && v != "0" {
@@ -83,11 +88,4 @@ func TestVersion(t *testing.T) {
 	if !regexp.MustCompile(`^\d\.\d\.\d+$`).MatchString(v) {
 		t.Errorf("Unexpected version: %s", v)
 	}
-}
-
-func ExampleAPI_Call() {
-	api := zapi.NewAPI("http://host/api_jsonrpc.php")
-	api.Login("user", "password")
-	res, _ := api.Call("item.get", zapi.Params{"itemids": "23970", "output": "extend"})
-	log.Print(res)
 }

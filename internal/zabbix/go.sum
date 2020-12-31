@@ -1,4 +1,4 @@
-github.com/AlekSi/reflector v0.4.1 h1:onP7kPCAV/EXgHwKz1PyU9K/udpVJ8dVcOMm4brKrJ4=
 github.com/AlekSi/reflector v0.4.1/go.mod h1:K9Yt9Jbte9Xw4QZ3e/ovaWduyRSlKVmwnze4z3+bVxs=
-github.com/tpretz/go-zabbix-api v0.3.1 h1:152d0lY3OlmnYVV7QSurfr/8ALOoF+Rdfc15/mOERQk=
-github.com/tpretz/go-zabbix-api v0.3.1/go.mod h1:/Y2aKeFo5342GTp/glX2eU0xU4z0Uha4T2kOaQa6ggM=
+github.com/tpretz/go-zabbix-api v0.3.1/go.mod h1:vCzbm8q1QYUHmeWisZSfJzt5MfPj+JeRoNW5o4sG72o=
+github.com/tpretz/go-zabbix-api v0.8.0 h1:5xlz9QCcwApIvrPru/WzTUkPltlo+x8tBpbExW9mrjU=
+github.com/tpretz/go-zabbix-api v0.8.0/go.mod h1:SFemU2FNM7aeT3/NinjDw0SQEZGVOoU5d+CqXKTetbw=

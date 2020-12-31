@@ -7,9 +7,16 @@ import (
 )
 
 func CreateTemplate(hostGroup *zapi.HostGroup, t *testing.T) *zapi.Template {
+
+	group := zapi.HostGroupID{
+		GroupID: hostGroup.GroupID,
+	}
+
+	groups := []zapi.HostGroupID{group}
+
 	template := zapi.Templates{zapi.Template{
 		Host:   "template name",
-		Groups: zapi.HostGroups{*hostGroup},
+		Groups: groups,
 	}}
 	err := getAPI(t).TemplatesCreate(template)
 	if err != nil {
