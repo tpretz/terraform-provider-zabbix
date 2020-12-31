@@ -250,6 +250,12 @@ resource "zabbix_host" "example" {
     key = "{$MACROABC}"
     value = "test_value_one"
   }
+
+  inventory_mode = "manual"
+  inventory {
+    alias = "bob"
+    notes = "test note"
+  }
 }
 ```
 
@@ -269,6 +275,9 @@ resource "zabbix_host" "example" {
     * interface.#.ip - (Optional) IP Address
     * interface.#.main - (Optional) Primary interface of this type
     * interface.#.port - (Optional) Interface port to use
+* inventory_mode - (Optional) Defaults to "disabled", can be one of "disabled", "manual" or "automatic"
+* inventory - (Optional) Requires inventory_mode be set to one of "manual" or "automatic".
+  Block contains key/value pairs as supported by your zabbix inventory version https://www.zabbix.com/documentation/5.0/manual/api/reference/host/object#host
 
 The following only have affect on zabbix versions >= 5 and where type == snmp
 
