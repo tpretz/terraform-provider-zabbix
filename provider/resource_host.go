@@ -174,7 +174,7 @@ var _ = func() bool {
 		HSNMP_SECLEVEL_ARR = append(HSNMP_SECLEVEL_ARR, k)
 	}
 	for _, v := range INVENTORY_KEYS {
-		inventorySchema.Elem.(schema.Resource).Schema[v] = &schema.Schema{
+		inventorySchema.Elem.(*schema.Resource).Schema[v] = &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "Inventory " + v,
@@ -497,7 +497,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 	return
 }
 
-func hostGenerateInventory(d *schema.ResourceData) (*zabbix.Inventory, error) {
+func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 
 	inventoryCount := d.Get("inventory.#").(int)
 	if inventoryCount > 1 {
@@ -518,7 +518,7 @@ func hostGenerateInventory(d *schema.ResourceData) (*zabbix.Inventory, error) {
 		}
 	}
 
-	return &inventory, nil
+	return inventory, nil
 }
 
 // buildHostObject create host struct
@@ -554,7 +554,7 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 
 	// adjust inventory mode if block is included
 	if item.Inventory != nil && item.InventoryMode == zabbix.InventoryDisabled {
-		item.InventoryMode = zabbix.InventoryManual
+		return nil, errors.New("inventory_mode must be enabled for inventory to be used")
 	}
 
 	log.Trace("build host object: %#v", item)
@@ -672,7 +672,7 @@ func flattenInventory(host zabbix.Host) []interface{} {
 		return []interface{}{}
 	}
 	obj := map[string]interface{}{}
-	for k, v := range *host.Inventory {
+	for k, v := range host.Inventory {
 		obj[k] = v
 	}
 	return []interface{}{obj}
