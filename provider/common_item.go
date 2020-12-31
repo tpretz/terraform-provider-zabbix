@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -300,15 +299,9 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
 	}
 
-	var applications zabbix.Applications
-	err = json.Unmarshal(item.Applications, &applications)
-	if err != nil {
-		return err
-	}
-
 	applicationSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range applications {
-		applicationSet.Add(v.ApplicationID)
+	for _, v := range item.Applications {
+		applicationSet.Add(v)
 	}
 	d.Set("applications", applicationSet)
 
@@ -328,10 +321,12 @@ func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
-
-	text, _ := json.Marshal(d.Get("applications").(*schema.Set).List())
-	raw := json.RawMessage(text)
-	item.Applications = raw
+	apps := d.Get("applications").(*schema.Set).List()
+	lst := []string{}
+	for _, a := range apps {
+		lst = append(lst, a.(string))
+	}
+	item.Applications = lst
 
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)
