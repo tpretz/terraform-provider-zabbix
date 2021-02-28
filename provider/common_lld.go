@@ -151,7 +151,7 @@ var lldPreprocessorSchema = &schema.Schema{
 	},
 }
 
-var lldValidationMacro = validation.StringMatch(regexp.MustCompile("^\\{#[A-Z][A-Z.]*\\}$"), "must be a LLD macro format")
+var lldValidationMacro = validation.StringMatch(regexp.MustCompile("^\\{#[A-Z][A-Z._]*\\}$"), "must be a LLD macro format")
 
 var lldMacroPathSchema = &schema.Schema{
 	Type:     schema.TypeSet,
