@@ -516,6 +516,7 @@ resource "zabbix_item_agent" "example" {
 
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   # only for proto_item
   ruleid = "8989"
@@ -542,6 +543,7 @@ resource "zabbix_item_agent" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -603,6 +605,8 @@ resource "zabbix_item_snmp" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -647,6 +651,7 @@ resource "zabbix_item_simple" "example" {
 
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   preprocessor {
     type = "5"
@@ -665,6 +670,7 @@ resource "zabbix_item_simple" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -697,6 +703,7 @@ resource "zabbix_item_http" "example" {
 
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   interfaceid = "5678"
 
@@ -734,6 +741,7 @@ resource "zabbix_item_http" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -791,6 +799,8 @@ resource "zabbix_item_trapper" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -817,6 +827,7 @@ resource "zabbix_item_aggregate" "example" {
 
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   # only for proto_item
   ruleid = "8989"
@@ -840,6 +851,7 @@ resource "zabbix_item_aggregate" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -866,6 +878,7 @@ resource "zabbix_item_external" "example" {
   valuetype = "unsigned"
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   # only for proto_item
   ruleid = "8989"
@@ -883,6 +896,7 @@ resource "zabbix_item_external" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -909,6 +923,7 @@ resource "zabbix_item_internal" "example" {
 
   delay = "1m"
   history = "90d"
+  trends = "365d"
 
   # only for proto_item
   ruleid = "8989"
@@ -934,6 +949,7 @@ resource "zabbix_item_internal" "example" {
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * delay - (Optional) Item collection interval, defaults to 1m
 * history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * interfaceid - (Optional) Host interface ID, defaults to 0 (not required for template attachment)
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
@@ -982,6 +998,8 @@ resource "zabbix_item_dependent" "example" {
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
 * master_itemid - (Required) Master Item ID
+* history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
@@ -1073,6 +1091,8 @@ resource "zabbix_item_snmptrap" "example" {
 * key - (Required) Item Key
 * name - (Required) Item Name
 * valuetype - (Required) Item valuetype, one of: (float, character, log, unsigned, text)
+* history - (Optional) Item retention period
+* trends - (Optional) Item trend period
 * preprocessor - (Optional) Item Preprocessors
     * type - (Required) Preprocessor type [docs](https://www.zabbix.com/documentation/current/manual/api/reference/item/object)
     * params - (Optional) Preprocessor params
