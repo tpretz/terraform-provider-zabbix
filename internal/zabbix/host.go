@@ -49,7 +49,9 @@ type Host struct {
 
 	RawInventory  json.RawMessage `json:"inventory,omitempty"`
 	Inventory     Inventory       `json:"-"`
-	InventoryMode InventoryMode   `json:"inventory_mode,string"`
+
+	RawInventoryMode *InventoryMode   `json:"inventory_mode,string,omitempty"`
+	InventoryMode InventoryMode   `json:"-"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
@@ -97,24 +99,30 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			res[i].Interfaces[j].Details = &out
 		}
 
+		// omitted = disabled
+		if h.RawInventoryMode == nil {
+			res[i].InventoryMode = InventoryDisabled
+		} else {
+			res[i].InventoryMode = *h.RawInventoryMode
+		}
+
 		// fix up host inventory if present
-		if len(h.RawInventory) == 0 {
-			continue
+		if len(h.RawInventory) != 0 {
+			// if its an empty array
+			asStr := string(h.RawInventory)
+			if asStr == "[]" || asStr == "{}" {
+				continue
+			}
+
+			// lets unbox
+			var inv Inventory
+			if err := json.Unmarshal(h.RawInventory, &inv); err != nil {
+				api.printf("got error during unmarshal %s", err)
+				panic(err)
+			}
+			res[i].Inventory = inv
 		}
 
-		// if its an empty array
-		asStr := string(h.RawInventory)
-		if asStr == "[]" || asStr == "{}" {
-			continue
-		}
-
-		// lets unbox
-		var inv Inventory
-		if err := json.Unmarshal(h.RawInventory, &inv); err != nil {
-			api.printf("got error during unmarshal %s", err)
-			panic(err)
-		}
-		res[i].Inventory = inv
 	}
 
 	return
@@ -184,6 +192,8 @@ func prepHosts(hosts Hosts) {
 			asB, _ := json.Marshal(h.Inventory)
 			hosts[i].RawInventory = json.RawMessage(asB)
 		}
+		invMode := h.InventoryMode
+		h.RawInventoryMode = &invMode
 	}
 }
 
