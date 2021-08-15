@@ -66,8 +66,9 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Type:         schema.TypeString,
 		Description:  "Item Trends",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Default:      "365d",
+		//Default:      "365d",
 		Optional:     true,
+		Computed: true,
 	},
 	"valuetype": &schema.Schema{
 		Type:         schema.TypeString,
@@ -201,7 +202,7 @@ func protoItemGetReadWrapper(r ItemHandler) schema.ReadFunc {
 func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d, prototype)
+	item := buildItemObject(d, api, prototype)
 
 	// run custom function
 	c(d, m, item)
@@ -233,7 +234,7 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d, prototype)
+	item := buildItemObject(d, api, prototype)
 	item.ItemID = d.Id()
 
 	// run custom function
@@ -320,7 +321,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 }
 
 // Build the base Item Object
-func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
+func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *zabbix.Item {
 	item := zabbix.Item{
 		Key:       d.Get("key").(string),
 		HostID:    d.Get("hostid").(string),
@@ -336,6 +337,19 @@ func buildItemObject(d *schema.ResourceData, prototype bool) *zabbix.Item {
 		lst = append(lst, a.(string))
 	}
 	item.Applications = lst
+
+	if v, ok := d.GetOk("trends"); ok {
+		item.Trends = v.(string)
+	} else {
+		if api.Config.Version >= 504 &&
+			( item.ValueType == zabbix.Text ||
+			item.ValueType == zabbix.Log ) {
+			item.Trends = "0"
+		} else {
+			item.Trends = "365d"
+		}
+		d.Set("trends", item.Trends)
+	}
 
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)
