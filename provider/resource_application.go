@@ -87,6 +87,10 @@ func resourceApplicationCreate(d *schema.ResourceData, m interface{}) error {
 func ApplicationRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
 	api := m.(*zabbix.API)
 
+	if api.Config.Version >= 50400 {
+		return errors.New("application API no longer supported in zabbix versions >= 5.4, see documentation around the use of tags to replace its behaviour")
+	}
+
 	Applications, err := api.ApplicationsGet(params)
 
 	if err != nil {
