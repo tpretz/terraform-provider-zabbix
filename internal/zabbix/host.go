@@ -47,11 +47,11 @@ type Host struct {
 	Status     StatusType    `json:"status,string"`
 	UserMacros Macros        `json:"macros,omitempty"`
 
-	RawInventory  json.RawMessage `json:"inventory,omitempty"`
-	Inventory     Inventory       `json:"-"`
+	RawInventory json.RawMessage `json:"inventory,omitempty"`
+	Inventory    Inventory       `json:"-"`
 
-	RawInventoryMode *InventoryMode   `json:"inventory_mode,string,omitempty"`
-	InventoryMode InventoryMode   `json:"-"`
+	RawInventoryMode *InventoryMode `json:"inventory_mode,string,omitempty"`
+	InventoryMode    InventoryMode  `json:"-"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
@@ -61,6 +61,7 @@ type Host struct {
 	// templates are read back from this one
 	ParentTemplateIDs TemplateIDs `json:"parentTemplates,omitempty"`
 	ProxyID           string      `json:"proxy_hostid,omitempty"`
+	Tags              Tags        `json:"tags,omitempty"`
 }
 
 // Hosts is an array of Host
