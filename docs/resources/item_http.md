@@ -26,18 +26,19 @@ description: |-
 ### Optional
 
 - **applications** (Set of String) Application IDs to associate this item with
-- **auth_type** (String) HTTP auth type, one of: none, basic, ntlm, kerberos
+- **auth_type** (String) HTTP auth type, one of: basic, ntlm, kerberos, none
 - **delay** (String) Item Delay period
 - **headers** (Map of String)
 - **history** (String) Item History
 - **id** (String) The ID of this resource.
 - **interfaceid** (String) Host Interface ID
 - **password** (String, Sensitive) Authentication Password
-- **post_type** (String) HTTP post type, one of: body, headers, both
+- **post_type** (String) HTTP post type, one of: headers, both, body
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
 - **request_method** (String) HTTP request method, one of: get, post, put, head
 - **status_codes** (String) http status code
+- **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **timeout** (String) http request timeout
 - **trends** (String) Item Trends
 - **username** (String) Authentication Username
@@ -60,5 +61,17 @@ Optional:
 Read-Only:
 
 - **id** (String) The ID of this resource.
+
+
+<a id="nestedblock--tag"></a>
+### Nested Schema for `tag`
+
+Required:
+
+- **key** (String) Tag Key
+
+Optional:
+
+- **value** (String) Tag Value
 
 

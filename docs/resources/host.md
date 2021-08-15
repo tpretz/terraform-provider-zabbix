@@ -47,7 +47,7 @@ Optional:
 - **snmp3_contextname** (String) Context Name (v3 only)
 - **snmp3_privpassphrase** (String) Priv Passphrase (v3 only)
 - **snmp3_privprotocol** (String) Priv Protocol (v3 only), one of: des, aes
-- **snmp3_securitylevel** (String) Security Level (v3 only), one of: noauthnopriv, authnopriv, authpriv
+- **snmp3_securitylevel** (String) Security Level (v3 only), one of: authpriv, noauthnopriv, authnopriv
 - **snmp3_securityname** (String) Security Name (v3 only)
 - **snmp_bulk** (Boolean) SNMP Bulk
 - **snmp_community** (String) HSNMP Community (v1/v2 only)

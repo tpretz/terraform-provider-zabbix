@@ -24,7 +24,7 @@ description: |-
 
 ### Optional
 
-- **auth_type** (String) HTTP auth type, one of: none, basic, ntlm, kerberos
+- **auth_type** (String) HTTP auth type, one of: basic, ntlm, kerberos, none
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
 - **evaltype** (String) EvalType, one of: andor, and, or, custom
@@ -35,7 +35,7 @@ description: |-
 - **lifetime** (String) LLD Stale Item Lifetime
 - **macro** (Block Set) (see [below for nested schema](#nestedblock--macro))
 - **password** (String, Sensitive) Authentication Password
-- **post_type** (String) HTTP post type, one of: body, headers, both
+- **post_type** (String) HTTP post type, one of: headers, both, body
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
 - **request_method** (String) HTTP request method, one of: get, post, put, head

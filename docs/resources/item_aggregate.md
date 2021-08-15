@@ -29,6 +29,7 @@ description: |-
 - **history** (String) Item History
 - **id** (String) The ID of this resource.
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
+- **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **trends** (String) Item Trends
 
 <a id="nestedblock--preprocessor"></a>
@@ -47,5 +48,17 @@ Optional:
 Read-Only:
 
 - **id** (String) The ID of this resource.
+
+
+<a id="nestedblock--tag"></a>
+### Nested Schema for `tag`
+
+Required:
+
+- **key** (String) Tag Key
+
+Optional:
+
+- **value** (String) Tag Value
 
 

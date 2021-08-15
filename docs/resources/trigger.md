@@ -29,7 +29,7 @@ description: |-
 - **id** (String) The ID of this resource.
 - **manual_close** (Boolean) Manual resolution
 - **multiple** (Boolean) generate multiple events
-- **priority** (String) Trigger Priority level, one of: warn, average, high, disaster, not_classified, info
+- **priority** (String) Trigger Priority level, one of: high, disaster, not_classified, info, warn, average
 - **recovery_expression** (String) use recovery expression (recovery_none must not be true)
 - **recovery_none** (Boolean) set recovery mode to none
 - **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
