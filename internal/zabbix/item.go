@@ -165,6 +165,8 @@ type Item struct {
 	// Prototype
 	RuleID        string   `json:"ruleid,omitempty"`
 	DiscoveryRule *LLDRule `json:"discoveryRule,omitEmpty"`
+
+	Tags Tags `json:"tags,omitempty"`
 }
 
 type Preprocessors []Preprocessor
