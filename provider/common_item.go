@@ -67,7 +67,7 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Description:  "Item Trends",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		//Default:      "365d",
-		Optional:     true,
+		Optional: true,
 		Computed: true,
 	},
 	"valuetype": &schema.Schema{
@@ -85,6 +85,25 @@ var itemCommonSchema = map[string]*schema.Schema{
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
 		Optional: true,
+	},
+	"tag": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"key": &schema.Schema{
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Description:  "Tag Key",
+				},
+				"value": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Tag Value",
+				},
+			},
+		},
 	},
 }
 
@@ -272,6 +291,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
 		"selectApplications":  "extend",
+		"selectTags":          "extend",
 	}
 
 	if prototype {
@@ -313,6 +333,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		applicationSet.Add(v)
 	}
 	d.Set("applications", applicationSet)
+	d.Set("tag", flattenTags(item.Tags))
 
 	// run custom
 	r(d, m, &item)
@@ -337,13 +358,14 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *z
 		lst = append(lst, a.(string))
 	}
 	item.Applications = lst
+	item.Tags = tagGenerate(d)
 
 	if v, ok := d.GetOk("trends"); ok {
 		item.Trends = v.(string)
 	} else {
 		if api.Config.Version >= 50400 &&
-			( item.ValueType == zabbix.Text ||
-			item.ValueType == zabbix.Log ) {
+			(item.ValueType == zabbix.Text ||
+				item.ValueType == zabbix.Log) {
 			item.Trends = "0"
 		} else {
 			item.Trends = "365d"
