@@ -179,7 +179,7 @@ func itemSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.SNMPOid = d.Get("snmp_oid").(string)
 
 	// new mode
-	if api.Config.Version >= 5 {
+	if api.Config.Version >= 500 {
 		item.Type = zabbix.SNMPAgent
 	} else { // old mode
 		item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
@@ -205,7 +205,7 @@ func lldSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 
 	item.SNMPOid = d.Get("snmp_oid").(string)
 
-	if api.Config.Version >= 5 {
+	if api.Config.Version >= 500 {
 		item.Type = zabbix.SNMPAgent
 	} else { // old mode
 		item.Type = SNMP_LOOKUP[d.Get("snmp_version").(string)]
@@ -232,7 +232,7 @@ func itemSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 
 	d.Set("snmp_oid", item.SNMPOid)
 
-	if api.Config.Version < 5 {
+	if api.Config.Version < 500 {
 		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 		switch item.Type {
 		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
@@ -256,7 +256,7 @@ func lldSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 
 	d.Set("snmp_oid", item.SNMPOid)
 
-	if api.Config.Version < 5 {
+	if api.Config.Version < 500 {
 		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 		switch item.Type {
 		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:

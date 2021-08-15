@@ -127,9 +127,11 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("api version got error: %+v", err)
 
 	major := strings.Split(version, ".")[0]
+	minor := strings.Split(version, ".")[1]
 	u, err := strconv.ParseInt(major, 10, 64)
+	m, err := strconv.ParseInt(minor, 10, 64)
 	log.Trace("parseint error: %+v", err)
-	api.Config.Version = int(u)
+	api.Config.Version = int(u) * 100 + int(m)
 	log.Trace("version is: %d", api.Config.Version)
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
