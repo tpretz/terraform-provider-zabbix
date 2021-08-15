@@ -341,7 +341,7 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *z
 	if v, ok := d.GetOk("trends"); ok {
 		item.Trends = v.(string)
 	} else {
-		if api.Config.Version >= 504 &&
+		if api.Config.Version >= 50400 &&
 			( item.ValueType == zabbix.Text ||
 			item.ValueType == zabbix.Log ) {
 			item.Trends = "0"

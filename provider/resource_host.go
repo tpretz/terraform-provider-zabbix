@@ -468,7 +468,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 
 		log.Debug("interface config abc: %+v", api.Config)
 		// version 5 and snmp
-		if api.Config.Version >= 500 && typeId == zabbix.SNMP {
+		if api.Config.Version >= 50000 && typeId == zabbix.SNMP {
 			details := zabbix.HostInterfaceDetail{}
 			details.Version = d.Get(prefix + "snmp_version").(string)
 			details.Bulk = "0"
@@ -713,7 +713,7 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 		// need to handle detail
 		details := host.Interfaces[i].Details
 		log.Debug("got details: %+v", details)
-		if api.Config.Version >= 500 && params["type"] == "snmp" && details != nil {
+		if api.Config.Version >= 50000 && params["type"] == "snmp" && details != nil {
 			log.Debug("interface new logic")
 			params["snmp_version"] = details.Version
 			params["snmp_bulk"] = details.Bulk == "1"

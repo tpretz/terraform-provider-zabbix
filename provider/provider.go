@@ -111,6 +111,45 @@ func Provider() *schema.Provider {
 	}
 }
 
+func getApiVersion(api *zabbix.API) (version int64, err error) {
+	var vstr string
+	vstr, err = api.Version()
+	if err != nil {
+		log.Trace("api version got error: %+v", err)
+		return;
+	}
+
+	parts := strings.Split(vstr, ".")
+
+	version, err = strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return;
+	}
+	version = version * 10000
+
+	// do we have a minor version
+	if len(parts) > 1 {
+		var no int64
+		no, err = strconv.ParseInt(parts[1], 10, 64)
+		if err != nil {
+			return;
+		}
+		version += no * 100
+	}
+
+	// do we have a patch version
+	if len(parts) > 2 {
+		var no int64
+		no, err = strconv.ParseInt(parts[2], 10, 64)
+		if err != nil {
+			return;
+		}
+		version += no
+	}
+	log.Trace("version is: %d", version)
+	return
+}
+
 // providerConfigure configure this provider
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
@@ -123,16 +162,13 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		Serialize:   d.Get("serialize").(bool),
 	})
 
-	version, err := api.Version()
-	log.Trace("api version got error: %+v", err)
+	var version int64
+	version, err = getApiVersion(api)
+	if err != nil {
+		return
+	}
 
-	major := strings.Split(version, ".")[0]
-	minor := strings.Split(version, ".")[1]
-	u, err := strconv.ParseInt(major, 10, 64)
-	m, err := strconv.ParseInt(minor, 10, 64)
-	log.Trace("parseint error: %+v", err)
-	api.Config.Version = int(u) * 100 + int(m)
-	log.Trace("version is: %d", api.Config.Version)
+	api.Config.Version = int(version)
 
 	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
 	meta = api
