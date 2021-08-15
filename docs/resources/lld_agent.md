@@ -26,7 +26,7 @@ description: |-
 - **active** (Boolean) Active zabbix agent Item
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
-- **evaltype** (String) EvalType, one of: or, custom, andor, and
+- **evaltype** (String) EvalType, one of: andor, and, or, custom
 - **formula** (String) Formula
 - **id** (String) The ID of this resource.
 - **interfaceid** (String) Host Interface ID
@@ -44,7 +44,7 @@ Required:
 
 Optional:
 
-- **operator** (String) Operator, one of: notmatch, match
+- **operator** (String) Operator, one of: match, notmatch
 
 Read-Only:
 

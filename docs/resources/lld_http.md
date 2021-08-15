@@ -27,7 +27,7 @@ description: |-
 - **auth_type** (String) HTTP auth type, one of: none, basic, ntlm, kerberos
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
-- **evaltype** (String) EvalType, one of: or, custom, andor, and
+- **evaltype** (String) EvalType, one of: andor, and, or, custom
 - **formula** (String) Formula
 - **headers** (Map of String)
 - **id** (String) The ID of this resource.
@@ -38,7 +38,7 @@ description: |-
 - **post_type** (String) HTTP post type, one of: body, headers, both
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
-- **request_method** (String) HTTP request method, one of: post, put, head, get
+- **request_method** (String) HTTP request method, one of: get, post, put, head
 - **status_codes** (String) http status code
 - **timeout** (String) http request timeout
 - **username** (String) Authentication Username
@@ -55,7 +55,7 @@ Required:
 
 Optional:
 
-- **operator** (String) Operator, one of: notmatch, match
+- **operator** (String) Operator, one of: match, notmatch
 
 Read-Only:
 

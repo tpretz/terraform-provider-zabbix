@@ -25,7 +25,7 @@ description: |-
 
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
-- **evaltype** (String) EvalType, one of: or, custom, andor, and
+- **evaltype** (String) EvalType, one of: andor, and, or, custom
 - **formula** (String) Formula
 - **id** (String) The ID of this resource.
 - **lifetime** (String) LLD Stale Item Lifetime
@@ -42,7 +42,7 @@ Required:
 
 Optional:
 
-- **operator** (String) Operator, one of: notmatch, match
+- **operator** (String) Operator, one of: match, notmatch
 
 Read-Only:
 

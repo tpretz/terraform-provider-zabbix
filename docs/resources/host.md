@@ -30,6 +30,7 @@ description: |-
 - **macro** (Block List) (see [below for nested schema](#nestedblock--macro))
 - **name** (String) Zabbix host displayname, defaults to the value of "host"
 - **proxyid** (String) ID of proxy to monitor this host
+- **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **templates** (Set of String) Template IDs to attach to this host
 
 <a id="nestedblock--interface"></a>
@@ -146,5 +147,17 @@ Required:
 Read-Only:
 
 - **id** (String) The ID of this resource.
+
+
+<a id="nestedblock--tag"></a>
+### Nested Schema for `tag`
+
+Required:
+
+- **key** (String) Tag Key
+
+Optional:
+
+- **value** (String) Tag Value
 
 

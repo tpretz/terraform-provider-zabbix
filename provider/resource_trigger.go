@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -153,37 +152,6 @@ func resourceProtoTrigger() *schema.Resource {
 
 		Schema: schemaTrigger,
 	}
-}
-
-// tagGenerate build tag structs from terraform inputs
-func tagGenerate(d *schema.ResourceData) (tags zabbix.Tags) {
-	set := d.Get("tag").(*schema.Set).List()
-	tags = make(zabbix.Tags, len(set))
-
-	for i := 0; i < len(set); i++ {
-		current := set[i].(map[string]interface{})
-		tags[i] = zabbix.Tag{
-			Tag:   current["key"].(string),
-			Value: current["value"].(string),
-		}
-	}
-
-	return
-}
-
-// flattenTags convert response to terraform input
-func flattenTags(list zabbix.Tags) *schema.Set {
-	set := schema.NewSet(func(i interface{}) int {
-		m := i.(map[string]interface{})
-		return hashcode.String(m["key"].(string) + "V" + m["value"].(string))
-	}, []interface{}{})
-	for i := 0; i < len(list); i++ {
-		set.Add(map[string]interface{}{
-			"key":   list[i].Tag,
-			"value": list[i].Value,
-		})
-	}
-	return set
 }
 
 // Build Trigger struct for create/modify

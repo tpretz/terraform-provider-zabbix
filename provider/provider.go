@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/tpretz/go-zabbix-api"
 )
 
@@ -116,14 +117,14 @@ func getApiVersion(api *zabbix.API) (version int64, err error) {
 	vstr, err = api.Version()
 	if err != nil {
 		log.Trace("api version got error: %+v", err)
-		return;
+		return
 	}
 
 	parts := strings.Split(vstr, ".")
 
 	version, err = strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return;
+		return
 	}
 	version = version * 10000
 
@@ -132,7 +133,7 @@ func getApiVersion(api *zabbix.API) (version int64, err error) {
 		var no int64
 		no, err = strconv.ParseInt(parts[1], 10, 64)
 		if err != nil {
-			return;
+			return
 		}
 		version += no * 100
 	}
@@ -142,7 +143,7 @@ func getApiVersion(api *zabbix.API) (version int64, err error) {
 		var no int64
 		no, err = strconv.ParseInt(parts[2], 10, 64)
 		if err != nil {
-			return;
+			return
 		}
 		version += no
 	}
@@ -175,4 +176,35 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider got error: %+v", err)
 
 	return
+}
+
+// tagGenerate build tag structs from terraform inputs
+func tagGenerate(d *schema.ResourceData) (tags zabbix.Tags) {
+	set := d.Get("tag").(*schema.Set).List()
+	tags = make(zabbix.Tags, len(set))
+
+	for i := 0; i < len(set); i++ {
+		current := set[i].(map[string]interface{})
+		tags[i] = zabbix.Tag{
+			Tag:   current["key"].(string),
+			Value: current["value"].(string),
+		}
+	}
+
+	return
+}
+
+// flattenTags convert response to terraform input
+func flattenTags(list zabbix.Tags) *schema.Set {
+	set := schema.NewSet(func(i interface{}) int {
+		m := i.(map[string]interface{})
+		return hashcode.String(m["key"].(string) + "V" + m["value"].(string))
+	}, []interface{}{})
+	for i := 0; i < len(list); i++ {
+		set.Add(map[string]interface{}{
+			"key":   list[i].Tag,
+			"value": list[i].Value,
+		})
+	}
+	return set
 }

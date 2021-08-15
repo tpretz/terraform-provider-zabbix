@@ -24,6 +24,7 @@ description: |-
 - **inventory_mode** (String) Inventory Mode, one of: disabled, manual, automatic
 - **macro** (Block List) (see [below for nested schema](#nestedblock--macro))
 - **name** (String) Zabbix host displayname, defaults to the value of "host"
+- **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **templates** (Set of String) Template IDs to attach to this host
 
 ### Read-Only
@@ -44,6 +45,18 @@ Required:
 Read-Only:
 
 - **id** (String) The ID of this resource.
+
+
+<a id="nestedblock--tag"></a>
+### Nested Schema for `tag`
+
+Required:
+
+- **key** (String) Tag Key
+
+Optional:
+
+- **value** (String) Tag Value
 
 
 <a id="nestedatt--interface"></a>

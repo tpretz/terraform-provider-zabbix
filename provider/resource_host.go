@@ -231,9 +231,9 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Description: "Interface DNS name",
 				},
 				"ip": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "Interface IP address",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Interface IP address",
 				},
 				"main": &schema.Schema{
 					Type:        schema.TypeBool,
@@ -349,6 +349,25 @@ var hostSchemaBase = map[string]*schema.Schema{
 		},
 	},
 	"macro": macroListSchema,
+	"tag": &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"key": &schema.Schema{
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Description:  "Tag Key",
+				},
+				"value": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Tag Value",
+				},
+			},
+		},
+	},
 }
 
 // resourceHost terraform host resource entrypoint
@@ -545,6 +564,7 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
+	item.Tags = tagGenerate(d)
 	item.Inventory, err = hostGenerateInventory(d)
 
 	if err != nil {
@@ -661,6 +681,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("inventory", flattenInventory(host))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
+	d.Set("tag", flattenTags(host.Tags))
 
 	return nil
 }

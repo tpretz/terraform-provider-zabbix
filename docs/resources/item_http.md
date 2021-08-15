@@ -36,7 +36,7 @@ description: |-
 - **post_type** (String) HTTP post type, one of: body, headers, both
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
-- **request_method** (String) HTTP request method, one of: post, put, head, get
+- **request_method** (String) HTTP request method, one of: get, post, put, head
 - **status_codes** (String) http status code
 - **timeout** (String) http request timeout
 - **trends** (String) Item Trends
