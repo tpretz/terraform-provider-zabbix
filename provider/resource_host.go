@@ -613,6 +613,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
 		"selectMacros":          "extend",
+		"selectTags":            "extend",
 		"selectInventory":       "extend",
 		"filter":                map[string]interface{}{},
 	}
@@ -641,6 +642,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectParentTemplates": "extend",
 		"selectGroups":          "extend",
 		"selectMacros":          "extend",
+		"selectTags":            "extend",
 		"selectInventory":       "extend",
 		"hostids":               d.Id(),
 	})
