@@ -41,7 +41,7 @@ description: |-
 - **snmp3_securitylevel** (String) Security Level (v3 only), one of: noauthnopriv, authnopriv, authpriv
 - **snmp3_securityname** (String) Security Name (v3 only)
 - **snmp_community** (String) SNMP Community (v1/v2 only)
-- **snmp_version** (String) SNMP Version, one of: 1, 2, 3
+- **snmp_version** (String) SNMP Version, one of: 2, 3, 1
 
 <a id="nestedblock--condition"></a>
 ### Nested Schema for `condition`

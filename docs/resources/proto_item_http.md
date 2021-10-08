@@ -27,17 +27,18 @@ description: |-
 ### Optional
 
 - **applications** (Set of String) Application IDs to associate this item with
-- **auth_type** (String) HTTP auth type, one of: basic, ntlm, kerberos, none
+- **auth_type** (String) HTTP auth type, one of: none, basic, ntlm, kerberos
 - **delay** (String) Item Delay period
 - **headers** (Map of String)
 - **history** (String) Item History
 - **id** (String) The ID of this resource.
 - **interfaceid** (String) Host Interface ID
 - **password** (String, Sensitive) Authentication Password
-- **post_type** (String) HTTP post type, one of: headers, both, body
+- **post_type** (String) HTTP post type, one of: json, xml, raw
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
-- **request_method** (String) HTTP request method, one of: get, post, put, head
+- **proxy** (String) HTTP proxy connection string
+- **request_method** (String) HTTP request method, one of: put, head, get, post
 - **status_codes** (String) http status code
 - **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **timeout** (String) http request timeout

@@ -33,10 +33,10 @@ description: |-
 - **work_period** (Boolean) Show work period
 - **ymax** (String) Y Axis Max
 - **ymax_itemid** (String) Y Axis Max ItemId
-- **ymax_type** (String) Y Axis Max Type, one of: calculated, fixed, item
+- **ymax_type** (String) Y Axis Max Type, one of: fixed, item, calculated
 - **ymin** (String) Y Axis Min
 - **ymin_itemid** (String) Y Axis Min ItemId
-- **ymin_type** (String) Y Axis Min Type, one of: calculated, fixed, item
+- **ymin_type** (String) Y Axis Min Type, one of: fixed, item, calculated
 
 <a id="nestedblock--item"></a>
 ### Nested Schema for `item`
@@ -48,10 +48,10 @@ Required:
 
 Optional:
 
-- **drawtype** (String) Draw Type, one of: dashed, gradient, line, filled, bold, dot
-- **function** (String) Function, one of: min, average, max, all, last
+- **drawtype** (String) Draw Type, one of: line, filled, bold, dot, dashed, gradient
+- **function** (String) Function, one of: average, max, all, last, min
 - **sortorder** (String) sort order
-- **type** (String) Type, one of: sum, simple
+- **type** (String) Type, one of: simple, sum
 - **yaxis_side** (String) Y Axis Side, one of: left, right
 
 Read-Only:
