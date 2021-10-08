@@ -17,10 +17,18 @@ var HTTP_METHODS = map[string]string{
 var HTTP_METHODS_REV = map[string]string{}
 var HTTP_METHODS_ARR = []string{}
 
-var HTTP_POSTTYPE = map[string]string{
+var HTTP_RETRIEVEMODE = map[string]string{
 	"body":    "0",
 	"headers": "1",
 	"both":    "2",
+}
+var HTTP_RETRIEVEMODE_REV = map[string]string{}
+var HTTP_RETRIEVEMODE_ARR = []string{}
+
+var HTTP_POSTTYPE = map[string]string{
+	"raw":  "0",
+	"json": "2",
+	"xml":  "3",
 }
 var HTTP_POSTTYPE_REV = map[string]string{}
 var HTTP_POSTTYPE_ARR = []string{}
@@ -93,6 +101,11 @@ var schemaHttp = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 		Description: "Authentication Username",
+	},
+	"proxy": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "HTTP proxy connection string",
 	},
 	"password": &schema.Schema{
 		Type:        schema.TypeString,
@@ -201,6 +214,7 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
 	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
 	item.Username = d.Get("username").(string)
+	item.Proxy = d.Get("proxy").(string)
 	item.Password = d.Get("password").(string)
 	item.Posts = d.Get("posts").(string)
 	item.StatusCodes = d.Get("status_codes").(string)
@@ -225,6 +239,7 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
 	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
 	item.Username = d.Get("username").(string)
+	item.Proxy = d.Get("proxy").(string)
 	item.Password = d.Get("password").(string)
 	item.Posts = d.Get("posts").(string)
 	item.StatusCodes = d.Get("status_codes").(string)
@@ -252,6 +267,7 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
 	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
 	d.Set("username", item.Username)
+	d.Set("proxy", item.Proxy)
 	d.Set("password", item.Password)
 	d.Set("posts", item.Posts)
 	d.Set("status_codes", item.StatusCodes)
@@ -267,6 +283,7 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
 	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
 	d.Set("username", item.Username)
+	d.Set("proxy", item.Proxy)
 	d.Set("password", item.Password)
 	d.Set("posts", item.Posts)
 	d.Set("status_codes", item.StatusCodes)
