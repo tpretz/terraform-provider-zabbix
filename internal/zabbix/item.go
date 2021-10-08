@@ -134,21 +134,22 @@ type Item struct {
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
 
 	// HTTP Agent Fields
-	Url           string          `json:"url,omitempty"`
-	RequestMethod string          `json:"request_method,omitempty"`
-	PostType      string          `json:"post_type,omitempty"`
-	RetrieveMode  string          `json:"retrieve_mode,omitempty"`
-	Posts         string          `json:"posts,omitempty"`
-	StatusCodes   string          `json:"status_codes,omitempty"`
-	Timeout       string          `json:"timeout,omitempty"`
-	VerifyHost    string          `json:"verify_host,omitempty"`
-	VerifyPeer    string          `json:"verify_peer,omitempty"`
-	AuthType      string          `json:"authtype,omitempty"`
-	Username      string          `json:"username,omitempty"`
-	Password      string          `json:"password,omitempty"`
-	Headers       HttpHeaders     `json:"-"`
-	RawHeaders    json.RawMessage `json:"headers,omitempty"`
-	Proxy         string          `json:"http_proxy,omitempty"`
+	Url             string          `json:"url,omitempty"`
+	RequestMethod   string          `json:"request_method,omitempty"`
+	PostType        string          `json:"post_type,omitempty"`
+	RetrieveMode    string          `json:"retrieve_mode,omitempty"`
+	Posts           string          `json:"posts,omitempty"`
+	StatusCodes     string          `json:"status_codes,omitempty"`
+	Timeout         string          `json:"timeout,omitempty"`
+	VerifyHost      string          `json:"verify_host,omitempty"`
+	VerifyPeer      string          `json:"verify_peer,omitempty"`
+	AuthType        string          `json:"authtype,omitempty"`
+	Username        string          `json:"username,omitempty"`
+	Password        string          `json:"password,omitempty"`
+	Headers         HttpHeaders     `json:"-"`
+	RawHeaders      json.RawMessage `json:"headers,omitempty"`
+	Proxy           string          `json:"http_proxy,omitempty"`
+	FollowRedirects string          `json:"follow_redirects,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
