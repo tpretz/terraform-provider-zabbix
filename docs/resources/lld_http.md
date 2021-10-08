@@ -24,10 +24,11 @@ description: |-
 
 ### Optional
 
-- **auth_type** (String) HTTP auth type, one of: none, basic, ntlm, kerberos
+- **auth_type** (String) HTTP auth type, one of: basic, ntlm, kerberos, none
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
-- **evaltype** (String) EvalType, one of: andor, and, or, custom
+- **evaltype** (String) EvalType, one of: or, custom, andor, and
+- **follow_redirects** (Boolean) follow http redirects
 - **formula** (String) Formula
 - **headers** (Map of String)
 - **id** (String) The ID of this resource.
@@ -35,11 +36,11 @@ description: |-
 - **lifetime** (String) LLD Stale Item Lifetime
 - **macro** (Block Set) (see [below for nested schema](#nestedblock--macro))
 - **password** (String, Sensitive) Authentication Password
-- **post_type** (String) HTTP post type, one of: raw, json, xml
+- **post_type** (String) HTTP post type, one of: xml, raw, json
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
 - **proxy** (String) HTTP proxy connection string
-- **request_method** (String) HTTP request method, one of: head, get, post, put
+- **request_method** (String) HTTP request method, one of: get, post, put, head
 - **retrieve_mode** (String) HTTP retrieve mode, one of: body, headers, both
 - **status_codes** (String) http status code
 - **timeout** (String) http request timeout

@@ -154,6 +154,12 @@ var schemaHttp = map[string]*schema.Schema{
 		Optional:    true,
 		Default:     true,
 	},
+	"follow_redirects": &schema.Schema{
+		Type:        schema.TypeBool,
+		Description: "follow http redirects",
+		Optional:    true,
+		Default:     true,
+	},
 }
 
 // resourceItemHttp Http item resource handler
@@ -234,6 +240,7 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.HTTPAgent
 	item.VerifyHost = "0"
 	item.VerifyPeer = "0"
+	item.FollowRedirects = "1"
 
 	if d.Get("verify_host").(bool) {
 		item.VerifyHost = "1"
@@ -241,6 +248,10 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 
 	if d.Get("verify_peer").(bool) {
 		item.VerifyPeer = "1"
+	}
+
+	if !d.Get("follow_redirects").(bool) {
+		item.FollowRedirects = "0"
 	}
 	item.Headers = httpGenerateHeaders(d)
 }
@@ -260,6 +271,7 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	item.Type = zabbix.HTTPAgent
 	item.VerifyHost = "0"
 	item.VerifyPeer = "0"
+	item.FollowRedirects = "1"
 
 	if d.Get("verify_host").(bool) {
 		item.VerifyHost = "1"
@@ -267,6 +279,10 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 
 	if d.Get("verify_peer").(bool) {
 		item.VerifyPeer = "1"
+	}
+
+	if !d.Get("follow_redirects").(bool) {
+		item.FollowRedirects = "0"
 	}
 	item.Headers = httpGenerateHeaders(d)
 }
@@ -288,6 +304,7 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("timeout", item.Timeout)
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
+	d.Set("follow_redirects", item.FollowRedirects != "0")
 	d.Set("headers", httpFlattenHeaders(item.Headers))
 }
 func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
@@ -305,5 +322,6 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("timeout", item.Timeout)
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
+	d.Set("follow_redirects", item.FollowRedirects != "0")
 	d.Set("headers", httpFlattenHeaders(item.Headers))
 }

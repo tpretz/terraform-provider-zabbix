@@ -26,7 +26,7 @@ description: |-
 
 - **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
-- **evaltype** (String) EvalType, one of: andor, and, or, custom
+- **evaltype** (String) EvalType, one of: or, custom, andor, and
 - **formula** (String) Formula
 - **id** (String) The ID of this resource.
 - **interfaceid** (String) Host Interface ID
@@ -37,11 +37,11 @@ description: |-
 - **snmp3_authprotocol** (String) Authentication Protocol (v3 only), one of: md5, sha
 - **snmp3_contextname** (String) Context Name (v3 only)
 - **snmp3_privpassphrase** (String) Priv Passphrase (v3 only)
-- **snmp3_privprotocol** (String) Priv Protocol (v3 only), one of: des, aes
+- **snmp3_privprotocol** (String) Priv Protocol (v3 only), one of: aes, des
 - **snmp3_securitylevel** (String) Security Level (v3 only), one of: noauthnopriv, authnopriv, authpriv
 - **snmp3_securityname** (String) Security Name (v3 only)
 - **snmp_community** (String) SNMP Community (v1/v2 only)
-- **snmp_version** (String) SNMP Version, one of: 2, 3, 1
+- **snmp_version** (String) SNMP Version, one of: 1, 2, 3
 
 <a id="nestedblock--condition"></a>
 ### Nested Schema for `condition`
