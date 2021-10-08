@@ -137,6 +137,7 @@ type Item struct {
 	Url           string          `json:"url,omitempty"`
 	RequestMethod string          `json:"request_method,omitempty"`
 	PostType      string          `json:"post_type,omitempty"`
+	RetrieveMode  string          `json:"retrieve_mode,omitempty"`
 	Posts         string          `json:"posts,omitempty"`
 	StatusCodes   string          `json:"status_codes,omitempty"`
 	Timeout       string          `json:"timeout,omitempty"`
