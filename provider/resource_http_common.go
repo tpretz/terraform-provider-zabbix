@@ -52,6 +52,10 @@ var _ = func() bool {
 		HTTP_POSTTYPE_REV[v] = k
 		HTTP_POSTTYPE_ARR = append(HTTP_POSTTYPE_ARR, k)
 	}
+	for k, v := range HTTP_RETRIEVEMODE {
+		HTTP_RETRIEVEMODE_REV[v] = k
+		HTTP_RETRIEVEMODE_ARR = append(HTTP_RETRIEVEMODE_ARR, k)
+	}
 	for k, v := range HTTP_AUTHTYPE {
 		HTTP_AUTHTYPE_REV[v] = k
 		HTTP_AUTHTYPE_ARR = append(HTTP_AUTHTYPE_ARR, k)
@@ -88,6 +92,13 @@ var schemaHttp = map[string]*schema.Schema{
 		Optional:     true,
 		Description:  "HTTP post type, one of: " + strings.Join(HTTP_POSTTYPE_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(HTTP_POSTTYPE_ARR, false),
+		Default:      "body",
+	},
+	"retrieve_mode": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "HTTP retrieve mode, one of: " + strings.Join(HTTP_RETRIEVEMODE_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HTTP_RETRIEVEMODE_ARR, false),
 		Default:      "body",
 	},
 	"auth_type": &schema.Schema{
@@ -212,6 +223,7 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Delay = d.Get("delay").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
+	item.RetrieveMode = HTTP_RETRIEVEMODE[d.Get("retrieve_mode").(string)]
 	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
 	item.Username = d.Get("username").(string)
 	item.Proxy = d.Get("proxy").(string)
@@ -237,6 +249,7 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	item.Url = d.Get("url").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
 	item.PostType = HTTP_POSTTYPE[d.Get("post_type").(string)]
+	item.RetrieveMode = HTTP_RETRIEVEMODE[d.Get("retrieve_mode").(string)]
 	item.AuthType = HTTP_AUTHTYPE[d.Get("auth_type").(string)]
 	item.Username = d.Get("username").(string)
 	item.Proxy = d.Get("proxy").(string)
@@ -265,6 +278,7 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("delay", item.Delay)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
+	d.Set("retrieve_mode", HTTP_RETRIEVEMODE_REV[item.RetrieveMode])
 	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
 	d.Set("username", item.Username)
 	d.Set("proxy", item.Proxy)
@@ -281,6 +295,7 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("url", item.Url)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])
 	d.Set("post_type", HTTP_POSTTYPE_REV[item.PostType])
+	d.Set("retrieve_mode", HTTP_RETRIEVEMODE_REV[item.RetrieveMode])
 	d.Set("auth_type", HTTP_AUTHTYPE_REV[item.AuthType])
 	d.Set("username", item.Username)
 	d.Set("proxy", item.Proxy)

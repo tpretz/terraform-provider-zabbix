@@ -35,11 +35,12 @@ description: |-
 - **lifetime** (String) LLD Stale Item Lifetime
 - **macro** (Block Set) (see [below for nested schema](#nestedblock--macro))
 - **password** (String, Sensitive) Authentication Password
-- **post_type** (String) HTTP post type, one of: json, xml, raw
+- **post_type** (String) HTTP post type, one of: raw, json, xml
 - **posts** (String) POST data to send in request
 - **preprocessor** (Block List) (see [below for nested schema](#nestedblock--preprocessor))
 - **proxy** (String) HTTP proxy connection string
-- **request_method** (String) HTTP request method, one of: put, head, get, post
+- **request_method** (String) HTTP request method, one of: head, get, post, put
+- **retrieve_mode** (String) HTTP retrieve mode, one of: body, headers, both
 - **status_codes** (String) http status code
 - **timeout** (String) http request timeout
 - **username** (String) Authentication Username
