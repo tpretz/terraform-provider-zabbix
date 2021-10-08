@@ -71,19 +71,20 @@ type LLDRule struct {
 	Port     string `json:"port,omitempty"`
 
 	// HTTP Agent Fields
-	Url           string          `json:"url,omitempty"`
-	RequestMethod string          `json:"request_method,omitempty"`
-	AllowTraps    string          `json:"allow_traps,omitempty"`
-	PostType      string          `json:"post_type,omitempty"`
-	RetrieveMode  string          `json:"retrieve_mode,omitempty"`
-	Posts         string          `json:"posts,omitempty"`
-	StatusCodes   string          `json:"status_codes,omitempty"`
-	Timeout       string          `json:"timeout,omitempty"`
-	VerifyHost    string          `json:"verify_host,omitempty"`
-	VerifyPeer    string          `json:"verify_peer,omitempty"`
-	Headers       HttpHeaders     `json:"-"`
-	RawHeaders    json.RawMessage `json:"headers,omitempty"`
-	Proxy         string          `json:"http_proxy,omitempty"`
+	Url             string          `json:"url,omitempty"`
+	RequestMethod   string          `json:"request_method,omitempty"`
+	AllowTraps      string          `json:"allow_traps,omitempty"`
+	PostType        string          `json:"post_type,omitempty"`
+	RetrieveMode    string          `json:"retrieve_mode,omitempty"`
+	Posts           string          `json:"posts,omitempty"`
+	StatusCodes     string          `json:"status_codes,omitempty"`
+	Timeout         string          `json:"timeout,omitempty"`
+	VerifyHost      string          `json:"verify_host,omitempty"`
+	VerifyPeer      string          `json:"verify_peer,omitempty"`
+	Headers         HttpHeaders     `json:"-"`
+	RawHeaders      json.RawMessage `json:"headers,omitempty"`
+	Proxy           string          `json:"http_proxy,omitempty"`
+	FollowRedirects string          `json:"follow_redirects,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
