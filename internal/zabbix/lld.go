@@ -82,6 +82,7 @@ type LLDRule struct {
 	VerifyPeer    string          `json:"verify_peer,omitempty"`
 	Headers       HttpHeaders     `json:"-"`
 	RawHeaders    json.RawMessage `json:"headers,omitempty"`
+	Proxy         string          `json:"http_proxy,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`

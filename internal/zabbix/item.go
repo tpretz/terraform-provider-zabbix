@@ -147,6 +147,7 @@ type Item struct {
 	Password      string          `json:"password,omitempty"`
 	Headers       HttpHeaders     `json:"-"`
 	RawHeaders    json.RawMessage `json:"headers,omitempty"`
+	Proxy         string          `json:"http_proxy,omitempty"`
 
 	// SNMP Fields
 	SNMPOid              string `json:"snmp_oid,omitempty"`
