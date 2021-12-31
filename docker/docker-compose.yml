@@ -62,8 +62,8 @@ services:
  zabbix-web-nginx-mysql:
   image: zabbix/zabbix-web-nginx-mysql:ubuntu-4.0-latest
   ports:
-   - "8081:80"
-   - "8443:443"
+   - "8080:8080"
+   - "8443:8443"
   links:
    - mysql-server:mysql-server
    - zabbix-server:zabbix-server
@@ -88,10 +88,9 @@ services:
    - mysql-server
    - zabbix-server
   healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost"]
+   test: ["CMD", "curl", "-f", "http://localhost:8080"]
    interval: 10s
    timeout: 5s
-   retries: 3
    start_period: 30s
   networks:
    zbx_net_backend:
