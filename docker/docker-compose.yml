@@ -1,5 +1,17 @@
 version: '3.5'
 services:
+ dev:
+  build:
+    context: .
+    dockerfile: ../.devcontainer/Dockerfile
+    args:
+      VARIANT: 1-bullseye
+      NODE_VERSION: lts/*
+  volumes:
+    - ..:/workspace:cached
+  command: sleep infinity
+  networks:
+    zbx_net_frontend: {}
  zabbix-server:
   image: zabbix/zabbix-server-mysql:ubuntu-4.0-latest
   ports:
@@ -99,6 +111,8 @@ services:
      - zabbix-web-nginx-ubuntu-mysql
      - zabbix-web-nginx-mysql-ubuntu
    zbx_net_frontend:
+    aliases:
+     - zabbix
   stop_grace_period: 10s
   sysctls:
    - net.core.somaxconn=65535
