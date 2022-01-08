@@ -1,11 +1,15 @@
 package provider
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"fmt"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform/helper/acctest"
 )
 
 func TestAccResourceHost(t *testing.T) {
+	rName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -14,73 +18,79 @@ func TestAccResourceHost(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceHostBasic(),
+				Config: testAccResourceHostBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", fmt.Sprintf("test-host-%s", rName)),
 				),
 			},
 			{
-				Config: testAccResourceHostWithInventory(),
+				Config: testAccResourceHostWithInventory(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory_location", "test location A"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory.0.location", "test location A"),
 				),
 			},
 			{
-				Config: testAccResourceHostWithInventoryUpdate(),
+				Config: testAccResourceHostWithInventoryUpdate(rName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory_location", "test location B"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory.0.location", "test location B"),
 				),
 			},
 		},
 	})
 }
 
-func testAccResourceHostBasic() string {
-	return `
+func testAccResourceHostBasic(rHost string) string {
+	return fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = "test-group-%s" 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = "test-host-%s"
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
 }
-`
+`, rHost, rHost)
 }
 
-func testAccResourceHostWithInventory() string {
-	return `
+func testAccResourceHostWithInventory(rHost string) string {
+	return fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp2" {
-	name = "test-group2" 
+	name = "test-group2-%s" 
 }
 resource "zabbix_host" "testhost2" {
-	host   = "test-host2"
+	host   = "test-host2-%s"
 	groups = [zabbix_hostgroup.testgrp2.id]
 	interface {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
-    inventory_location = "test location A"
+	inventory_mode = "manual"
+    inventory {
+		location = "test location A"
+	}
 }
-`
+`, rHost, rHost)
 }
 
-func testAccResourceHostWithInventoryUpdate() string {
-	return `
+func testAccResourceHostWithInventoryUpdate(rHost string) string {
+	return fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp2" {
-	name = "test-group2" 
+	name = "test-group2-%s" 
 }
 resource "zabbix_host" "testhost2" {
-	host   = "test-host2"
+	host   = "test-host2-%s"
 	groups = [zabbix_hostgroup.testgrp2.id]
 	interface {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
-    inventory_location = "test location B"
+	inventory_mode = "manual"
+    inventory {
+		location = "test location B"
+	}
 }
-`
+`, rHost, rHost)
 }

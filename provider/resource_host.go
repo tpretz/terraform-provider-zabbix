@@ -476,7 +476,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 			interfaces[i].Port = strconv.FormatInt(int64(v.(int)), 10)
 		} else {
 			v := HOST_IFACE_PORTS[d.Get(prefix+"type").(string)]
-			d.Set(prefix+"port", v)
+			//d.Set(prefix+"port", v)
 			interfaces[i].Port = strconv.FormatInt(int64(v), 10)
 		}
 
@@ -695,7 +695,14 @@ func flattenInventory(host zabbix.Host) []interface{} {
 	}
 	obj := map[string]interface{}{}
 	for k, v := range host.Inventory {
+		// handle legacy zabbix v4 values that may be in here
+		if k == "hostid" || k == "inventory_mode" {
+			continue
+		}
 		obj[k] = v
+	}
+	if len(obj) == 0 {
+		return []interface{}{}
 	}
 	return []interface{}{obj}
 }
