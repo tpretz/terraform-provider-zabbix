@@ -25,6 +25,9 @@ jobs:
         name: Unshallow
         run: git fetch --prune --unshallow
       -
+        name: Remove Replaces
+        run: sed -i '/^replace/d' go.mod
+      -
         name: Set up Go
         uses: actions/setup-go@v2
         with:
