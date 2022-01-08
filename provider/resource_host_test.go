@@ -35,6 +35,13 @@ func TestAccResourceHost(t *testing.T) {
 					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory.0.location", "test location B"),
 				),
 			},
+			{
+				Config: testAccResourceHostMultiIface1(rName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost3", "macro.0.value", "fish"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost3", "interface.1.type", "jmx"),
+				),
+			},
 		},
 	})
 }
@@ -90,6 +97,33 @@ resource "zabbix_host" "testhost2" {
 	inventory_mode = "manual"
     inventory {
 		location = "test location B"
+	}
+}
+`, rHost, rHost)
+}
+
+func testAccResourceHostMultiIface1(rHost string) string {
+	return fmt.Sprintf(`
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group3-%s" 
+}
+resource "zabbix_host" "testhost3" {
+	host   = "test-host3-%s"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "agent"
+		dns = "localhost"
+		port = 1234
+	}
+
+	interface {
+		dns = "bob"
+		type = "jmx"
+	}
+
+	macro {
+		value = "fish"
+		name = "{$BOB}"
 	}
 }
 `, rHost, rHost)
