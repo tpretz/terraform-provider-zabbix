@@ -59,9 +59,10 @@ type Host struct {
 	TemplateIDs      TemplateIDs    `json:"templates,omitempty"`
 	TemplateIDsClear TemplateIDs    `json:"templates_clear,omitempty"`
 	// templates are read back from this one
-	ParentTemplateIDs TemplateIDs `json:"parentTemplates,omitempty"`
-	ProxyID           string      `json:"proxy_hostid,omitempty"`
-	Tags              Tags        `json:"tags,omitempty"`
+	ParentTemplateIDs TemplateIDs     `json:"parentTemplates,omitempty"`
+	ProxyID           string          `json:"proxy_hostid,omitempty"`
+	Tags              Tags            `json:"-"`
+	RawTags           json.RawMessage `json:"tags,omitempty"`
 }
 
 // Hosts is an array of Host
@@ -106,6 +107,18 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			res[i].InventoryMode = InventoryDisabled
 		} else {
 			res[i].InventoryMode = *h.RawInventoryMode
+		}
+
+		// tags
+		if h.RawTags == nil {
+			res[i].Tags = Tags{}
+		} else {
+			var tags Tags
+			if err := json.Unmarshal(h.RawTags, &tags); err != nil {
+				api.printf("got error during unmarshal %s", err)
+				panic(err)
+			}
+			res[i].Tags = tags
 		}
 
 		// fix up host inventory if present
@@ -214,6 +227,10 @@ func prepHosts(hosts Hosts) {
 		if h.Inventory != nil {
 			asB, _ := json.Marshal(h.Inventory)
 			hosts[i].RawInventory = json.RawMessage(asB)
+		}
+		if h.Tags != nil {
+			asB, _ := json.Marshal(h.Tags)
+			hosts[i].RawTags = json.RawMessage(asB)
 		}
 		invMode := h.InventoryMode
 		hosts[i].RawInventoryMode = &invMode
