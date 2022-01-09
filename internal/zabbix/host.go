@@ -216,7 +216,7 @@ func prepHosts(hosts Hosts) {
 			hosts[i].RawInventory = json.RawMessage(asB)
 		}
 		invMode := h.InventoryMode
-		h.RawInventoryMode = &invMode
+		hosts[i].RawInventoryMode = &invMode
 	}
 }
 
