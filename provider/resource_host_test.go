@@ -326,9 +326,44 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 
-			// relate to a proxy
-			// relate to a template
-			// disable
+			// relate to a proxy (tricky as we don't manage those resources ... yet, manual setup api call may be warrented)
+			{ // relate to a template, and disable
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_template" "testtmpl" {
+	host = "test-template"
+	name = "test-template"
+	groups = [ zabbix_hostgroup.testgrp.id ]
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host-renamed"
+	groups = [zabbix_hostgroup.testgrp.id]
+	enabled = false
+	interface {
+		type = "agent"
+		dns = "localhost"
+		port = 1234
+	}
+	templates = [zabbix_template.testtmpl.id]
+
+	interface {
+		dns = "bob"
+		type = "jmx"
+	}
+
+	macro {
+		value = "fish"
+		name = "{$BOB}"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "enabled", "false"),
+				),
+			},
+			// remove / replace templates (with items, check they are cleaned up)
 		},
 	})
 }
