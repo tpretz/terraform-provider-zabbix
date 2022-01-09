@@ -93,7 +93,31 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.value", "testvalue2"),
 				),
 			},
-			{
+			{ // snmp attributes, v1
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+		snmp_version = 1
+
+		snmp_community = "testc"
+		snmp_bulk = false
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "1"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "false"),
+				),
+			},
+			{ // snmp attributes, v2
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -115,6 +139,78 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "2"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "false"),
+				),
+			},
+			{ // snmp attributes, v3
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+		snmp_version = 3
+		snmp_bulk = true
+
+		snmp3_securityname = "testc"
+		snmp3_securitylevel = "authpriv"
+		snmp3_authpassphrase = "testauthp"
+		snmp3_privpassphrase = "testprivp"
+		snmp3_authprotocol = "sha"
+		snmp3_privprotocol = "aes"
+		snmp3_contextname = "testcname"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securityname", "testc"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securitylevel", "authpriv"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authpassphrase", "testauthp"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privpassphrase", "testprivp"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authprotocol", "sha"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privprotocol", "aes"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_contextname", "testcname"),
+				),
+			},
+			{ // snmp attributes, v3, change to some that eval to "0"
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+		snmp_version = 3
+		snmp_bulk = true
+
+		snmp3_securityname = "testc"
+		snmp3_securitylevel = "noauthnopriv"
+		snmp3_authpassphrase = "testauthp"
+		snmp3_privpassphrase = "testprivp"
+		snmp3_authprotocol = "md5"
+		snmp3_privprotocol = "des"
+		snmp3_contextname = "testcname"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securityname", "testc"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securitylevel", "noauthnopriv"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authpassphrase", "testauthp"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privpassphrase", "testprivp"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authprotocol", "md5"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privprotocol", "des"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_contextname", "testcname"),
 				),
 			},
 		},
