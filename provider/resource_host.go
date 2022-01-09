@@ -788,6 +788,19 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	// if we had tags, and now we don't, send empty list
+	if d.HasChange("tag") {
+		_, new := d.GetChange("tag")
+		newS := new.(*schema.Set)
+
+		// change from something, to nothing, need to send "nothing"
+		fmt.Printf("tag change")
+		if newS.Len() == 0 {
+			fmt.Print("setting")
+			item.Tags = zabbix.Tags{}
+		}
+	}
+
 	item.HostID = d.Id()
 
 	items := []zabbix.Host{*item}
