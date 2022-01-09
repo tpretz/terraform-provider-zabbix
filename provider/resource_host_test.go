@@ -1,10 +1,102 @@
 package provider
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
+
+func TestAccResourceHostGT5(t *testing.T) {
+	gt5 := os.Getenv("TEST_GT5")
+	if gt5 == "" {
+		return
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+	tag {
+		key = "testtag"
+		value = "testvalue"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue"),
+				),
+			},
+			{
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+	tag {
+		key = "testtag"
+		value = "testvalue1"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
+				),
+			},
+			{
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+	tag {
+		key = "testtagb"
+		value = "testvalue2"
+	}
+	tag {
+		key = "testtag"
+		value = "testvalue1"
+	}
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.key", "testtagb"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.value", "testvalue2"),
+				),
+			},
+		},
+	})
+
+}
 
 func TestAccResourceHost(t *testing.T) {
 	resource.Test(t, resource.TestCase{
