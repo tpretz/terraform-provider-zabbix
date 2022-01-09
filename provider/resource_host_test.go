@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+// These only run on zabbix versions >= 5.0
 func TestAccResourceHostGT5(t *testing.T) {
 	gt5 := os.Getenv("TEST_GT5")
 	if gt5 == "" {
@@ -18,7 +19,7 @@ func TestAccResourceHostGT5(t *testing.T) {
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			{
+			{ // add a tag
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -41,7 +42,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue"),
 				),
 			},
-			{
+			{ // change the tag values
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -64,7 +65,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
 				),
 			},
-			{
+			{ // add a second tag
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -93,7 +94,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.value", "testvalue2"),
 				),
 			},
-			{ // snmp attributes, v1
+			{ // snmp attributes, v1, also clear tags
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -225,7 +226,7 @@ func TestAccResourceHost(t *testing.T) {
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			{
+			{ // simple create
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -244,7 +245,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "disabled"),
 				),
 			},
-			{
+			{ // enable inventory, set something
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -266,7 +267,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory.0.location", "test location A"),
 				),
 			},
-			{
+			{ // change something in inventory, also change mode of inventory
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -289,7 +290,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "automatic"),
 				),
 			},
-			{
+			{ // add a second interface, change interface types, add a macro too
 				Config: `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -324,6 +325,10 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.1.type", "jmx"),
 				),
 			},
+
+			// relate to a proxy
+			// relate to a template
+			// disable
 		},
 	})
 }
