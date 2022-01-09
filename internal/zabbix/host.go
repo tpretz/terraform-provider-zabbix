@@ -50,8 +50,8 @@ type Host struct {
 	RawInventory json.RawMessage `json:"inventory,omitempty"`
 	Inventory    Inventory       `json:"-"`
 
-	RawInventoryMode *InventoryMode `json:"inventory_mode,string,omitempty"`
-	InventoryMode    InventoryMode  `json:"-"`
+	RawInventoryMode json.RawMessage `json:"inventory_mode,omitempty"`
+	InventoryMode    InventoryMode   `json:"-"`
 
 	// Fields below used only when creating hosts
 	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
@@ -106,7 +106,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			// v4 stores this nested in the inventory object, lets see if we can pull that out later
 			res[i].InventoryMode = InventoryDisabled
 		} else {
-			res[i].InventoryMode = *h.RawInventoryMode
+			res[i].InventoryMode = api.getInvModeFromRaw(&h.RawInventoryMode)
 		}
 
 		// tags
@@ -162,6 +162,24 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 	}
 
 	return
+}
+
+func (api *API) getInvModeFromRaw(raw *json.RawMessage) InventoryMode {
+	if raw == nil {
+		return InventoryDisabled
+	}
+	asStr := string(*raw)
+
+	switch asStr {
+	case "-1", "\"-1\"":
+		return InventoryDisabled
+	case "0", "\"0\"":
+		return InventoryManual
+	case "1", "\"1\"":
+		return InventoryAutomatic
+	}
+
+	return InventoryDisabled
 }
 
 // HostsGetByHostGroupIds Gets hosts by host group Ids.
@@ -232,8 +250,9 @@ func prepHosts(hosts Hosts) {
 			asB, _ := json.Marshal(h.Tags)
 			hosts[i].RawTags = json.RawMessage(asB)
 		}
-		invMode := h.InventoryMode
-		hosts[i].RawInventoryMode = &invMode
+		invMode, _ := json.Marshal(h.InventoryMode)
+
+		hosts[i].RawInventoryMode = json.RawMessage(invMode)
 	}
 }
 
