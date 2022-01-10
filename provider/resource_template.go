@@ -44,6 +44,7 @@ func resourceTemplate() *schema.Resource {
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
 			"templates": &schema.Schema{

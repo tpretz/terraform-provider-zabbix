@@ -363,6 +363,7 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "enabled", "false"),
 				),
 			},
+			// remove macros, make sure cleaned up
 			// remove / replace templates (with items, check they are cleaned up)
 		},
 	})
