@@ -91,6 +91,33 @@ resource "zabbix_template" "testtmpl" {
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "description", "test description"),
 				),
 			},
+			{ // add a second group, add a linked template
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_hostgroup" "testgrp2" {
+	name = "test-group-2" 
+}
+resource "zabbix_template" "testtmpl" {
+	groups = [ zabbix_hostgroup.testgrp.id, zabbix_hostgroup.testgrp2.id ]
+	host = "test-template-renamed"
+	name = "bob"
+	description = "test description"
+}
+resource "zabbix_template" "testtmpl2" {
+	groups = [ zabbix_hostgroup.testgrp.id, zabbix_hostgroup.testgrp2.id ]
+	host = "test-template-2"
+
+	templates = [ zabbix_template.testtmpl.id ]
+}
+`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl2", "templates.#", "1"),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "groups.#", "2"),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl2", "groups.#", "2"),
+				),
+			},
 		},
 	})
 }
