@@ -349,25 +349,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		},
 	},
 	"macro": macroSetSchema,
-	"tag": &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"key": &schema.Schema{
-					Type:         schema.TypeString,
-					Required:     true,
-					ValidateFunc: validation.StringIsNotWhiteSpace,
-					Description:  "Tag Key",
-				},
-				"value": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Tag Value",
-				},
-			},
-		},
-	},
+	"tag":   tagSetSchema,
 }
 
 // resourceHost terraform host resource entrypoint
