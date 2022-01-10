@@ -363,7 +363,34 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "enabled", "false"),
 				),
 			},
-			// remove macros, make sure cleaned up
+			{ // remove macros
+				Config: `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_template" "testtmpl" {
+	host = "test-template"
+	name = "test-template"
+	groups = [ zabbix_hostgroup.testgrp.id ]
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host-renamed"
+	groups = [zabbix_hostgroup.testgrp.id]
+	enabled = false
+	interface {
+		type = "agent"
+		dns = "localhost"
+		port = 1234
+	}
+	templates = [zabbix_template.testtmpl.id]
+
+	interface {
+		dns = "bob"
+		type = "jmx"
+	}
+}
+`,
+			},
 			// remove / replace templates (with items, check they are cleaned up)
 		},
 	})
