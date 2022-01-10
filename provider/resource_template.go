@@ -56,7 +56,7 @@ func resourceTemplate() *schema.Resource {
 				},
 				Description: "linked templates",
 			},
-			"macro": macroListSchema,
+			"macro": macroSetSchema,
 		},
 	}
 }
@@ -91,7 +91,7 @@ func dataTemplate() *schema.Resource {
 				Computed:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
-			"macro": macroListSchema,
+			"macro": macroSetSchema,
 		},
 	}
 }

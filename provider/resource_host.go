@@ -348,7 +348,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
 	},
-	"macro": macroListSchema,
+	"macro": macroSetSchema,
 	"tag": &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
