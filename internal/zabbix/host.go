@@ -45,7 +45,7 @@ type Host struct {
 	Error      string        `json:"error"`
 	Name       string        `json:"name"`
 	Status     StatusType    `json:"status,string"`
-	UserMacros Macros        `json:"macros,omitempty"`
+	UserMacros Macros        `json:"macros"`
 
 	RawInventory json.RawMessage `json:"inventory,omitempty"`
 	Inventory    Inventory       `json:"-"`
