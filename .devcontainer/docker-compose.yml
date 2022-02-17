@@ -110,12 +110,37 @@ services:
   networks:
    zbx_net_frontend: {}
 
-
-
-
-
-
-
+ # 6.0
+ zabbix-server-60:
+  image: zabbix/zabbix-server-mysql:ubuntu-6.0-latest
+  ports:
+   - "10060:10051"
+  environment:
+    MYSQL_DATABASE: zabbix600
+    MYSQL_USER: zabbix600
+    MYSQL_ROOT_PASSWORD: password
+  user: root
+  depends_on:
+   - mysql-server
+  networks:
+   zbx_net_frontend: {}
+  stop_grace_period: 30s
+ zabbix-web-60:
+  image: zabbix/zabbix-web-nginx-mysql:ubuntu-6.0-latest
+  ports:
+    - "8060:8080"
+  environment:
+    MYSQL_DATABASE: zabbix600
+    MYSQL_USER: zabbix600
+    MYSQL_ROOT_PASSWORD: password
+    ZBX_SERVER_HOST: zabbix-server-60
+  healthcheck:
+   test: ["CMD", "curl", "-f", "http://localhost:8080"]
+   interval: 10s
+   timeout: 5s
+   start_period: 30s
+  networks:
+   zbx_net_frontend: {}
 
  mysql-server:
   image: mysql:8.0

@@ -6,7 +6,7 @@ export ZABBIX_USER=Admin
 export ZABBIX_PASS=zabbix
 
 .PHONY: testacc
-testacc: cleanlog test40 test50 test54
+testacc: cleanlog test40 test50 test54 test60
 
 .PHONY: cleanlog
 cleanlog:
@@ -24,3 +24,6 @@ test50:
 test54:
 	ZABBIX_URL=http://zabbix-web-54:8080/api_jsonrpc.php go test ./provider
 
+.PHONY: test60
+test60:
+	ZABBIX_URL=http://zabbix-web-60:8080/api_jsonrpc.php go test ./provider
