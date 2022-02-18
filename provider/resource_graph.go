@@ -182,6 +182,12 @@ var schemaGraph = map[string]*schema.Schema{
 		Description:  "Left percentile",
 		Default:      "0",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "0" && old == "0.0000" {
+				return true
+			}
+			return false
+		},
 	},
 	"percent_right": &schema.Schema{
 		Type:         schema.TypeString,
@@ -189,6 +195,12 @@ var schemaGraph = map[string]*schema.Schema{
 		Description:  "Right percentile",
 		Default:      "0",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "0" && old == "0.0000" {
+				return true
+			}
+			return false
+		},
 	},
 	"do3d": &schema.Schema{
 		Type:        schema.TypeBool,
@@ -214,12 +226,24 @@ var schemaGraph = map[string]*schema.Schema{
 		Description:  "Y Axis Max",
 		Default:      "100",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "100" && old == "100.0000" {
+				return true
+			}
+			return false
+		},
 	},
 	"ymax_itemid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Description:  "Y Axis Max ItemId",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "" && old == "0" {
+				return true
+			}
+			return false
+		},
 	},
 	"ymax_type": &schema.Schema{
 		Type:         schema.TypeString,
@@ -234,12 +258,24 @@ var schemaGraph = map[string]*schema.Schema{
 		Description:  "Y Axis Min",
 		Default:      "0",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "0" && old == "0.0000" {
+				return true
+			}
+			return false
+		},
 	},
 	"ymin_itemid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Description:  "Y Axis Min ItemId",
 		Optional:     true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			if new == "" && old == "0" {
+				return true
+			}
+			return false
+		},
 	},
 	"ymin_type": &schema.Schema{
 		Type:         schema.TypeString,
