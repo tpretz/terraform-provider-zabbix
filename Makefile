@@ -14,16 +14,16 @@ cleanlog:
 
 .PHONY: test40
 test40:
-	ZABBIX_URL=http://zabbix-web-40:8080/api_jsonrpc.php go test ./provider
+	ZABBIX_URL=http://zabbix-web-40:8080/api_jsonrpc.php go test -v ./provider
 
 .PHONY: test50
 test50:
-	ZABBIX_URL=http://zabbix-web-50:8080/api_jsonrpc.php go test ./provider
+	ZABBIX_URL=http://zabbix-web-50:8080/api_jsonrpc.php go test -v ./provider
 
 .PHONY: test54
 test54:
-	ZABBIX_URL=http://zabbix-web-54:8080/api_jsonrpc.php go test ./provider
+	ZABBIX_URL=http://zabbix-web-54:8080/api_jsonrpc.php go test -v ./provider
 
 .PHONY: test60
 test60:
-	ZABBIX_URL=http://zabbix-web-60:8080/api_jsonrpc.php go test ./provider
+	ZABBIX_URL=http://zabbix-web-60:8080/api_jsonrpc.php go test -v ./provider
