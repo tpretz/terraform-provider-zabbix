@@ -183,7 +183,13 @@ var schemaGraph = map[string]*schema.Schema{
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			if new == "0" && old == "0.0000" {
+			if !strings.Contains(old, ".") {
+				old = old + ".0000"
+			}
+			if !strings.Contains(new, ".") {
+				new = new + ".0000"
+			}
+			if old == new {
 				return true
 			}
 			return false
@@ -196,7 +202,13 @@ var schemaGraph = map[string]*schema.Schema{
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			if new == "0" && old == "0.0000" {
+			if !strings.Contains(old, ".") {
+				old = old + ".0000"
+			}
+			if !strings.Contains(new, ".") {
+				new = new + ".0000"
+			}
+			if old == new {
 				return true
 			}
 			return false
@@ -227,7 +239,13 @@ var schemaGraph = map[string]*schema.Schema{
 		Default:      "100",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			if new == "100" && old == "100.0000" {
+			if !strings.Contains(old, ".") {
+				old = old + ".0000"
+			}
+			if !strings.Contains(new, ".") {
+				new = new + ".0000"
+			}
+			if old == new {
 				return true
 			}
 			return false
@@ -259,7 +277,13 @@ var schemaGraph = map[string]*schema.Schema{
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			if new == "0" && old == "0.0000" {
+			if !strings.Contains(old, ".") {
+				old = old + ".0000"
+			}
+			if !strings.Contains(new, ".") {
+				new = new + ".0000"
+			}
+			if old == new {
 				return true
 			}
 			return false
@@ -370,6 +394,18 @@ func buildGraphObject(d *schema.ResourceData) zabbix.Graph {
 	}
 	if d.Get("work_period").(bool) {
 		item.ShowWorkPeriod = "1"
+	}
+
+	if item.YMinItemId == "0" {
+		item.YMinItemId = ""
+	}
+	if item.YMaxItemId == "0" {
+		item.YMaxItemId = ""
+	}
+
+	// if it already exists, this will be set
+	if d.Id() != "" {
+		item.GraphID = d.Id()
 	}
 
 	item.GraphItems = buildGraphItems(d)
