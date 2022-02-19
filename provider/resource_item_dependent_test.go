@@ -39,9 +39,9 @@ resource "zabbix_item_dependent" "testitem" {
 }
 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "key", "depitem"),
-					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "name", "Dep Item"),
-					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "valuetype", "text"),
+					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "key", "depitem"),
+					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "name", "Dep Item"),
+					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "valuetype", "text"),
 				),
 			},
 			{ // change values
