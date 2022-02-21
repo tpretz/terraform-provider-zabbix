@@ -17,17 +17,24 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				Description:  "Zabbix API username",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_USER", "ZABBIX_USERNAME"}, nil),
 			},
 			"password": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				Description:  "Zabbix API password",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_PASS", "ZABBIX_PASSWORD"}, nil),
+			},
+			"api_token": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "Zabbix API token",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_TOKEN", "ZABBIX_API_TOKEN"}, nil),
 			},
 			"url": &schema.Schema{
 				Type:         schema.TypeString,
@@ -171,7 +178,12 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 
 	api.Config.Version = int(version)
 
-	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
+	if token, ok := d.GetOk("api_token"); ok {
+		api.Auth = token.(string)
+	} else {
+		_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
+	}
+
 	meta = api
 	log.Trace("Started zabbix provider got error: %+v", err)
 
