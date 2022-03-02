@@ -233,7 +233,7 @@ func itemSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("snmp_oid", item.SNMPOid)
 
 	if api.Config.Version < 50000 {
-		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
+		d.Set("snmp_version", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 		switch item.Type {
 		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
 			d.Set("snmp_community", item.SNMPCommunity)
@@ -257,7 +257,7 @@ func lldSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("snmp_oid", item.SNMPOid)
 
 	if api.Config.Version < 50000 {
-		d.Set("type", SNMP_LOOKUP_REV[item.Type]) // may be null, check
+		d.Set("snmp_version", SNMP_LOOKUP_REV[item.Type]) // may be null, check
 		switch item.Type {
 		case zabbix.SNMPv1Agent, zabbix.SNMPv2Agent:
 			d.Set("snmp_community", item.SNMPCommunity)
