@@ -351,66 +351,6 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "10"),
 				),
 			},
-			{ // preprocessor, >=v5.4
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50400, nil
-				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
-}
-resource "zabbix_host" "testhost" {
-	host   = "test-host"
-	groups = [zabbix_hostgroup.testgrp.id]
-	interface {
-		type = "agent"
-		ip   = "127.0.0.1"
-	}
-}
-resource "zabbix_item_agent" "testitem" {
-	hostid = zabbix_host.testhost.id
-	key = "testitemchanged"
-	interfaceid = zabbix_host.testhost.interface.0.id
-
-	name = "Test Item Changed"
-	valuetype = "float"
-
-	active = false
-	#applications = [zabbix_application.testapp.id]
-	delay = "2m"
-	history = "1h"
-	trends = "7d"
-
-	preprocessor {
-		type = "1"
-		params = [ "55" ]
-		error_handler = "0" # issue for version 4
-	}
-	
-	preprocessor {
-		type = "10"
-		error_handler = "0"
-	}
-	
-	preprocessor {
-		type = "26"
-		error_handler = "1"
-	}
-}
-`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "history", "1h"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "trends", "7d"),
-					resource.TestCheckResourceAttrSet("zabbix_item_agent.testitem", "interfaceid"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "1"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.0", "55"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "10"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.type", "26"),
-				),
-			},
 			// preprocessor
 			// application, conditional only works on < 5.4
 		},
