@@ -3,8 +3,6 @@ package provider
 import (
 	"errors"
 	logger "log"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -119,45 +117,6 @@ func Provider() *schema.Provider {
 	}
 }
 
-func getApiVersion(api *zabbix.API) (version int64, err error) {
-	var vstr string
-	vstr, err = api.Version()
-	if err != nil {
-		log.Trace("api version got error: %+v", err)
-		return
-	}
-
-	parts := strings.Split(vstr, ".")
-
-	version, err = strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return
-	}
-	version = version * 10000
-
-	// do we have a minor version
-	if len(parts) > 1 {
-		var no int64
-		no, err = strconv.ParseInt(parts[1], 10, 64)
-		if err != nil {
-			return
-		}
-		version += no * 100
-	}
-
-	// do we have a patch version
-	if len(parts) > 2 {
-		var no int64
-		no, err = strconv.ParseInt(parts[2], 10, 64)
-		if err != nil {
-			return
-		}
-		version += no
-	}
-	log.Trace("version is: %d", version)
-	return
-}
-
 // providerConfigure configure this provider
 func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
@@ -171,20 +130,15 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		return nil, errors.New("credentials required")
 	}
 
-	api := zabbix.NewAPI(zabbix.Config{
+	api, apierr := zabbix.NewAPI(zabbix.Config{
 		Url:         d.Get("url").(string),
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
 		Serialize:   d.Get("serialize").(bool),
 	})
-
-	var version int64
-	version, err = getApiVersion(api)
-	if err != nil {
-		return
+	if apierr != nil {
+		return nil, apierr
 	}
-
-	api.Config.Version = int(version)
 
 	if d.Get("token").(string) != "" {
 		api.Auth = d.Get("token").(string)
