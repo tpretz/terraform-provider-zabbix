@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -89,11 +91,42 @@ type Config struct {
 	Version     int
 }
 
+func parseVersionString(vstr string) (version int64, err error) {
+	parts := strings.Split(vstr, ".")
+
+	version, err = strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return
+	}
+	version = version * 10000
+
+	// do we have a minor version
+	if len(parts) > 1 {
+		var no int64
+		no, err = strconv.ParseInt(parts[1], 10, 64)
+		if err != nil {
+			return
+		}
+		version += no * 100
+	}
+
+	// do we have a patch version
+	if len(parts) > 2 {
+		var no int64
+		no, err = strconv.ParseInt(parts[2], 10, 64)
+		if err != nil {
+			return
+		}
+		version += no
+	}
+	return
+}
+
 // NewAPI Creates new API access object.
 // Typical URL is http://host/api_jsonrpc.php or http://host/zabbix/api_jsonrpc.php.
 // It also may contain HTTP basic auth username and password like
 // http://username:password@host/api_jsonrpc.php.
-func NewAPI(c Config) (api *API) {
+func NewAPI(c Config) (api *API, err error) {
 	api = &API{
 		url:       c.Url,
 		c:         http.Client{},
@@ -113,6 +146,18 @@ func NewAPI(c Config) (api *API) {
 		}
 		api.printf("TLS running in insecure mode, do not use this configuration in production")
 	}
+
+	var rawVersion string
+	rawVersion, err = api.Version()
+	if err != nil {
+		return
+	}
+	var version int64
+	version, err = parseVersionString(rawVersion)
+	if err != nil {
+		return
+	}
+	api.Config.Version = int(version)
 
 	return
 }
@@ -204,8 +249,12 @@ func (api *API) CallWithErrorParse(method string, params interface{}, result int
 // Login Calls "user.login" API method and fills api.Auth field.
 // This method modifies API structure and should not be called concurrently with other methods.
 func (api *API) Login(user, password string) (auth string, err error) {
-	params := map[string]string{"user": user, "password": password}
-	response, err := api.CallWithError("user.login", params)
+	var response Response
+	if api.Config.Version >= 50400 {
+		response, err = api.CallWithError("user.login", map[string]string{"username": user, "password": password})
+	} else {
+		response, err = api.CallWithError("user.login", map[string]string{"user": user, "password": password})
+	}
 	if err != nil {
 		return
 	}
