@@ -77,9 +77,9 @@ Instantiate an instance of the provider.
 ```
 provider "zabbix" {
   # Required
-  username = "<api_user>"
-  password = "<api_password>"
-  url = "http://example.com/api_jsonrpc.php"
+  username = "<api_user>"                         # or use environment variable `ZABBIX_USER`
+  password = "<api_password>"                     # or use environment variable `ZABBIX_PASS`
+  url = "http://example.com/api_jsonrpc.php"      # or use environment variable `ZABBIX_URL`
   
   # Optional
 
