@@ -61,13 +61,14 @@ func proxyRead(d *schema.ResourceData, m interface{}, params zabbix.Params) erro
 		return err
 	}
 
-	if len(proxys) < 1 {
-		d.SetId("")
-		return nil
+	if len(proxys) == 0 {
+		return fmt.Errorf("cannot find proxy") 
 	}
+	
 	if len(proxys) > 1 {
 		return errors.New("multiple proxys found")
 	}
+	
 	proxy := proxys[0]
 
 	log.Debug("Got proxy: %+v", proxy)
