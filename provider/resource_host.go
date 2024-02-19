@@ -329,6 +329,21 @@ var hostSchemaBase = map[string]*schema.Schema{
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP3_SECURITYNAME}",
 				},
+				"useip": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+					Description: "Whether to use IP address. True to use IP, false to use DNS name.",
+				},
+			},
+
+			// Ensure dns is set when useip is set to false
+			CustomizeDiff: func(d *schema.ResourceDiff, meta interface{}) error {
+				if useIP, ok := d.GetOk("useip"); ok && !useIP.(bool) {
+					d.SetNewComputed("dns")
+					d.ForceNew("dns")
+				}
+				return nil
 			},
 		},
 	},
@@ -368,6 +383,99 @@ var hostSchemaBase = map[string]*schema.Schema{
 			},
 		},
 	},
+	"tls_connect": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "none",
+		Description:  "Connections to host. Possible values are: 'none' - No encryption, 'psk' - PSK, 'cert' - certificate.",
+		ValidateFunc: validation.StringInSlice([]string{"none", "psk", "cert"}, false),
+	},
+	"tls_accept": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "none",
+		Description:  "Connections from host. Possible values are: 'none' - No encryption, 'psk' - PSK, 'cert' - certificate.",
+		ValidateFunc: validation.StringInSlice([]string{"none", "psk", "cert"}, false),
+	},
+	"tls_issuer": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Certificate issuer.",
+	},
+	"tls_subject": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Certificate subject.",
+	},
+	"tls_psk_identity": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "PSK identity. Required if either tls_connect or tls_accept has PSK enabled.",
+	},
+	"tls_psk": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Pre-shared key. Required if either tls_connect or tls_accept has PSK enabled.",
+		Sensitive:   true,
+		ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+			value := val.(string)
+			hexRegex := regexp.MustCompile(`^[0-9a-fA-F]{32,}$`)
+			if !hexRegex.MatchString(value) {
+				errs = append(errs, fmt.Errorf("tls_psk must be at least 32 hexadecimal characters"))
+			}
+			return warns, errs
+		},
+	},
+}
+
+// convertTLSBitmapToString converts TLS integer values into friendly strings
+func convertTLSBitmapToString(bitmap string) string {
+    switch bitmap {
+    case "1":
+        return "none"
+    case "2":
+        return "psk"
+    case "4":
+        return "cert"
+    default:
+        return "unknown"
+    }
+}
+
+// convertTLSStringToBitmap converts TLS friendly string values to integer values
+func convertTLSStringToBitmap(value string) string {
+    switch value {
+    case "none":
+        return "1"
+    case "psk":
+        return "2"
+    case "cert":
+        return "4"
+    default:
+        return "unknown"
+    }
+}
+
+// customValidatePSKFields ensures TLS PSK fields are provided when PSK encryption is configured.
+func customValidatePSKFields(diff *schema.ResourceDiff, v interface{}) error {
+	tlsConnect, tlsConnectOk := diff.GetOk("tls_connect")
+	tlsAccept, tlsAcceptOk := diff.GetOk("tls_accept")
+
+	// Validate only if tls_connect or tls_accept is set to "psk"
+	if (tlsConnectOk && tlsConnect.(string) == "psk") || (tlsAcceptOk && tlsAccept.(string) == "psk") {
+		_, pskIdentityOk := diff.GetOk("tls_psk_identity")
+		_, pskOk := diff.GetOk("tls_psk")
+
+		if !pskIdentityOk {
+			return fmt.Errorf("tls_psk_identity must be provided when tls_connect or tls_accept is set to 'psk'")
+		}
+		if !pskOk {
+			return fmt.Errorf("tls_psk must be provided when tls_connect or tls_accept is set to 'psk'")
+		}
+	}
+
+	return nil
 }
 
 // resourceHost terraform host resource entrypoint
@@ -381,6 +489,7 @@ func resourceHost() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		CustomizeDiff: customValidatePSKFields,
 	}
 }
 
@@ -451,12 +560,18 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 		prefix := fmt.Sprintf("interface.%d.", i)
 		typeId := HOST_IFACE_TYPES[d.Get(prefix+"type").(string)]
 
+		useIP := d.Get(prefix + "useip").(bool)
+		useIPStr := "1" // Default to "1"
+		if useIP {
+			useIPStr = "0"
+		}
+
 		interfaces[i] = zabbix.HostInterface{
 			IP:    d.Get(prefix + "ip").(string),
 			DNS:   d.Get(prefix + "dns").(string),
 			Main:  "0",
 			Type:  typeId,
-			UseIP: "0",
+			UseIP: useIPStr,
 		}
 		if interfaces[i].IP == "" && interfaces[i].DNS == "" {
 			err = errors.New("interface requires either an IP or DNS entry")
@@ -542,11 +657,17 @@ func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 // buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error) {
 	item := zabbix.Host{
-		Host:          d.Get("host").(string),
-		Name:          d.Get("name").(string),
-		ProxyID:       d.Get("proxyid").(string),
-		InventoryMode: HINV_LOOKUP[d.Get("inventory_mode").(string)],
-		Status:        0,
+		Host:           d.Get("host").(string),
+		Name:           d.Get("name").(string),
+		ProxyID:        d.Get("proxyid").(string),
+		InventoryMode:  HINV_LOOKUP[d.Get("inventory_mode").(string)],
+		Status:         0,
+		TLSConnect:     convertTLSStringToBitmap(d.Get("tls_connect").(string)),
+		TLSAccept:      convertTLSStringToBitmap(d.Get("tls_accept").(string)),
+		TLSIssuer:      d.Get("tls_issuer").(string),
+		TLSSubject:     d.Get("tls_subject").(string),
+		TLSPSKIdentity: d.Get("tls_psk_identity").(string),
+		TLSPSK:         d.Get("tls_psk").(string),
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -677,6 +798,12 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("proxyid", host.ProxyID)
 	d.Set("enabled", host.Status == 0)
 	d.Set("inventory_mode", HINV_LOOKUP_REV[host.InventoryMode])
+	d.Set("tls_issuer", host.TLSIssuer)
+	d.Set("tls_subject", host.TLSSubject)
+	d.Set("tls_accept", convertTLSBitmapToString(host.TLSAccept))
+	d.Set("tls_connect", convertTLSBitmapToString(host.TLSConnect))
+	d.Set("tls_psk_identity", host.TLSPSKIdentity)
+	d.Set("tls_psk", host.TLSPSK)
 
 	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
