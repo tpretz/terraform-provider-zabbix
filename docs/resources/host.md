@@ -62,7 +62,6 @@ Optional:
 - **snmp_version** (String) SNMP Version, one of: 1, 2, 3
 - **type** (String) Interface type
 
-
 Read-Only:
 
 - **id** (String) Interface ID (internally generated)
