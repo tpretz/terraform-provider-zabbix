@@ -561,9 +561,9 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 		typeId := HOST_IFACE_TYPES[d.Get(prefix+"type").(string)]
 
 		useIP := d.Get(prefix + "useip").(bool)
-		useIPStr := "1" // Default to "1"
+		useIPStr := "0" // Default to "1"
 		if useIP {
-			useIPStr = "0"
+			useIPStr = "1"
 		}
 
 		interfaces[i] = zabbix.HostInterface{
@@ -576,10 +576,6 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 		if interfaces[i].IP == "" && interfaces[i].DNS == "" {
 			err = errors.New("interface requires either an IP or DNS entry")
 			return
-		}
-
-		if interfaces[i].IP != "" {
-			interfaces[i].UseIP = "1"
 		}
 
 		if d.Get(prefix + "main").(bool) {
@@ -840,6 +836,7 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 			"main": host.Interfaces[i].Main == "1",
 			"port": port,
 			"type": HOST_IFACE_TYPES_REV[host.Interfaces[i].Type],
+			"useip": host.Interfaces[i].UseIP,
 		}
 
 		// Set defaults, as these may or may not be bounced back
