@@ -32,6 +32,13 @@ description: |-
 - **proxyid** (String) ID of proxy to monitor this host
 - **tag** (Block Set) (see [below for nested schema](#nestedblock--tag))
 - **templates** (Set of String) Template IDs to attach to this host
+- **tls_connect** (String) Determines how connections to the host are encrypted. Possible values are: 'none' - No encryption, 'psk' - Pre-Shared Key (PSK), 'cert' - Certificate-based encryption
+- **tls_accept** (String) Determines how connections from the host are encrypted. Possible values are: 'none' - No encryption, 'psk' - Pre-Shared Key (PSK), 'cert' - Certificate-based encryption.
+- **tls_issuer** (String) The issuer of the TLS certificate used for encryption, if applicable.
+- **tls_subject** (String) The subject of the TLS certificate used for encryption, if applicable.
+- **tls_psk_identity** (String) The identity associated with the Pre-Shared Key (PSK) used for encryption. Required if either tls_connect or tls_accept has PSK enabled.
+- **tls_psk** (String) The Pre-Shared Key (PSK) used for encryption. Required if either tls_connect or tls_accept has PSK enabled. Must be at least 32 hexadecimal characters.
+
 
 <a id="nestedblock--interface"></a>
 ### Nested Schema for `interface`
@@ -40,6 +47,7 @@ Optional:
 
 - **dns** (String) Interface DNS name
 - **ip** (String) Interface IP address
+- **useip** (Boolean) Whether to use the IP address or DNS name for connecting to the host
 - **main** (Boolean) Primary interface of this type
 - **port** (Number) Destination Port
 - **snmp3_authpassphrase** (String) Authentication Passphrase (v3 only)
