@@ -406,9 +406,13 @@ func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 // Delete Item Resource Handler
 func resourceItemDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
-	return api.ItemsDeleteByIds([]string{d.Id()})
+	return retryZabbixTransient(func() error {
+		return api.ItemsDeleteByIds([]string{d.Id()})
+	})
 }
 func resourceProtoItemDelete(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
-	return api.ProtoItemsDeleteByIds([]string{d.Id()})
+	return retryZabbixTransient(func() error {
+		return api.ProtoItemsDeleteByIds([]string{d.Id()})
+	})
 }
