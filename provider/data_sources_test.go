@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourcesTemplateHostgroupHostProxy(t *testing.T) {
+func TestAccDataSourcesTemplateHostgroupHost(t *testing.T) {
 	id := resource.UniqueId()
 	groupName := "test-group-" + id
 	tmplHost := "test-template-" + id

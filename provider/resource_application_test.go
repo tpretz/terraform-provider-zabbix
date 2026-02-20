@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -8,39 +9,45 @@ import (
 )
 
 func TestAccResourceApplication(t *testing.T) {
+	id := resource.UniqueId()
+	lazyGroup := "lazyload-" + id
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+	appName := "test-app-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			{ // lazy load config, needed for skipfunc that look at meta
-				Config: `
+			{ // lazy load config, needed for SkipFunc that looks at meta
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "lazyconfigload" {
-	name = "lazyload" 
+  name = %q
 }
-`,
+`, lazyGroup),
 			},
 			{ // simple create
 				SkipFunc: func() (bool, error) {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 resource "zabbix_application" "testapp" {
-	name = "test-app" 
-	hostid = zabbix_template.testtmpl.id
+  name   = %q
+  hostid = zabbix_template.testtmpl.id
 }
-`,
+`, groupName, tmplHost, appName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", "test-app"),
+					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", appName),
 				),
 			},
 			{ // rename
@@ -48,24 +55,24 @@ resource "zabbix_application" "testapp" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 resource "zabbix_application" "testapp" {
-	name = "test-app-renamed" 
-	hostid = zabbix_template.testtmpl.id
+  name   = %q
+  hostid = zabbix_template.testtmpl.id
 }
-`,
+`, groupName, tmplHost, appName+"-renamed"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", "test-app-renamed"),
+					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", appName+"-renamed"),
 				),
 			},
-			// TODO ref to an item
+			// TODO: ref to an item
 		},
 	})
 }

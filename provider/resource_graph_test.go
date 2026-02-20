@@ -19,11 +19,11 @@ func TestAccResourceGraph(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // lazy load config, needed for skipfunc that look at meta
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "lazyconfigload" {
-	name = "lazyload" 
+  name = %q
 }
-`,
+`, "lazyload-"+id),
 			},
 			{ // simple create
 				// SkipFunc: func() (bool, error) {

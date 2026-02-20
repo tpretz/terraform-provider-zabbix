@@ -12,6 +12,7 @@ func TestAccResourceItemAgent(t *testing.T) {
 	id := resource.UniqueId()
 	groupName := "test-group-" + id
 	tmplHost := "test-template-" + id
+	hostName := "test-host-" + id
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -146,7 +147,7 @@ resource "zabbix_hostgroup" "testgrp" {
 	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "agent"
@@ -167,7 +168,7 @@ resource "zabbix_item_agent" "testitem" {
 	history = "1h"
 	trends = "7d"
 }
-`, groupName),
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -186,7 +187,7 @@ resource "zabbix_hostgroup" "testgrp" {
 	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "agent"
@@ -216,7 +217,7 @@ resource "zabbix_item_agent" "testitem" {
 		type = "10"
 	}
 }
-`, groupName),
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -238,7 +239,7 @@ resource "zabbix_hostgroup" "testgrp" {
 	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "agent"
@@ -284,7 +285,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`, groupName),
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -312,7 +313,7 @@ resource "zabbix_hostgroup" "testgrp" {
 	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "agent"
@@ -344,7 +345,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`, groupName),
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),

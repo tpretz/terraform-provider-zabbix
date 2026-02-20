@@ -67,12 +67,20 @@ func waitForZabbixAPIReady(t *testing.T, url string) {
 		start   = time.Now()
 	)
 
-	payload, _ := json.Marshal(rpcReq{JSONRPC: "2.0", Method: "apiinfo.version", Params: []interface{}{}, ID: 1})
+	payload, err := json.Marshal(rpcReq{JSONRPC: "2.0", Method: "apiinfo.version", Params: []interface{}{}, ID: 1})
+	if err != nil {
+		t.Fatalf("failed to marshal apiinfo.version request: %v", err)
+	}
 	client := &http.Client{Timeout: 5 * time.Second}
 
 	var lastErr error
 	for time.Since(start) < timeout {
-		req, _ := http.NewRequest("POST", url, bytes.NewReader(payload))
+		req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
+		if err != nil {
+			lastErr = err
+			time.Sleep(step)
+			continue
+		}
 		req.Header.Set("Content-Type", "application/json-rpc")
 
 		resp, err := client.Do(req)
@@ -81,8 +89,16 @@ func waitForZabbixAPIReady(t *testing.T, url string) {
 			time.Sleep(step)
 			continue
 		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		closeErr := resp.Body.Close()
+		if err == nil && closeErr != nil {
+			err = closeErr
+		}
+		if err != nil {
+			lastErr = err
+			time.Sleep(step)
+			continue
+		}
 
 		if resp.StatusCode != 200 {
 			lastErr = fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
