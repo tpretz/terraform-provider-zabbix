@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -8,6 +9,11 @@ import (
 )
 
 func TestAccResourceHost(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	hostName := "test-host-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -15,31 +21,31 @@ func TestAccResourceHost(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", hostName),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "disabled"),
 				),
 			},
 			{ // enable inventory, set something
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -50,18 +56,18 @@ resource "zabbix_host" "testhost" {
 		location = "test location A"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory.0.location", "test location A"),
 				),
 			},
 			{ // change something in inventory, also change mode of inventory
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -72,19 +78,19 @@ resource "zabbix_host" "testhost" {
 		location = "test location B"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory.0.location", "test location B"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "automatic"),
 				),
 			},
 			{ // add a second interface, change interface types, add a macro too
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host-renamed"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "agent"
@@ -102,9 +108,9 @@ resource "zabbix_host" "testhost" {
 		name = "{$BOB}"
 	}
 }
-`,
+`, groupName, hostName+"-renamed"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host-renamed"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", hostName+"-renamed"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "macro.0.value", "fish"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.dns", "localhost"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.type", "agent"),
@@ -116,17 +122,17 @@ resource "zabbix_host" "testhost" {
 
 			// relate to a proxy (tricky as we don't manage those resources ... yet, manual setup api call may be warrented)
 			{ // relate to a template, and disable
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
-	host = "test-template"
-	name = "test-template"
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	host   = %q
+	name   = %q
+	groups = [zabbix_hostgroup.testgrp.id]
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host-renamed"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	enabled = false
 	interface {
@@ -146,23 +152,23 @@ resource "zabbix_host" "testhost" {
 		name = "{$BOB}"
 	}
 }
-`,
+`, groupName, tmplHost, tmplHost, hostName+"-renamed"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "enabled", "false"),
 				),
 			},
 			{ // remove macros
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
-	host = "test-template"
-	name = "test-template"
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	host   = %q
+	name   = %q
+	groups = [zabbix_hostgroup.testgrp.id]
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host-renamed"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	enabled = false
 	interface {
@@ -177,19 +183,19 @@ resource "zabbix_host" "testhost" {
 		type = "jmx"
 	}
 }
-`,
+`, groupName, tmplHost, tmplHost, hostName+"-renamed"),
 			},
 			{ // add a tag
 				SkipFunc: func() (bool, error) {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -200,7 +206,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue"),
@@ -211,12 +217,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -227,7 +233,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue1"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
@@ -238,12 +244,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -258,7 +264,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue1"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
@@ -271,12 +277,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -287,7 +293,7 @@ resource "zabbix_host" "testhost" {
 		snmp_bulk = false
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "1"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
@@ -299,12 +305,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -315,7 +321,7 @@ resource "zabbix_host" "testhost" {
 		snmp_bulk = false
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "2"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
@@ -327,12 +333,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -349,7 +355,7 @@ resource "zabbix_host" "testhost" {
 		snmp3_contextname = "testcname"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
@@ -367,12 +373,12 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
-	host   = "test-host"
+	host   = %q
 	groups = [zabbix_hostgroup.testgrp.id]
 	interface {
 		type = "snmp"
@@ -389,7 +395,7 @@ resource "zabbix_host" "testhost" {
 		snmp3_contextname = "testcname"
 	}
 }
-`,
+`, groupName, hostName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),

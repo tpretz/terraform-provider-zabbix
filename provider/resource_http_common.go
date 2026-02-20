@@ -26,9 +26,13 @@ var HTTP_RETRIEVEMODE_REV = map[string]string{}
 var HTTP_RETRIEVEMODE_ARR = []string{}
 
 var HTTP_POSTTYPE = map[string]string{
+	// Zabbix API uses:
+	// 0 = raw data
+	// 1 = JSON data
+	// 2 = XML data
 	"raw":  "0",
-	"json": "2",
-	"xml":  "3",
+	"json": "1",
+	"xml":  "2",
 }
 var HTTP_POSTTYPE_REV = map[string]string{}
 var HTTP_POSTTYPE_ARR = []string{}
@@ -92,7 +96,7 @@ var schemaHttp = map[string]*schema.Schema{
 		Optional:     true,
 		Description:  "HTTP post type, one of: " + strings.Join(HTTP_POSTTYPE_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(HTTP_POSTTYPE_ARR, false),
-		Default:      "body",
+		Default:      "raw",
 	},
 	"retrieve_mode": &schema.Schema{
 		Type:         schema.TypeString,

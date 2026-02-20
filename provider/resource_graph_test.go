@@ -1,12 +1,17 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccResourceGraph(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -25,92 +30,92 @@ resource "zabbix_hostgroup" "lazyconfigload" {
 				// 	api := testAccProvider.Meta().(*zabbix.API)
 				// 	return api.Config.Version >= 50400, nil
 				// },
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [zabbix_hostgroup.testgrp.id]
+  host   = %q
 }
 resource "zabbix_item_agent" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "testitem"
+  hostid = zabbix_template.testtmpl.id
+  key    = "testitem"
 
-	name = "Test Item"
-	valuetype = "unsigned"
+  name      = "Test Item"
+  valuetype = "unsigned"
 }
 resource "zabbix_graph" "test" {
-	name = "test" 
-	width = "600"
-	height = "400"
+  name   = "test"
+  width  = "600"
+  height = "400"
 
-	type = "normal"
+  type = "normal"
 
-	item {
-		color = "FFFF00"
-		itemid = zabbix_item_agent.testitem.id
-	}
+  item {
+    color  = "FFFF00"
+    itemid = zabbix_item_agent.testitem.id
+  }
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_graph.test", "name", "test"),
 				),
 			},
 			{ // adjust and optional settings, second item
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [zabbix_hostgroup.testgrp.id]
+  host   = %q
 }
 resource "zabbix_item_agent" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "testitem"
+  hostid = zabbix_template.testtmpl.id
+  key    = "testitem"
 
-	name = "Test Item"
-	valuetype = "unsigned"
+  name      = "Test Item"
+  valuetype = "unsigned"
 }
 resource "zabbix_item_agent" "testitem-2" {
-	hostid = zabbix_template.testtmpl.id
-	key = "testitemb"
+  hostid = zabbix_template.testtmpl.id
+  key    = "testitemb"
 
-	name = "Test Itemb"
-	valuetype = "unsigned"
+  name      = "Test Itemb"
+  valuetype = "unsigned"
 }
 resource "zabbix_graph" "test" {
-	name = "testb" 
-	width = "500"
-	height = "300"
-	percent_left = "20"
-	percent_right = "20"
-	do3d = true
-	legend = false
-	work_period = false
-	ymax = "80"
-	ymax_type = "fixed"
-	ymin = "10"
-	ymin_type = "fixed"
+  name          = "testb"
+  width         = "500"
+  height        = "300"
+  percent_left  = "20"
+  percent_right = "20"
+  do3d          = true
+  legend        = false
+  work_period   = false
+  ymax          = "80"
+  ymax_type     = "fixed"
+  ymin          = "10"
+  ymin_type     = "fixed"
 
-	type = "stacked"
+  type = "stacked"
 
-	item {
-		color = "FFFF00"
-		itemid = zabbix_item_agent.testitem.id
-		function = "max"
-		drawtype = "dot"
-		sortorder = "5"
-		type = "sum"
-		yaxis_side = "right"
-	}
-	item {
-		color = "00FF00"
-		itemid = zabbix_item_agent.testitem-2.id
-	}
+  item {
+    color      = "FFFF00"
+    itemid     = zabbix_item_agent.testitem.id
+    function   = "max"
+    drawtype   = "dot"
+    sortorder  = "5"
+    type       = "sum"
+    yaxis_side = "right"
+  }
+  item {
+    color  = "00FF00"
+    itemid = zabbix_item_agent.testitem-2.id
+  }
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_graph.test", "name", "testb"),
 				),

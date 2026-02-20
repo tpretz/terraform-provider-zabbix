@@ -3,4 +3,10 @@ terraform-provider-zabbix
 crash.log
 terraform.tfstate
 terraform.tfstate.backup
+
+# Acceptance test logs
+acc.log
+provider/acc.log
+
+# Local docker env
 docker/zbx_env

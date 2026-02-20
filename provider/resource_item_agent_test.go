@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -8,6 +9,10 @@ import (
 )
 
 func TestAccResourceItemAgent(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -15,13 +20,13 @@ func TestAccResourceItemAgent(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -30,7 +35,7 @@ resource "zabbix_item_agent" "testitem" {
 	name = "Test Item"
 	valuetype = "text"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "key", "testitem"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "name", "Test Item"),
@@ -38,13 +43,13 @@ resource "zabbix_item_agent" "testitem" {
 				),
 			},
 			{ // change values
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -53,7 +58,7 @@ resource "zabbix_item_agent" "testitem" {
 	name = "Test Item Changed"
 	valuetype = "float"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "key", "testitemchanged"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "name", "Test Item Changed"),
@@ -65,13 +70,13 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -86,7 +91,7 @@ resource "zabbix_item_agent" "testitem" {
 	history = "1h"
 	trends = "7d"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "true"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -99,13 +104,13 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -125,7 +130,7 @@ resource "zabbix_item_agent" "testitem" {
 		value = "test"
 	}
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "true"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -136,9 +141,9 @@ resource "zabbix_item_agent" "testitem" {
 				),
 			},
 			{ // attached to interface id
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host"
@@ -162,7 +167,7 @@ resource "zabbix_item_agent" "testitem" {
 	history = "1h"
 	trends = "7d"
 }
-`,
+`, groupName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -176,9 +181,9 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host"
@@ -211,7 +216,7 @@ resource "zabbix_item_agent" "testitem" {
 		type = "10"
 	}
 }
-`,
+`, groupName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -228,9 +233,9 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host"
@@ -279,7 +284,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`,
+`, groupName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -302,9 +307,9 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host"
@@ -339,7 +344,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`,
+`, groupName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),

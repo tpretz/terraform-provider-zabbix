@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -8,6 +9,10 @@ import (
 )
 
 func TestAccResourceItemSnmp(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -15,11 +20,11 @@ func TestAccResourceItemSnmp(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // lazy init
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
-`,
+`, groupName),
 			},
 
 			// ge version 5, just simple snmp options onlyu
@@ -31,13 +36,13 @@ resource "zabbix_hostgroup" "testgrp" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_snmp" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -67,7 +72,7 @@ resource "zabbix_item_snmp" "testitem3" {
 	#snmp3_securitylevel = ""
 	#snmp3_securityname = ""
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -92,13 +97,13 @@ resource "zabbix_item_snmp" "testitem3" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_snmp" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -128,7 +133,7 @@ resource "zabbix_item_snmp" "testitem3" {
 	snmp3_securitylevel = "authnopriv"
 	snmp3_securityname = "dave"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -153,13 +158,13 @@ resource "zabbix_item_snmp" "testitem3" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_snmp" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -170,7 +175,7 @@ resource "zabbix_item_snmp" "testitem" {
 
 	snmp_oid = "1.2.2.5"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -183,13 +188,13 @@ resource "zabbix_item_snmp" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_snmp" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -200,7 +205,7 @@ resource "zabbix_item_snmp" "testitem" {
 
 	snmp_oid = "1.2.3.5"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),

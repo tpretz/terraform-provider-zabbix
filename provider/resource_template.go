@@ -91,6 +91,14 @@ func dataTemplate() *schema.Resource {
 				Computed:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
+			"templates": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: "linked templates",
+			},
 			"macro": macroSetSchema,
 		},
 	}
