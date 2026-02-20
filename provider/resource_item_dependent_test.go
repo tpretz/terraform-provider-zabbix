@@ -1,12 +1,17 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccResourceItemDependent(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -14,13 +19,13 @@ func TestAccResourceItemDependent(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "parentitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -37,7 +42,7 @@ resource "zabbix_item_dependent" "testitem" {
 	valuetype = "text"
 	master_itemid = zabbix_item_agent.parentitem.id
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "key", "depitem"),
 					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "name", "Dep Item"),
@@ -45,13 +50,13 @@ resource "zabbix_item_dependent" "testitem" {
 				),
 			},
 			{ // change values
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+	name = %q 
 }
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+	host = %q
 }
 resource "zabbix_item_agent" "parentitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -75,7 +80,7 @@ resource "zabbix_item_dependent" "testitem" {
 	valuetype = "text"
 	master_itemid = zabbix_item_agent.parentitem2.id
 }
-`,
+`, groupName, tmplHost),
 			},
 		},
 	})

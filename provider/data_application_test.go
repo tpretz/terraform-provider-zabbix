@@ -8,7 +8,7 @@ import (
 	"github.com/tpretz/go-zabbix-api"
 )
 
-func TestAccResourceApplication(t *testing.T) {
+func TestAccDataApplication(t *testing.T) {
 	id := resource.UniqueId()
 	lazyGroup := "lazyload-" + id
 	groupName := "test-group-" + id
@@ -28,7 +28,7 @@ resource "zabbix_hostgroup" "lazyconfigload" {
 }
 `, lazyGroup),
 			},
-			{ // simple create
+			{
 				SkipFunc: func() (bool, error) {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50400, nil
@@ -38,41 +38,24 @@ resource "zabbix_hostgroup" "testgrp" {
   name = %q
 }
 resource "zabbix_template" "testtmpl" {
-  groups = [ zabbix_hostgroup.testgrp.id ]
+  groups = [zabbix_hostgroup.testgrp.id]
   host   = %q
 }
 resource "zabbix_application" "testapp" {
   name   = %q
+  hostid = zabbix_template.testtmpl.id
+}
+
+data "zabbix_application" "by_name" {
+  name   = zabbix_application.testapp.name
   hostid = zabbix_template.testtmpl.id
 }
 `, groupName, tmplHost, appName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", appName),
+					resource.TestCheckResourceAttrSet("data.zabbix_application.by_name", "id"),
+					resource.TestCheckResourceAttr("data.zabbix_application.by_name", "name", appName),
 				),
 			},
-			{ // rename
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version >= 50400, nil
-				},
-				Config: fmt.Sprintf(`
-resource "zabbix_hostgroup" "testgrp" {
-  name = %q
-}
-resource "zabbix_template" "testtmpl" {
-  groups = [ zabbix_hostgroup.testgrp.id ]
-  host   = %q
-}
-resource "zabbix_application" "testapp" {
-  name   = %q
-  hostid = zabbix_template.testtmpl.id
-}
-`, groupName, tmplHost, appName+"-renamed"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_application.testapp", "name", appName+"-renamed"),
-				),
-			},
-			// TODO: ref to an item
 		},
 	})
 }

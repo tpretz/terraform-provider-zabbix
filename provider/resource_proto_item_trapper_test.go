@@ -7,15 +7,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccResourceLLDTrapper(t *testing.T) {
+func TestAccResourceProtoItemTrapper(t *testing.T) {
 	id := resource.UniqueId()
 	groupName := "test-group-" + id
 	tmplHost := "test-template-" + id
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
+		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
@@ -27,18 +25,23 @@ resource "zabbix_template" "testtmpl" {
   groups = [zabbix_hostgroup.testgrp.id]
   host   = %q
 }
-
-resource "zabbix_lld_trapper" "testrule" {
+resource "zabbix_lld_trapper" "rule" {
   hostid = zabbix_template.testtmpl.id
   key    = "lld.trapper.discovery"
   name   = "LLD Trapper Rule"
-  delay  = "3600"
+}
+resource "zabbix_proto_item_trapper" "testitem" {
+  ruleid = zabbix_lld_trapper.rule.id
+  hostid = zabbix_template.testtmpl.id
+  key    = "trapper.key"
+  name   = "Proto Trapper Item"
+  valuetype = "unsigned"
 }
 `, groupName, tmplHost),
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testrule", "key", "lld.trapper.discovery"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testrule", "name", "LLD Trapper Rule"),
+					resource.TestCheckResourceAttrSet("zabbix_proto_item_trapper.testitem", "ruleid"),
+					resource.TestCheckResourceAttr("zabbix_proto_item_trapper.testitem", "key", "trapper.key"),
 				),
 			},
 			{
@@ -50,18 +53,23 @@ resource "zabbix_template" "testtmpl" {
   groups = [zabbix_hostgroup.testgrp.id]
   host   = %q
 }
-
-resource "zabbix_lld_trapper" "testrule" {
+resource "zabbix_lld_trapper" "rule" {
   hostid = zabbix_template.testtmpl.id
-  key    = "lld.trapper.discovery2"
-  name   = "LLD Trapper Rule A"
-  delay  = "3600"
+  key    = "lld.trapper.discovery"
+  name   = "LLD Trapper Rule"
+}
+resource "zabbix_proto_item_trapper" "testitem" {
+  ruleid = zabbix_lld_trapper.rule.id
+  hostid = zabbix_template.testtmpl.id
+  key    = "trapper.key2"
+  name   = "Proto Trapper Item A"
+  valuetype = "unsigned"
 }
 `, groupName, tmplHost),
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testrule", "key", "lld.trapper.discovery2"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testrule", "name", "LLD Trapper Rule A"),
+					resource.TestCheckResourceAttr("zabbix_proto_item_trapper.testitem", "key", "trapper.key2"),
+					resource.TestCheckResourceAttr("zabbix_proto_item_trapper.testitem", "valuetype", "unsigned"),
 				),
 			},
 		},

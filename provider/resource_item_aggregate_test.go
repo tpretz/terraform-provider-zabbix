@@ -9,6 +9,10 @@ import (
 )
 
 func TestAccResourceItemAggregate(t *testing.T) {
+	id := resource.UniqueId()
+	groupName := "test-group-" + id
+	tmplHost := "test-template-" + id
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -21,24 +25,24 @@ func TestAccResourceItemAggregate(t *testing.T) {
 					fmt.Printf("got version %d\n", api.Config.Version)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 resource "zabbix_item_aggregate" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "grpavg[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
+  hostid = zabbix_template.testtmpl.id
+  key    = "grpavg[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
 
-	name = "Test Item"
-	valuetype = "unsigned"
+  name      = "Test Item"
+  valuetype = "unsigned"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "key", "grpavg[\"test-group\", \"not_real\", last]"),
+					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "key", fmt.Sprintf("grpavg[\"%s\", \"not_real\", last]", groupName)),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "name", "Test Item"),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "valuetype", "unsigned"),
 				),
@@ -48,24 +52,24 @@ resource "zabbix_item_aggregate" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 resource "zabbix_item_aggregate" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
+  hostid = zabbix_template.testtmpl.id
+  key    = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
 
-	name = "Test Item Changed"
-	valuetype = "float"
+  name      = "Test Item Changed"
+  valuetype = "float"
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "key", "grpsum[\"test-group\", \"not_real\", last]"),
+					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "key", fmt.Sprintf("grpsum[\"%s\", \"not_real\", last]", groupName)),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "name", "Test Item Changed"),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "valuetype", "float"),
 				),
@@ -75,31 +79,31 @@ resource "zabbix_item_aggregate" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50000, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 resource "zabbix_item_aggregate" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
+  hostid = zabbix_template.testtmpl.id
+  key    = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
 
-	name = "Test Item Changed"
-	valuetype = "float"
+  name      = "Test Item Changed"
+  valuetype = "float"
 
-	preprocessor {
-		type = "1"
-		params = [ "55" ]
-	}
-	
-	preprocessor {
-		type = "10"
-	}
+  preprocessor {
+    type   = "1"
+    params = [ "55" ]
+  }
+
+  preprocessor {
+    type = "10"
+  }
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "preprocessor.0.type", "1"),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "preprocessor.0.params.0", "55"),
@@ -111,48 +115,46 @@ resource "zabbix_item_aggregate" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000 || api.Config.Version >= 50400, nil
 				},
-				Config: `
+				Config: fmt.Sprintf(`
 resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+  name = %q
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
-	host = "test-template"
+  groups = [ zabbix_hostgroup.testgrp.id ]
+  host   = %q
 }
 locals {
-	script = <<-EOT
-	  var fish = false;
-	  return fish;
-	EOT
+  script = <<-EOT
+    var fish = false;
+    return fish;
+  EOT
 }
 resource "zabbix_item_aggregate" "testitem" {
-	hostid = zabbix_template.testtmpl.id
-	key = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
+  hostid = zabbix_template.testtmpl.id
+  key    = "grpsum[\"${zabbix_hostgroup.testgrp.name}\", \"not_real\", last]"
 
-	name = "Test Item Changed"
-	valuetype = "float"
+  name      = "Test Item Changed"
+  valuetype = "float"
 
+  preprocessor {
+    type          = "21"
+    params        = [ "var bob = true;", "return bob;" ]
+    error_handler = "0"
+  }
 
-	preprocessor {
-		type = "21"
-		params = [ "var bob = true;", "return bob;" ]
-		error_handler = "0"
-	}
-	
-	preprocessor {
-		type = "21"
-		params = split("\n", "var cheese = true;\nreturn cheese;")
-		error_handler = "0"
-	}
-	
-	preprocessor {
-		type = "21"
-		params = split("\n", trimspace(local.script))
-		# note: change schema to allow blank lines
-		error_handler = "0"
-	}
+  preprocessor {
+    type          = "21"
+    params        = split("\n", "var cheese = true;\nreturn cheese;")
+    error_handler = "0"
+  }
+
+  preprocessor {
+    type          = "21"
+    params        = split("\n", trimspace(local.script))
+    error_handler = "0"
+  }
 }
-`,
+`, groupName, tmplHost),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "preprocessor.0.type", "21"),
 					resource.TestCheckResourceAttr("zabbix_item_aggregate.testitem", "preprocessor.0.params.0", "var bob = true;"),
