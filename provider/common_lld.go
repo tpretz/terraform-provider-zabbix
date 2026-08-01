@@ -58,13 +58,6 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Description:  "Host ID",
 		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 	},
-	"delay": &schema.Schema{
-		Type:         schema.TypeString,
-		Optional:     true,
-		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Default:      "3600",
-		Description:  "LLD Delay period",
-	},
 	"lifetime": &schema.Schema{
 		Type:         schema.TypeString,
 		Optional:     true,
@@ -103,6 +96,19 @@ var lldCommonSchema = map[string]*schema.Schema{
 }
 
 // Interface schema
+// lldDelaySchema is merged into LLD resources whose item type supports a
+// polling interval. Trapper and dependent LLD rules must not send a delay at
+// all (Zabbix requires it to be 0), so they omit this schema.
+var lldDelaySchema = map[string]*schema.Schema{
+	"delay": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Default:      "3600",
+		Description:  "LLD Delay period",
+	},
+}
+
 var lldInterfaceSchema = map[string]*schema.Schema{
 	"interfaceid": &schema.Schema{
 		Type:        schema.TypeString,
@@ -140,7 +146,9 @@ var lldPreprocessorSchema = &schema.Schema{
 			"error_handler": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
+				// Zabbix requires this parameter on every preprocessing step
+				Default:     "0",
+				Description: "Error handler, zabbix identifier number",
 			},
 			"error_handler_params": &schema.Schema{
 				Type:     schema.TypeString,
@@ -264,6 +272,10 @@ func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 	lld := buildLLDObject(d)
 	lld.ItemID = d.Id()
 
+	// hostid is not updatable: Zabbix rejects it as an unexpected parameter
+	// on discoveryrule.update
+	lld.HostID = ""
+
 	// run custom function
 	c(d, m, lld)
 
@@ -312,7 +324,6 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("hostid", lld.HostID)
 	d.Set("key", lld.Key)
 	d.Set("name", lld.Name)
-	d.Set("delay", lld.Delay)
 	d.Set("lifetime", lld.LifeTime)
 	d.Set("evaltype", LLD_EVALTYPE_REV[lld.Filter.EvalType])
 	d.Set("formula", lld.Filter.Formula)
@@ -332,9 +343,10 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 		Key:      d.Get("key").(string),
 		HostID:   d.Get("hostid").(string),
 		Name:     d.Get("name").(string),
-		Delay:    d.Get("delay").(string),
 		LifeTime: d.Get("lifetime").(string),
 	}
+	// Delay is not part of the common schema: each LLD type's mod function
+	// sets it (or forces 0 for types that do not poll).
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)
 	lld.MacroPaths = lldGenerateMacroPaths(d)
@@ -391,6 +403,11 @@ func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFil
 	conditionsCount := d.Get("condition.#").(int)
 	conditions = make(zabbix.LLDRuleFilterConditions, conditionsCount)
 
+	// formulaid is only accepted when the filter uses a custom expression;
+	// for the other eval types Zabbix requires it to be empty, and it is
+	// returned by the API on read, so it must be filtered out here.
+	custom := LLD_EVALTYPE[d.Get("evaltype").(string)] == zabbix.LLDCustom
+
 	for i := 0; i < conditionsCount; i++ {
 		prefix := fmt.Sprintf("condition.%d.", i)
 
@@ -399,9 +416,10 @@ func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFil
 			Value:    d.Get(prefix + "value").(string),
 			Operator: LLD_OPERATOR[d.Get(prefix+"operator").(string)],
 		}
-		id := d.Get(prefix + "id").(string)
-		if id != "" {
-			conditions[i].FormulaID = id
+		if custom {
+			if id := d.Get(prefix + "id").(string); id != "" {
+				conditions[i].FormulaID = id
+			}
 		}
 	}
 

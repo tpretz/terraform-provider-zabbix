@@ -25,7 +25,7 @@ description: |-
 ### Read-Only
 
 - **description** (String) Template description
-- **groups** (Set of String) Host Group IDs
+- **groups** (Set of String) Group IDs the template belongs to (template group IDs on Zabbix >= 6.2).
 
 <a id="nestedblock--macro"></a>
 ### Nested Schema for `macro`

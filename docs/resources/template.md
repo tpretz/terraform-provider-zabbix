@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- **groups** (Set of String) Host Group IDs
+- **groups** (Set of String) Group IDs the template belongs to. On Zabbix >= 6.2 these must be template group IDs (see `zabbix_templategroup`); on older versions, host group IDs.
 - **host** (String) Template hostname (internal name)
 
 ### Optional

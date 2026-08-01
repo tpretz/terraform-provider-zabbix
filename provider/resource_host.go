@@ -541,12 +541,21 @@ func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 
 // buildHostObject create host struct
 func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error) {
+	api := m.(*zabbix.API)
 	item := zabbix.Host{
 		Host:          d.Get("host").(string),
 		Name:          d.Get("name").(string),
-		ProxyID:       d.Get("proxyid").(string),
 		InventoryMode: HINV_LOOKUP[d.Get("inventory_mode").(string)],
 		Status:        0,
+	}
+
+	// Zabbix 7.0 renamed proxy_hostid → proxyid on the host object
+	if proxyID := d.Get("proxyid").(string); proxyID != "" && proxyID != "0" {
+		if api.Config.Version >= 70000 {
+			item.ProxyID = proxyID
+		} else {
+			item.ProxyHostID = proxyID
+		}
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -674,7 +683,12 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.SetId(host.HostID)
 	d.Set("name", host.Name)
 	d.Set("host", host.Host)
-	d.Set("proxyid", host.ProxyID)
+	// Zabbix 7.0 returns proxyid; older versions return proxy_hostid
+	proxyID := host.ProxyID
+	if proxyID == "" {
+		proxyID = host.ProxyHostID
+	}
+	d.Set("proxyid", proxyID)
 	d.Set("enabled", host.Status == 0)
 	d.Set("inventory_mode", HINV_LOOKUP_REV[host.InventoryMode])
 

@@ -220,6 +220,9 @@ var schemaGraph = map[string]*schema.Schema{
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Description:  "Y Axis Max ItemId",
 		Optional:     true,
+		// Zabbix reports "0" when unset; without Computed this produces a
+		// permanent diff against an empty config value.
+		Computed: true,
 	},
 	"ymax_type": &schema.Schema{
 		Type:         schema.TypeString,
@@ -240,6 +243,9 @@ var schemaGraph = map[string]*schema.Schema{
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Description:  "Y Axis Min ItemId",
 		Optional:     true,
+		// Zabbix reports "0" when unset; without Computed this produces a
+		// permanent diff against an empty config value.
+		Computed: true,
 	},
 	"ymin_type": &schema.Schema{
 		Type:         schema.TypeString,
@@ -448,6 +454,9 @@ func resourceGraphUpdate(prototype bool) schema.UpdateFunc {
 		api := m.(*zabbix.API)
 
 		item := buildGraphObject(d)
+		// graph.update / graphprototype.update identify the object by graphid;
+		// without it Zabbix reports the referred object as non-existent
+		item.GraphID = d.Id()
 
 		items := []zabbix.Graph{item}
 

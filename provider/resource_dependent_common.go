@@ -59,6 +59,8 @@ func itemDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.It
 }
 func lldDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.Dependent
+	// dependent rules are not polled; Zabbix requires delay to be 0
+	item.Delay = "0"
 	item.MasterItemID = d.Get("master_itemid").(string)
 }
 

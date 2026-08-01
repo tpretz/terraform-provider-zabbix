@@ -51,7 +51,7 @@ func resourceLLDAgent() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldInterfaceSchema, schemaAgent),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent),
 	}
 }
 
@@ -66,6 +66,7 @@ func itemAgentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 }
 
 func lldAgentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	item.Delay = d.Get("delay").(string)
 	t := zabbix.ZabbixAgent
 	if d.Get("active").(bool) {
 		t = zabbix.ZabbixAgentActive
@@ -81,6 +82,7 @@ func itemAgentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item)
 }
 
 func lldAgentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	d.Set("delay", item.Delay)
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("active", item.Type == zabbix.ZabbixAgentActive)
 }

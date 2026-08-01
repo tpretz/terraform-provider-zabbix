@@ -52,6 +52,8 @@ func itemTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item
 }
 func lldTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.ZabbixTrapper
+	// trapper rules are not polled; Zabbix requires delay to be 0
+	item.Delay = "0"
 }
 
 // Custom read handler for item type

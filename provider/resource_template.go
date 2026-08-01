@@ -28,7 +28,7 @@ func resourceTemplate() *schema.Resource {
 					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 				},
 				Required:    true,
-				Description: "Host Group IDs",
+				Description: "Group IDs the template belongs to. On Zabbix >= 6.2 these must be template group IDs (see zabbix_templategroup); on older versions, host group IDs.",
 			},
 			"host": &schema.Schema{
 				Type:         schema.TypeString,
@@ -44,6 +44,7 @@ func resourceTemplate() *schema.Resource {
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
 			"templates": &schema.Schema{
@@ -71,7 +72,7 @@ func dataTemplate() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Computed:    true,
-				Description: "Host Group IDs",
+				Description: "Group IDs the template belongs to (template group IDs on Zabbix >= 6.2)",
 			},
 			"host": &schema.Schema{
 				Type:        schema.TypeString,

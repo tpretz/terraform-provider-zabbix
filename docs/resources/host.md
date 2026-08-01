@@ -152,6 +152,8 @@ Read-Only:
 <a id="nestedblock--tag"></a>
 ### Nested Schema for `tag`
 
+Tags are supported on Zabbix 6.0 and later. Tags are silently ignored on older versions.
+
 Required:
 
 - **key** (String) Tag Key

@@ -167,7 +167,11 @@ var itemPreprocessorSchema = &schema.Schema{
 			"error_handler": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
+				// Zabbix requires this parameter to be present on every
+				// preprocessing step; 0 means "discard the value" default
+				// error behaviour.
+				Default:     "0",
+				Description: "Error handler, zabbix identifier number",
 			},
 			"error_handler_params": &schema.Schema{
 				Type:     schema.TypeString,
@@ -255,6 +259,11 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 
 	item := buildItemObject(d, api, prototype)
 	item.ItemID = d.Id()
+
+	// hostid and ruleid are not updatable: Zabbix rejects them as unexpected
+	// parameters on item.update / itemprototype.update
+	item.HostID = ""
+	item.RuleID = ""
 
 	// run custom function
 	c(d, m, item)

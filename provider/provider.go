@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"errors"
+	"fmt"
 	logger "log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -15,17 +17,28 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Zabbix API username",
+				Optional:     true,
+				Description:  "Zabbix API username. Not required when api_token is set.",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_USER", "ZABBIX_USERNAME"}, nil),
 			},
 			"password": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
-				Description:  "Zabbix API password",
+				Optional:     true,
+				Sensitive:    true,
+				Description:  "Zabbix API password. Not required when api_token is set.",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_PASS", "ZABBIX_PASSWORD"}, nil),
+			},
+			"api_token": &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+				Description: "Zabbix API token, sent in the Authorization header. " +
+					"Required for accounts protected by MFA, since user.login cannot " +
+					"complete an MFA challenge. Takes precedence over username/password.",
+				ValidateFunc: validation.StringIsNotWhiteSpace,
+				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_API_TOKEN", "ZABBIX_TOKEN"}, nil),
 			},
 			"url": &schema.Schema{
 				Type:         schema.TypeString,
@@ -48,17 +61,24 @@ func Provider() *schema.Provider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"zabbix_host":        dataHost(),
-			"zabbix_application": dataApplication(),
-			"zabbix_proxy":       dataProxy(),
-			"zabbix_hostgroup":   dataHostgroup(),
-			"zabbix_template":    dataTemplate(),
+			"zabbix_host":          dataHost(),
+			"zabbix_application":   dataApplication(),
+			"zabbix_proxy":         dataProxy(),
+			"zabbix_hostgroup":     dataHostgroup(),
+			"zabbix_templategroup": dataTemplategroup(),
+			"zabbix_template":      dataTemplate(),
+			"zabbix_server":        dataSourceServer(),
+			"zabbix_usergroup":     dataUsergroup(),
+			"zabbix_role":          dataRole(),
+			"zabbix_valuemap":      dataValueMap(),
+			"zabbix_token":         dataToken(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"zabbix_trigger":       resourceTrigger(),
 			"zabbix_proto_trigger": resourceProtoTrigger(),
 			"zabbix_template":      resourceTemplate(),
 			"zabbix_hostgroup":     resourceHostgroup(),
+			"zabbix_templategroup": resourceTemplategroup(),
 			"zabbix_host":          resourceHost(),
 			"zabbix_application":   resourceApplication(),
 
@@ -105,6 +125,35 @@ func Provider() *schema.Provider {
 			"zabbix_item_dependent":       resourceItemDependent(),
 			"zabbix_proto_item_dependent": resourceProtoItemDependent(),
 			"zabbix_lld_dependent":        resourceLLDDependent(),
+
+			"zabbix_template_link": resourceTemplateLink(),
+
+			"zabbix_token": resourceToken(),
+
+			// user management
+			"zabbix_user":      resourceUser(),
+			"zabbix_usergroup": resourceUsergroup(),
+			"zabbix_role":      resourceRole(),
+
+			// alerting
+			"zabbix_mediatype": resourceMediatype(),
+			"zabbix_script":    resourceScript(),
+			"zabbix_action":    resourceAction(),
+
+			// operational
+			"zabbix_proxy":       resourceManagedProxy(),
+			"zabbix_proxygroup":  resourceProxygroup(),
+			"zabbix_maintenance": resourceMaintenance(),
+
+			// monitoring configuration
+			"zabbix_valuemap":     resourceValueMap(),
+			"zabbix_global_macro": resourceGlobalMacro(),
+			"zabbix_regexp":       resourceRegexp(),
+
+			// services and web monitoring
+			"zabbix_service":  resourceService(),
+			"zabbix_sla":      resourceSLA(),
+			"zabbix_httptest": resourceHTTPTest(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -115,21 +164,43 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 	log.Trace("Started zabbix provider init")
 	l := logger.New(stderr, "[DEBUG] ", logger.LstdFlags)
 
+	token := d.Get("api_token").(string)
+	username := d.Get("username").(string)
+	password := d.Get("password").(string)
+
+	if token == "" && (username == "" || password == "") {
+		return nil, errors.New("no credentials provided: set api_token (or ZABBIX_API_TOKEN), " +
+			"or both username and password (ZABBIX_USER / ZABBIX_PASS)")
+	}
+
 	api, apierr := zabbix.NewAPI(zabbix.Config{
 		Url:         d.Get("url").(string),
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
 		Serialize:   d.Get("serialize").(bool),
+		ApiToken:    token,
 	})
 	if apierr != nil {
 		return nil, apierr
 	}
 
-	_, err = api.Login(d.Get("username").(string), d.Get("password").(string))
-	meta = api
-	log.Trace("Started zabbix provider got error: %+v", err)
+	if token != "" {
+		// Token auth needs no login round trip, but verify it eagerly so
+		// misconfiguration surfaces here rather than on the first resource.
+		if err := api.CheckAuthentication(); err != nil {
+			return nil, fmt.Errorf("zabbix api token rejected: %w", err)
+		}
+		log.Trace("zabbix provider authenticated with api token")
+		return api, nil
+	}
 
-	return
+	if _, err := api.Login(username, password); err != nil {
+		return nil, fmt.Errorf("zabbix login failed for user %q: %w "+
+			"(if this account uses MFA, use api_token instead)", username, err)
+	}
+	log.Trace("zabbix provider authenticated with username and password")
+
+	return api, nil
 }
 
 // tagGenerate build tag structs from terraform inputs

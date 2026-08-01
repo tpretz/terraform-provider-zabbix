@@ -199,7 +199,7 @@ func resourceLLDHttp() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, itemInterfaceSchema, schemaHttp),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema, schemaHttp),
 	}
 }
 
@@ -256,6 +256,7 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Headers = httpGenerateHeaders(d)
 }
 func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	item.Delay = d.Get("delay").(string)
 	item.InterfaceID = d.Get("interfaceid").(string)
 	item.Url = d.Get("url").(string)
 	item.RequestMethod = HTTP_METHODS[d.Get("request_method").(string)]
@@ -308,6 +309,7 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("headers", httpFlattenHeaders(item.Headers))
 }
 func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	d.Set("delay", item.Delay)
 	d.Set("interfaceid", item.InterfaceID)
 	d.Set("url", item.Url)
 	d.Set("request_method", HTTP_METHODS_REV[item.RequestMethod])

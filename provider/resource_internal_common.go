@@ -42,7 +42,7 @@ func resourceLLDInternal() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, itemInterfaceSchema),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema),
 	}
 }
 
@@ -53,6 +53,7 @@ func itemInternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Ite
 	item.Delay = d.Get("delay").(string)
 }
 func lldInternalModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	item.Delay = d.Get("delay").(string)
 	item.Type = zabbix.ZabbixInternal
 	item.InterfaceID = d.Get("interfaceid").(string)
 }
@@ -63,5 +64,6 @@ func itemInternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.It
 	d.Set("delay", item.Delay)
 }
 func lldInternalReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
+	d.Set("delay", item.Delay)
 	d.Set("interfaceid", item.InterfaceID)
 }

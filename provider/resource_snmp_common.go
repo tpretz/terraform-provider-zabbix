@@ -166,7 +166,7 @@ func resourceLLDSnmp() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, lldInterfaceSchema, schemaSnmp),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp),
 	}
 }
 
@@ -201,6 +201,7 @@ func itemSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 // Also for LLD Discovery SNMP
 func lldSnmpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	api := m.(*zabbix.API)
+	item.Delay = d.Get("delay").(string)
 	item.InterfaceID = d.Get("interfaceid").(string)
 
 	item.SNMPOid = d.Get("snmp_oid").(string)
@@ -252,6 +253,7 @@ func itemSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 // Also for LLD Discovery SNMP
 func lldSnmpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	api := m.(*zabbix.API)
+	d.Set("delay", item.Delay)
 	d.Set("interfaceid", item.InterfaceID)
 
 	d.Set("snmp_oid", item.SNMPOid)

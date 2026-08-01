@@ -1,8 +1,10 @@
 package provider
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"fmt"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 func TestAccResourceHost(t *testing.T) {
@@ -22,17 +24,60 @@ func TestAccResourceHost(t *testing.T) {
 			{
 				Config: testAccResourceHostWithInventory(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory_location", "test location A"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory_mode", "manual"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory.0.location", "test location A"),
 				),
 			},
 			{
 				Config: testAccResourceHostWithInventoryUpdate(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory_location", "test location B"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost2", "inventory.0.location", "test location B"),
 				),
 			},
 		},
 	})
+}
+
+func TestAccHostWithTags(t *testing.T) {
+	id := resource.UniqueId()
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceHostWithTags(id),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.tagstest", "tag.#", "2"),
+				),
+			},
+		},
+	})
+}
+
+func testAccResourceHostWithTags(id string) string {
+	return fmt.Sprintf(`
+resource "zabbix_hostgroup" "tagsgrp" {
+  name = "test-tags-%s"
+}
+resource "zabbix_host" "tagstest" {
+  host   = "test-tags-%s"
+  groups = [zabbix_hostgroup.tagsgrp.id]
+  interface {
+    type = "agent"
+    ip   = "127.0.0.1"
+    port = 10050
+    main = true
+  }
+  tag {
+    key   = "env"
+    value = "test"
+  }
+  tag {
+    key   = "team"
+    value = "platform"
+  }
+}
+`, id, id)
 }
 
 func testAccResourceHostBasic() string {
@@ -63,7 +108,10 @@ resource "zabbix_host" "testhost2" {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
-    inventory_location = "test location A"
+	inventory_mode = "manual"
+	inventory {
+		location = "test location A"
+	}
 }
 `
 }
@@ -80,7 +128,10 @@ resource "zabbix_host" "testhost2" {
 		type = "snmp"
 		ip   = "127.0.0.1"
 	}
-    inventory_location = "test location B"
+	inventory_mode = "manual"
+	inventory {
+		location = "test location B"
+	}
 }
 `
 }
