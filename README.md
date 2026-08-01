@@ -1,6 +1,8 @@
  # Overview
 
-A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com). Based on [tpretz/terraform-provider-zabbix](https://github.com/tpretz/terraform-provider-zabbix) and modified using Claude Opus to work with Zabbix 7.0 LTS. Created because of my private needs. Use at your own risk.
+A [Terraform](terraform.io) provider for [Zabbix](https://www.zabbix.com). 
+
+> Based on [tpretz/terraform-provider-zabbix](https://github.com/tpretz/terraform-provider-zabbix) and modified using Claude Opus to work with Zabbix 7.0 LTS. Created because of my private needs. Use at your own risk.
 
 <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
 
