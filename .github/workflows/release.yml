@@ -1,22 +1,60 @@
-# This GitHub action can publish assets for release when a tag is created.
-# Currently its setup to run on any tag that matches the pattern "v*" (ie. v0.1.0).
+# ============================================================================
+# DISABLED ON THE v2 BRANCH — see PLAN.md
 #
-# This uses an action (hashicorp/ghaction-import-gpg) that assumes you set your 
+# Nothing in this workflow may execute while the v2 line is under development.
+# The v0.x release line is cut from `master`/`testenv` and must not be
+# published over by anything on this branch.
+#
+# Three independent guards, any one of which is sufficient:
+#
+#   1. No automatic trigger. The original `on: push: tags: ['v*']` is removed;
+#      only manual `workflow_dispatch` remains. A `v*` tag pushed from this
+#      branch starts nothing.
+#   2. A typed confirmation input. Even a manual dispatch is a no-op unless
+#      `confirm` is set to the exact string RELEASE.
+#   3. A branch guard. The job refuses to run unless dispatched from a ref
+#      that is not `v2`.
+#
+# GitHub Actions is also disabled repository-wide at the moment; this file is
+# the belt to that braces, and survives Actions being re-enabled.
+#
+# TO RE-ENABLE (Phase 0 / at v2.0.0): restore the `push.tags` trigger, drop
+# the `confirm` input and the `if:` guard, and add the tag scoping described
+# in PLAN.md § "Branch and release strategy" so that only `v2.*` tags reaching
+# this workflow can publish.
+#
+# ----------------------------------------------------------------------------
+# Original behaviour, for restoration:
+#
+#   on:
+#     push:
+#       tags:
+#         - 'v*'
+#
+# This uses an action (hashicorp/ghaction-import-gpg) that assumes you set your
 # private key in the `GPG_PRIVATE_KEY` secret and passphrase in the `PASSPHRASE`
 # secret. If you would rather own your own GPG handling, please fork this action
 # or use an alternative one for key handling.
 #
-# You will need to pass the `--batch` flag to `gpg` in your signing step 
+# You will need to pass the `--batch` flag to `gpg` in your signing step
 # in `goreleaser` to indicate this is being used in a non-interactive mode.
-#
-name: release
+# ============================================================================
+name: release (disabled on v2)
 on:
-  push:
-    tags:
-      - 'v*'
+  # Guard 1: manual only. No tag or push trigger exists on this branch.
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type RELEASE to confirm. Anything else is a no-op.'
+        required: true
+        default: 'no'
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    # Guards 2 and 3: explicit confirmation, and never from the v2 branch.
+    if: >-
+      github.event.inputs.confirm == 'RELEASE' &&
+      github.ref != 'refs/heads/v2'
     steps:
       -
         name: Checkout
