@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	zapi "github.com/tpretz/go-zabbix-api"
+	zapi "github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func CreateTrigger(item *zapi.Item, host *zapi.Host, t *testing.T) *zapi.Trigger {

@@ -18,7 +18,6 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/oklog/run v1.1.0 // indirect
-	github.com/tpretz/go-zabbix-api v0.14.0
 	github.com/zclconf/go-cty v1.10.0 // indirect
 	golang.org/x/net v0.0.0-20220107192237-5cfca573fb4d // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
@@ -27,5 +26,3 @@ require (
 	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
 )
-
-replace github.com/tpretz/go-zabbix-api => ./go-zabbix-api

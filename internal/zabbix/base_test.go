@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	zapi "github.com/tpretz/go-zabbix-api"
+	zapi "github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 var (
@@ -47,7 +47,11 @@ func getAPI(t *testing.T) *zapi.API {
 	var c zapi.Config
 	c.Url = url
 
-	_api = zapi.NewAPI(c)
+	var err error
+	_api, err = zapi.NewAPI(c)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_api.SetClient(http.DefaultClient)
 	v := os.Getenv("TEST_ZABBIX_VERBOSE")
 	if v != "" && v != "0" {

@@ -1,3 +1,0 @@
-[submodule "go-zabbix-api"]
-	path = go-zabbix-api
-	url = git@github.com:tpretz/go-zabbix-api.git

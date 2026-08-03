@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func TestAccResourceApplication(t *testing.T) {

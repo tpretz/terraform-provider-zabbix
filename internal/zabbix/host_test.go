@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	zapi "github.com/tpretz/go-zabbix-api"
+	zapi "github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func CreateHost(group *zapi.HostGroup, t *testing.T) *zapi.Host {

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/tpretz/go-zabbix-api"
+	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 var HSNMP_LOOKUP = map[string]zabbix.ItemType{

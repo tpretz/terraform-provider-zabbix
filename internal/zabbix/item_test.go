@@ -3,7 +3,7 @@ package zabbix_test
 import (
 	"testing"
 
-	zapi "github.com/tpretz/go-zabbix-api"
+	zapi "github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func CreateItem(app *zapi.Application, t *testing.T) *zapi.Item {
