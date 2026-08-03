@@ -174,7 +174,7 @@ Nothing else is safe to do until the build and CI are modern.
 
 ---
 
-## Phase 1 — Test infrastructure
+## Phase 1 — Test infrastructure  ✅ DONE
 
 **This comes first deliberately.** Every later phase is a change to API-facing behaviour,
 and none of it is verifiable without live servers for each supported version. Standing
@@ -237,7 +237,7 @@ through it.
 
 ---
 
-## Phase 2 — Correctness on 7.x, and the legacy purge
+## Phase 2 — Correctness on 7.x, and the legacy purge  ✅ DONE
 
 Two halves, done together because they touch the same files: fix what's broken above
 6.0, delete what only existed below it.
@@ -263,7 +263,7 @@ The provider cannot talk to a 7.2+ server at all today.
       hard error rather than ignoring them, so this needs to be exhaustive, not spot-checked.
 - [ ] Add `Script` (21) and `Browser` (22) to the `ItemType` enum.
 
-### 2b — Delete pre-6.0 support
+### 2b — Delete pre-6.0 support  ✅ DONE
 
 Per "Consequences of the 6.0 floor" above: legacy SNMP model, applications, aggregate
 items, v4 inventory/tag compat, and all `< 60000` gates. Remove the corresponding
