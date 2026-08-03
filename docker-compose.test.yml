@@ -1,0 +1,114 @@
+# Acceptance-test environment for terraform-provider-zabbix.
+#
+# One self-contained Zabbix stack per supported version (PostgreSQL + server +
+# web frontend), all runnable with plain `docker compose` — no devcontainer
+# required:
+#
+#     docker compose -f docker-compose.test.yml up -d --wait
+#
+# The Makefile wraps this (`make testenv-up`, `make testenv-up-74`, …); see
+# TESTING.md.
+#
+# ---------------------------------------------------------------------------
+# ADDING A VERSION
+# ---------------------------------------------------------------------------
+# Everything below the anchors is a three-line entry per version. To add, say,
+# 8.2 later, append one block to the bottom of `services:` and one line to
+# VERSIONS in the Makefile. Do not copy-paste service definitions — the shared
+# behaviour belongs in the x-* anchors so it stays fixed in one place.
+#
+#   zabbix-db-82:     { <<: *db, image: postgres:17-alpine }
+#   zabbix-server-82: { <<: *server, image: zabbix/zabbix-server-pgsql:ubuntu-8.2.0,     environment: { <<: *db-env, DB_SERVER_HOST: zabbix-db-82 }, depends_on: { zabbix-db-82: { condition: service_healthy } } }
+#   zabbix-web-82:    { <<: *web,    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-8.2.0, ports: ["8082:8080"], environment: { <<: *web-env, DB_SERVER_HOST: zabbix-db-82, ZBX_SERVER_HOST: zabbix-server-82 }, depends_on: { zabbix-db-82: { condition: service_healthy }, zabbix-server-82: { condition: service_started } } }
+#
+# ---------------------------------------------------------------------------
+
+# --- shared configuration ---------------------------------------------------
+
+x-db-env: &db-env
+  POSTGRES_USER: zabbix
+  POSTGRES_PASSWORD: zabbix
+  POSTGRES_DB: zabbix
+
+x-web-env: &web-env
+  <<: *db-env
+  PHP_TZ: UTC
+  ZBX_SERVER_PORT: "10051"
+
+# Wait on the *API*, not the web root. The nginx frontend answers HTTP long
+# before the Zabbix schema has finished loading, so a plain `curl http://…/`
+# healthcheck reports ready while api_jsonrpc.php is still 500-ing — the classic
+# cause of flaky first-run acceptance tests. Poll apiinfo.version (the one method
+# that needs no auth on every supported version) and require a JSON-RPC result.
+x-api-healthcheck: &api-healthcheck
+  test:
+    - CMD-SHELL
+    - >-
+      curl -sf -X POST -H 'Content-Type: application/json-rpc'
+      -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}'
+      http://localhost:8080/api_jsonrpc.php | grep -q '"result"'
+  interval: 5s
+  timeout: 5s
+  retries: 90
+  start_period: 90s
+
+x-db: &db
+  environment: *db-env
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+    interval: 5s
+    timeout: 5s
+    retries: 30
+    start_period: 10s
+  stop_grace_period: 10s
+  restart: unless-stopped
+
+x-server: &server
+  # The schema is created/upgraded by the server on first boot; give it room.
+  stop_grace_period: 30s
+  restart: unless-stopped
+
+x-web: &web
+  healthcheck: *api-healthcheck
+  stop_grace_period: 10s
+  restart: unless-stopped
+
+# --- per-version stacks -----------------------------------------------------
+#
+# Image tags are pinned to explicit patch versions so a rerun months from now is
+# the same environment. Refresh them deliberately, not implicitly.
+
+services:
+  # Zabbix 6.0 LTS — version floor. Web UI: http://localhost:8060/
+  zabbix-db-60:     { <<: *db, image: postgres:15-alpine }
+  zabbix-server-60: { <<: *server, image: "zabbix/zabbix-server-pgsql:ubuntu-6.0.48",     environment: { <<: *db-env, DB_SERVER_HOST: zabbix-db-60 }, depends_on: { zabbix-db-60: { condition: service_healthy } } }
+  zabbix-web-60:    { <<: *web,    image: "zabbix/zabbix-web-nginx-pgsql:ubuntu-6.0.48", ports: ["8060:8080"], environment: { <<: *web-env, DB_SERVER_HOST: zabbix-db-60, ZBX_SERVER_HOST: zabbix-server-60 }, depends_on: { zabbix-db-60: { condition: service_healthy }, zabbix-server-60: { condition: service_started } } }
+
+  # Zabbix 7.0 LTS. Web UI: http://localhost:8070/
+  zabbix-db-70:     { <<: *db, image: postgres:16-alpine }
+  zabbix-server-70: { <<: *server, image: "zabbix/zabbix-server-pgsql:ubuntu-7.0.29",     environment: { <<: *db-env, DB_SERVER_HOST: zabbix-db-70 }, depends_on: { zabbix-db-70: { condition: service_healthy } } }
+  zabbix-web-70:    { <<: *web,    image: "zabbix/zabbix-web-nginx-pgsql:ubuntu-7.0.29", ports: ["8070:8080"], environment: { <<: *web-env, DB_SERVER_HOST: zabbix-db-70, ZBX_SERVER_HOST: zabbix-server-70 }, depends_on: { zabbix-db-70: { condition: service_healthy }, zabbix-server-70: { condition: service_started } } }
+
+  # Zabbix 7.4 — current release. Web UI: http://localhost:8074/
+  zabbix-db-74:     { <<: *db, image: postgres:17-alpine }
+  zabbix-server-74: { <<: *server, image: "zabbix/zabbix-server-pgsql:ubuntu-7.4.13",     environment: { <<: *db-env, DB_SERVER_HOST: zabbix-db-74 }, depends_on: { zabbix-db-74: { condition: service_healthy } } }
+  zabbix-web-74:    { <<: *web,    image: "zabbix/zabbix-web-nginx-pgsql:ubuntu-7.4.13", ports: ["8074:8080"], environment: { <<: *web-env, DB_SERVER_HOST: zabbix-db-74, ZBX_SERVER_HOST: zabbix-server-74 }, depends_on: { zabbix-db-74: { condition: service_healthy }, zabbix-server-74: { condition: service_started } } }
+
+  # Zabbix 8.0 LTS — EARLY WARNING, NON-BLOCKING.
+  #
+  # 8.0 is not released yet (due Q3 2026) and no `zabbix/*:*8.0*` tag exists on
+  # Docker Hub. `ubuntu-trunk` is the nightly build of the 8.0 pre-release line
+  # and is what this stack tracks.
+  #
+  # This tag is therefore a MOVING TARGET: it can change under you between two
+  # runs, and it can be broken upstream through no fault of this provider.
+  # Failures here are signal to investigate, never a release gate — `make testacc`
+  # deliberately excludes it and only `make testall` runs it.
+  #
+  # ON 8.0 GA: replace `ubuntu-trunk` with a pinned `ubuntu-8.0-<patch>` tag on
+  # both images below, move 80 into GATED in the Makefile, and delete this note.
+  #
+  # Web UI: http://localhost:8080/
+  zabbix-db-80:     { <<: *db, image: postgres:17-alpine }
+  zabbix-server-80: { <<: *server, image: "zabbix/zabbix-server-pgsql:ubuntu-trunk",     environment: { <<: *db-env, DB_SERVER_HOST: zabbix-db-80 }, depends_on: { zabbix-db-80: { condition: service_healthy } } }
+  zabbix-web-80:    { <<: *web,    image: "zabbix/zabbix-web-nginx-pgsql:ubuntu-trunk", ports: ["8080:8080"], environment: { <<: *web-env, DB_SERVER_HOST: zabbix-db-80, ZBX_SERVER_HOST: zabbix-server-80 }, depends_on: { zabbix-db-80: { condition: service_healthy }, zabbix-server-80: { condition: service_started } } }

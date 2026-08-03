@@ -1,162 +1,24 @@
-version: '3.5'
+# Devcontainer overlay.
+#
+# This file defines ONLY the dev container. The Zabbix test stacks live in the
+# repo-root ../docker-compose.test.yml, which devcontainer.json merges in
+# alongside this file — they are deliberately not duplicated here. That
+# duplication is exactly why the previous version of this file rotted out of
+# date (it still targeted 4.0/5.0/5.4 on a shared MySQL).
+#
+# Because both files merge into one compose project, `dev` shares the project's
+# default network with the Zabbix stacks and reaches them by service name
+# (zabbix-web-60, zabbix-web-70, …) on port 8080. devcontainer.json sets
+# ZBX_IN_CONTAINER=1 so the Makefile resolves ZABBIX_URL that way rather than
+# via the published localhost ports.
 services:
- dev:
-  build:
-    context: .
-    dockerfile: Dockerfile
-    args:
-      VARIANT: 1-bullseye
-      NODE_VERSION: lts/*
-  volumes:
-    - ..:/workspace:cached
-  command: sleep infinity
-  networks:
-    zbx_net_frontend: {}
-
- # 4.0
- zabbix-server-40:
-  image: zabbix/zabbix-server-mysql:ubuntu-4.0-latest
-  ports:
-   - "10040:10051"
-  environment:
-    MYSQL_DATABASE: zabbix400
-    MYSQL_USER: zabbix400
-    MYSQL_ROOT_PASSWORD: password
-  user: root
-  depends_on:
-   - mysql-server
-  networks:
-   zbx_net_frontend: {}
-  stop_grace_period: 30s
- zabbix-web-40:
-  image: zabbix/zabbix-web-nginx-mysql:ubuntu-4.0-latest
-  ports:
-    - "8040:8080"
-  environment:
-    MYSQL_DATABASE: zabbix400
-    MYSQL_USER: zabbix400
-    MYSQL_ROOT_PASSWORD: password
-    ZBX_SERVER_HOST: zabbix-server-40
-  healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080"]
-   interval: 10s
-   timeout: 5s
-   start_period: 30s
-  networks:
-   zbx_net_frontend: {}
-
-
- # 5.0
- zabbix-server-50:
-  image: zabbix/zabbix-server-mysql:ubuntu-5.0-latest
-  ports:
-   - "10050:10051"
-  environment:
-    MYSQL_DATABASE: zabbix500
-    MYSQL_USER: zabbix500
-    MYSQL_ROOT_PASSWORD: password
-  user: root
-  depends_on:
-   - mysql-server
-  networks:
-   zbx_net_frontend: {}
-  stop_grace_period: 30s
- zabbix-web-50:
-  image: zabbix/zabbix-web-nginx-mysql:ubuntu-5.0-latest
-  ports:
-    - "8050:8080"
-  environment:
-    MYSQL_DATABASE: zabbix500
-    MYSQL_USER: zabbix500
-    MYSQL_ROOT_PASSWORD: password
-    ZBX_SERVER_HOST: zabbix-server-50
-  healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080"]
-   interval: 10s
-   timeout: 5s
-   start_period: 30s
-  networks:
-   zbx_net_frontend: {}
-
- # 5.4
- zabbix-server-54:
-  image: zabbix/zabbix-server-mysql:ubuntu-5.4-latest
-  ports:
-   - "10054:10051"
-  environment:
-    MYSQL_DATABASE: zabbix540
-    MYSQL_USER: zabbix540
-    MYSQL_ROOT_PASSWORD: password
-  user: root
-  depends_on:
-   - mysql-server
-  networks:
-   zbx_net_frontend: {}
-  stop_grace_period: 30s
- zabbix-web-54:
-  image: zabbix/zabbix-web-nginx-mysql:ubuntu-5.4-latest
-  ports:
-    - "8054:8080"
-  environment:
-    MYSQL_DATABASE: zabbix540
-    MYSQL_USER: zabbix540
-    MYSQL_ROOT_PASSWORD: password
-    ZBX_SERVER_HOST: zabbix-server-54
-  healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080"]
-   interval: 10s
-   timeout: 5s
-   start_period: 30s
-  networks:
-   zbx_net_frontend: {}
-
- # 6.0
- zabbix-server-60:
-  image: zabbix/zabbix-server-mysql:ubuntu-6.0-latest
-  ports:
-   - "10060:10051"
-  environment:
-    MYSQL_DATABASE: zabbix600
-    MYSQL_USER: zabbix600
-    MYSQL_ROOT_PASSWORD: password
-  user: root
-  depends_on:
-   - mysql-server
-  networks:
-   zbx_net_frontend: {}
-  stop_grace_period: 30s
- zabbix-web-60:
-  image: zabbix/zabbix-web-nginx-mysql:ubuntu-6.0-latest
-  ports:
-    - "8060:8080"
-  environment:
-    MYSQL_DATABASE: zabbix600
-    MYSQL_USER: zabbix600
-    MYSQL_ROOT_PASSWORD: password
-    ZBX_SERVER_HOST: zabbix-server-60
-  healthcheck:
-   test: ["CMD", "curl", "-f", "http://localhost:8080"]
-   interval: 10s
-   timeout: 5s
-   start_period: 30s
-  networks:
-   zbx_net_frontend: {}
-
- mysql-server:
-  image: mysql:8.0
-  command: [mysqld, --character-set-server=utf8, --collation-server=utf8_bin, --default-authentication-plugin=mysql_native_password]
-  environment:
-    MYSQL_ROOT_PASSWORD: password
-  user: root
-  stop_grace_period: 1m
-  networks:
-   zbx_net_frontend: {}
-networks:
-  zbx_net_frontend:
-    driver: bridge
-    driver_opts:
-      com.docker.network.enable_ipv6: "false"
-    ipam:
-      driver: default
-      config:
-      - subnet: 172.16.238.0/24
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VARIANT: 1-bullseye
+        NODE_VERSION: lts/*
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity

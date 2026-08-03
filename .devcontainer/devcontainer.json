@@ -2,9 +2,22 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.209.6/containers/go
 {
 	"name": "Go",
-	"dockerComposeFile": "docker-compose.yml",
+	// Two files, merged into one compose project: the dev container itself, plus
+	// the shared Zabbix test stacks from the repo root. The stacks are NOT
+	// duplicated here - docker-compose.test.yml is the single definition, and it
+	// also works standalone with plain `docker compose` outside this container.
+	"dockerComposeFile": [
+		"docker-compose.yml",
+		"../docker-compose.test.yml"
+	],
 	"service": "dev",
 	"workspaceFolder": "/workspace",
+	// Inside the container the Zabbix stacks are reachable by compose service
+	// name rather than on published localhost ports; this switches the Makefile
+	// over to those URLs.
+	"remoteEnv": {
+		"ZBX_IN_CONTAINER": "1"
+	},
 	// "build": {
 	// 	"dockerfile": "Dockerfile",
 	// 	"args": {

@@ -1,6 +1,9 @@
 terraform-provider-zabbix
 .terraform
 crash.log
+# per-version acceptance-test logs (see TESTING.md)
+provider/acc.log
+provider/acc-*.log
 terraform.tfstate
 terraform.tfstate.backup
 docker/zbx_env
