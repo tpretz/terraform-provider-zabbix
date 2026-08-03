@@ -3,7 +3,6 @@ package provider
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
@@ -54,7 +53,7 @@ func macroGenerate(d *schema.ResourceData) (macros zabbix.Macros) {
 func flattenMacros(list zabbix.Macros) *schema.Set {
 	set := schema.NewSet(func(i interface{}) int {
 		m := i.(map[string]interface{})
-		return hashcode.String(m["name"].(string))
+		return schema.HashString(m["name"].(string))
 	}, []interface{}{})
 
 	for i := 0; i < len(list); i++ {
