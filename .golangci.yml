@@ -1,0 +1,22 @@
+# Conservative golangci-lint config.
+#
+# This codebase has not been linted in years, so this intentionally starts
+# small: the linter defaults (errcheck, govet, ineffassign, staticcheck,
+# unused) plus a couple of low-noise formatters/checks (gofmt, goimports,
+# misspell). No opinionated style linters (lll, gocyclo, funlen, etc.) are
+# enabled — those would produce thousands of pre-existing findings on first
+# run and invite the whole config being switched off. Widen this gradually,
+# linter by linter, once the codebase is clean under the current set.
+version: "2"
+
+linters:
+  # "standard" is golangci-lint v2's name for the previous default set:
+  # errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  enable:
+    - misspell
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
