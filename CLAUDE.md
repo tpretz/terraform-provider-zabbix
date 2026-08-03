@@ -20,21 +20,25 @@ Summary of the decisions recorded there:
 
 ### Current state — measured, not guessed
 
-Phase 2a landed: the provider **now works against 6.0, 7.0, 7.4 and 8.0-trunk**. Acceptance results as of that commit:
+**The matrix is green on all four versions**, verified by direct run:
 
 | Version | Result |
 |---|---|
-| 6.0.48 | 0 fail / 17 pass |
-| 7.0.29 | 11 fail / 6 pass |
-| 7.4.13 | 11 fail / 6 pass |
-| 8.0-trunk | 11 fail / 6 pass |
+| 6.0.48 | pass (3 skips — templategroup tests, gated to 6.2+) |
+| 7.0.29 | pass (1 skip) |
+| 7.4.13 | pass (1 skip) |
+| 8.0-trunk | pass (1 skip) |
 
-**Every one of the 11 remaining 7.x/8.0 failures is the same error**: `template.create` is passed a host group id, but templates have required *template groups* since 6.2. That is PLAN.md Phase 3a (`zabbix_templategroup` plus the breaking `groups` migration) and is the single thing standing between here and a green matrix. It was verified that nothing else 7.x-specific hides behind it.
-
-Two things Phase 2a established that contradict what was previously assumed:
+Getting here took Phases 0-2a plus 3a. Findings from that work that contradict what was previously assumed, all verified empirically against live servers:
 
 - **Strict parameter validation arrived in 7.0, not 7.2, and is per-method.** `item.create`, `itemprototype.create` and `discoveryrule.create` reject unknown object properties from 7.0. `host.create` and `graph.create` are still lenient even on 8.0. `.get` methods silently ignore unknown params on *all* versions — so a stale `selectGroups` on 7.2+ is a **silent wrong answer**, not an error, which is far more dangerous than a hard failure.
 - **`hostid` is create-only from 7.0.** `item.update`, `itemprototype.update` and `discoveryrule.update` reject it, so every item update on 7.x would have failed. Handled by `prepItemsUpdate`/`prepLLDsUpdate`.
+- **`selectGroups` is a working alias for template groups on 6.2-7.1**, which is why the template read path can use it below `V72`.
+- **`templates_clear` could name an already-deleted template.** Terraform destroys a template in the same apply that drops it from a host's `templates`, without ordering the host update first. 6.0 tolerated the stale id; 7.0+ makes it a hard error. `resource_host.go` now filters `templates_clear` to ids the server still knows.
+
+### Test fixture idiom you must know about
+
+Acceptance fixtures are written against `zabbix_templategroup` and **textually rewritten** to `zabbix_hostgroup` by `hcl(t, ...)` in `provider_test.go` when the server is below 6.2. It is a plain string swap, so any config needing *both* group types must use distinct labels and group names — the shared fixtures use `testtmplgrp`/`test-template-group` against `testgrp`/`test-group`. Get this wrong and the pre-6.2 run silently collapses both into one resource.
 
 ### GitHub Actions is disabled
 

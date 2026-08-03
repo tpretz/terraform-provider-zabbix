@@ -284,12 +284,12 @@ Close the gaps in current resources before adding new ones.
 
 ### 3a — resource corrections
 
-- [ ] `zabbix_templategroup` resource + data source; teach `zabbix_template` to use
+- [x] `zabbix_templategroup` resource + data source; teach `zabbix_template` to use
       template groups on `>= 60200` and host groups below. **Breaking** — migration guide.
 - [ ] `zabbix_proxy` **resource** (currently data source only), modelled on 7.0
       (`name`, `operating_mode`, `address`, `port`, `allowed_addresses`, TLS fields) with
       pre-7.0 translation; update the data source likewise.
-- [ ] `zabbix_host`: proxy assignment (`monitored_by`/`proxyid`), full inventory fields,
+- [ ] `zabbix_host`: (`templates_clear` on removal DONE) proxy assignment (`monitored_by`/`proxyid`), full inventory fields,
       IPMI settings, TLS connect/accept + PSK, `templates_clear` on removal.
 - [ ] `zabbix_template`: `uuid`, `vendor_name`/`vendor_version` (6.4+), `readme` and
       `wizard_ready` (7.4+).
@@ -303,7 +303,7 @@ first plan under v2.
 
 - [ ] Bump `SchemaVersion` on every item resource; add a `StateUpgraders` entry that
       strips `applications` from prior state.
-- [ ] `SchemaVersion` + upgrader on `zabbix_template` for the host-group →
+- [x] `SchemaVersion` + upgrader on `zabbix_template` for the host-group →
       template-group `groups` transition on 6.2+.
 - [ ] For the removed resources (`zabbix_application`, `zabbix_item_aggregate`,
       `zabbix_proto_item_aggregate`) there is no upgrade path — document
