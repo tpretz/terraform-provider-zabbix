@@ -16,42 +16,37 @@ Summary of the decisions recorded there:
 | Next release | **`v2.0.0`** (v1.x deliberately skipped), cut only when phases 0–3 are complete. |
 | Zabbix floor | **6.0 LTS.** 4.0, 5.0 and 5.4 support is being *deleted*, not merely untested. |
 | Test matrix | 6.0, 7.0, 7.4 release-gating; 8.0 via `ubuntu-trunk` non-blocking. |
-| API client | `go-zabbix-api` is being merged into this repo as `internal/zabbix`; the submodule is retired. |
+| API client | Merged into this repo as `internal/zabbix`; the submodule is retired. |
 
-### Current state — things that are known broken
+### Current state — measured, not guessed
 
-The provider **cannot talk to a Zabbix 7.2+ server at all**. Do not be surprised by this; it is the main thing v2 exists to fix (PLAN.md Phase 2a):
+Phase 2a landed: the provider **now works against 6.0, 7.0, 7.4 and 8.0-trunk**. Acceptance results as of that commit:
 
-- the auth token is sent as a JSON-RPC `auth` body property (`go-zabbix-api/base.go:26`) — removed upstream in 7.2 in favour of an `Authorization: Bearer` header (available from 6.4)
-- `selectGroups` (`provider/resource_host.go:596,625`, `provider/resource_template.go:126,153`) — removed in 7.2
-- `selectApplications` (`provider/common_item.go:275`) — applications were removed in 5.4
-- `proxy_hostid` (`go-zabbix-api/host.go:63`) — renamed `proxyid` plus `monitored_by` in 7.0
+| Version | Result |
+|---|---|
+| 6.0.48 | 0 fail / 17 pass |
+| 7.0.29 | 11 fail / 6 pass |
+| 7.4.13 | 11 fail / 6 pass |
+| 8.0-trunk | 11 fail / 6 pass |
 
-7.2 also made unknown request parameters a hard error rather than silently ignoring them, so any stale key now fails the call outright.
+**Every one of the 11 remaining 7.x/8.0 failures is the same error**: `template.create` is passed a host group id, but templates have required *template groups* since 6.2. That is PLAN.md Phase 3a (`zabbix_templategroup` plus the breaking `groups` migration) and is the single thing standing between here and a green matrix. It was verified that nothing else 7.x-specific hides behind it.
+
+Two things Phase 2a established that contradict what was previously assumed:
+
+- **Strict parameter validation arrived in 7.0, not 7.2, and is per-method.** `item.create`, `itemprototype.create` and `discoveryrule.create` reject unknown object properties from 7.0. `host.create` and `graph.create` are still lenient even on 8.0. `.get` methods silently ignore unknown params on *all* versions — so a stale `selectGroups` on 7.2+ is a **silent wrong answer**, not an error, which is far more dangerous than a hard failure.
+- **`hostid` is create-only from 7.0.** `item.update`, `itemprototype.update` and `discoveryrule.update` reject it, so every item update on 7.x would have failed. Handled by `prepItemsUpdate`/`prepLLDsUpdate`.
 
 ### GitHub Actions is disabled
 
 Actions is switched off repository-wide, **and** `.github/workflows/release.yml` is separately neutered on this branch (manual dispatch only, typed confirmation required, plus a guard refusing to run from `v2`). Nothing on this branch should execute in CI until the v2 line is ready to release. Do not restore the tag trigger without reading PLAN.md § "Branch and release strategy" — an unscoped `v*` tag trigger would let this branch publish over the `v0.x` release line.
 
-## The go-zabbix-api submodule
+## The API client: internal/zabbix
 
-The provider's Zabbix API client, `github.com/tpretz/go-zabbix-api`, is vendored here as a **git submodule** at `./go-zabbix-api`, and `go.mod` points the module at it:
+The provider's Zabbix API client lives at **`internal/zabbix`**. It used to be a git submodule (`github.com/tpretz/go-zabbix-api`) wired in with a `replace` directive; that was retired in Phase 0. There is no submodule, no `.gitmodules`, and no `replace` — `git submodule status` returns nothing. The client's full history was rewritten under `internal/zabbix/` before merging, so `git blame` and `git log --follow` work on it.
 
-```
-replace github.com/tpretz/go-zabbix-api => ./go-zabbix-api
-```
+Because it is an `internal/` package it cannot be imported outside this module, which is intended — the provider is its only consumer. Edit it directly; there is nothing to re-tag.
 
-So the two codebases are developed together in this one repo. After a fresh clone (or when the submodule shows a leading `-` in `git submodule status`):
-
-```bash
-git submodule update --init --recursive
-```
-
-The submodule uses an **SSH** URL (`git@github.com:tpretz/go-zabbix-api.git`). Editing files under `go-zabbix-api/` changes the API client the provider builds against immediately — no re-tag needed — but those are commits in the *submodule's* repo, and the parent repo separately records which submodule commit is pinned.
-
-> **Scheduled for removal.** PLAN.md Phase 0 merges this submodule into the repo as `internal/zabbix` and drops the `replace` directive — the two codebases already move together, and the split costs a `sed -i '/^replace/d' go.mod` hack at release time plus SSH access to a second repo for contributors. Write new client code expecting that destination.
->
-> The v4-legacy inventory-mode/tag handling in `go-zabbix-api/host.go` that this branch previously preserved is **no longer wanted** — the 6.0 floor removes the 4.0 test target that justified it. It comes out in Phase 2b along with the legacy SNMP v1/v2/v3 item model and the applications code paths.
+> Two known warts, tracked as work items: the seven `internal/zabbix/*_test.go` files call `log.Fatal` in `init()` when `TEST_ZABBIX_URL` is unset, so **a bare `go test ./...` hard-fails confusingly** — use `go test ./provider/`. They also had not compiled for years before the merge (a stale `NewAPI` call signature), because the nested `go.mod` hid them from `./...`. Library cruft (`.travis.yml`, `tests.sh`, `README.md`, the stale `UserAgent` string) came across with them.
 
 ## Build / test commands
 
@@ -86,19 +81,19 @@ Releases were cut by goreleaser on pushing a `v*` tag. **That trigger is removed
 
 ### Version-aware API client
 
-`zabbix.NewAPI(Config)` (`go-zabbix-api/base.go`) immediately calls `APIInfo.version` and stores the result in `Config.Version` as an **integer**: `major*10000 + minor*100 + patch` (e.g. 6.0.13 → 60013, 7.4 → 70400). Behaviour across the codebase branches on this number rather than a version string, because the provider must support a range of Zabbix versions. When something changed between Zabbix versions, gate it with `api.Config.Version >= NNNNN` and keep the old path.
+`zabbix.NewAPI(Config)` (`internal/zabbix/base.go`) immediately calls `APIInfo.version` and stores the result in `Config.Version` as an **integer**: `major*10000 + minor*100 + patch` (e.g. 6.0.13 → 60013, 7.4 → 70400). Behaviour across the codebase branches on this number rather than a version string, because the provider must support a range of Zabbix versions. When something changed between Zabbix versions, gate it with `api.Config.Version >= NNNNN` and keep the old path.
 
 With the 6.0 floor, the gates that **survive** are:
 
 | Gate | What it covers |
 |---|---|
-| `>= 62000` | template groups split from host groups |
-| `>= 64000` | bearer auth; template `vendor_name`/`vendor_version` |
+| `>= 60200` | template groups split from host groups |
+| `>= 60400` | bearer auth; template `vendor_name`/`vendor_version` |
 | `>= 70000` | proxy model rewrite, `monitored_by`, LLD header arrays, browser items |
-| `>= 72000` | `selectHostGroups`/`selectTemplateGroups` replacing `selectGroups` |
-| `>= 74000` | LLD rule prototypes |
+| `>= 70200` | `selectHostGroups`/`selectTemplateGroups` replacing `selectGroups` |
+| `>= 70400` | LLD rule prototypes |
 
-Everything gated below `60000` is dead and is being deleted (Phase 2b) — the legacy SNMP v1/v2/v3 item types, applications, aggregate items, the v4 inventory/tag fallbacks, and roughly 30 comparison sites across provider and tests. **Do not add new gates below `62000`.** New gates should use named constants (`zabbix.V62`, `V64`, `V70`, `V72`, `V74`) rather than bare integers.
+Everything gated below `60000` is dead and is being deleted (Phase 2b) — the legacy SNMP v1/v2/v3 item types, applications, aggregate items, the v4 inventory/tag fallbacks, and roughly 30 comparison sites across provider and tests. **Do not add new gates below `60200`.** New gates should use named constants (`zabbix.V62`, `V64`, `V70`, `V72`, `V74`) rather than bare integers.
 
 `API.CallWithError` / `CallWithErrorParse` are the low-level request methods; the library's resource files (`host.go`, `item.go`, `trigger.go`, `template.go`, `lld.go`, `graph.go`, …) wrap specific `*.create/get/update/delete` calls and define structs with Zabbix's JSON field names.
 

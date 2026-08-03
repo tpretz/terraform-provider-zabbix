@@ -69,9 +69,9 @@ Phase 2b, so every later phase works against a smaller codebase:
   30 sites across provider and tests.
 
 Gates that **remain** (6.0 is below all of these):
-`>= 62000` template groups · `>= 64000` bearer auth, template vendor fields ·
+`>= 60200` template groups · `>= 60400` bearer auth, template vendor fields ·
 `>= 70000` proxy model, `monitored_by`, LLD header arrays, browser items ·
-`>= 72000` `selectHostGroups`/`selectTemplateGroups` · `>= 74000` LLD rule prototypes.
+`>= 70200` `selectHostGroups`/`selectTemplateGroups` · `>= 70400` LLD rule prototypes.
 
 Introduce named constants (`zabbix.V62`, `V64`, `V70`, `V72`, `V74`) rather than bare
 integers so gates stay greppable.
@@ -132,9 +132,9 @@ Phase 4 is the long tail by construction and is not meant to complete before v2.
 
 Nothing else is safe to do until the build and CI are modern.
 
-- [ ] **Cut the `v2` branch** from `testenv` and do everything below on it. `master` and
+- [x] **Cut the `v2` branch** from `testenv` and do everything below on it. `master` and
       `testenv` are frozen from this point.
-- [ ] **Merge `go-zabbix-api` into `internal/zabbix`.** Copy the submodule contents in
+- [x] **Merge `go-zabbix-api` into `internal/zabbix`.** Copy the submodule contents in
       with history (`git subtree add` or a filtered merge), rewrite the import path
       `github.com/tpretz/go-zabbix-api` → `github.com/tpretz/terraform-provider-zabbix/internal/zabbix`,
       delete `.gitmodules` and the `replace` directive, and remove the
@@ -161,13 +161,13 @@ Nothing else is safe to do until the build and CI are modern.
       Feb-2025 SDK.
       Note the `toolchain go1.23.4` line `go mod tidy` auto-inserts was stripped
       deliberately: it would impose a 1.23.4 floor on anyone running an older 1.23.x.
-- [ ] `.github/workflows/ci.yml`: `go build ./...`, `go vet ./...`, `go test ./provider/`,
+- [x] `.github/workflows/ci.yml`: `go build ./...`, `go vet ./...`, `go test ./provider/`,
       `gofmt -l`, on push + PR
-- [ ] `release.yml`: `actions/checkout@v4`, `setup-go@v5` (version from `go.mod`),
+- [x] `release.yml`: `actions/checkout@v4`, `setup-go@v5` (version from `go.mod`),
       `goreleaser-action@v6`, `--clean` instead of the removed `--rm-dist`
-- [ ] `.goreleaser.yml`: drop `386`/`arm` where unused, `changelog.skip` → `changelog.disable`
-- [ ] Add `golangci-lint` with a conservative ruleset
-- [ ] Update `CLAUDE.md`: no submodule, new version floor, no v4 compat carve-out
+- [x] `.goreleaser.yml`: drop `386`/`arm` where unused, `changelog.skip` → `changelog.disable`
+- [x] Add `golangci-lint` with a conservative ruleset
+- [x] Update `CLAUDE.md`: no submodule, new version floor, no v4 compat carve-out
 
 **Exit criteria:** green CI on push; `goreleaser build --snapshot` succeeds locally;
 `git submodule status` returns nothing.
@@ -247,12 +247,12 @@ Two halves, done together because they touch the same files: fix what's broken a
 The provider cannot talk to a 7.2+ server at all today.
 
 - [ ] **Bearer auth.** In `internal/zabbix/base.go`, send `Authorization: Bearer <token>`
-      when `Config.Version >= 64000`; keep the `auth` body property below that (6.0/6.2
+      when `Config.Version >= 60400`; keep the `auth` body property below that (6.0/6.2
       still need it). Drop `auth` from the request struct on the new path entirely.
 - [ ] **`apiinfo.version` must stay unauthenticated** — verify the probe in `NewAPI`
       runs before any credential is attached.
 - [ ] **`selectGroups` removal.** Replace with `selectHostGroups` (host) /
-      `selectTemplateGroups` (template) on `>= 72000`; keep `selectGroups` below.
+      `selectTemplateGroups` (template) on `>= 70200`; keep `selectGroups` below.
       Sites: `resource_host.go:596,625`, `resource_template.go:126,153`.
 - [ ] **Host ↔ proxy.** `proxy_hostid` → `proxyid` on `>= 70000`, and set `monitored_by`
       (0 server / 1 proxy / 2 proxy group) accordingly. `internal/zabbix/host.go:63`.
@@ -273,7 +273,7 @@ and friends all carry `< 50000` / `>= 50400` `SkipFunc`s).
 
 **Exit criteria:** the Phase 1 baseline failure list is empty for 6.0, 7.0 and 7.4 — the
 existing acceptance suite passes end-to-end on all three. No `Config.Version` comparison
-below `62000` remains in the tree. 8.0/trunk failures are triaged and recorded, not
+below `60200` remains in the tree. 8.0/trunk failures are triaged and recorded, not
 necessarily fixed.
 
 ---
@@ -285,7 +285,7 @@ Close the gaps in current resources before adding new ones.
 ### 3a — resource corrections
 
 - [ ] `zabbix_templategroup` resource + data source; teach `zabbix_template` to use
-      template groups on `>= 62000` and host groups below. **Breaking** — migration guide.
+      template groups on `>= 60200` and host groups below. **Breaking** — migration guide.
 - [ ] `zabbix_proxy` **resource** (currently data source only), modelled on 7.0
       (`name`, `operating_mode`, `address`, `port`, `allowed_addresses`, TLS fields) with
       pre-7.0 translation; update the data source likewise.
