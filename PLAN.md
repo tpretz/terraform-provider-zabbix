@@ -140,9 +140,27 @@ Nothing else is safe to do until the build and CI are modern.
       delete `.gitmodules` and the `replace` directive, and remove the
       `sed -i '/^replace/d' go.mod` step from `release.yml`. Archive the upstream repo
       with a pointer to this one.
-- [ ] `go.mod`: `go 1.11` → `go 1.24`; drop the `github.com/hashicorp/terraform v0.12.23`
-      dependency (the SDK supersedes it); `go mod tidy` to prune the `// indirect` block
-- [ ] Bump `terraform-plugin-sdk/v2` 2.10.1 → 2.40.1; fix any deprecations
+- [x] `go.mod`: `go 1.11` → `go 1.23.0`; dropped the `github.com/hashicorp/terraform v0.12.23`
+      dependency; `go mod tidy` pruned the indirect block (net −580 lines of `go.sum`)
+- [x] Bump `terraform-plugin-sdk/v2` 2.10.1 → **v2.37.0** (not 2.40.1 — see below)
+- [ ] **Toolchain decision: raise Go to 1.25.x and finish the SDK bump to 2.40.1.**
+      The SDK's own `go` directive gates this and 2.40.1 is not reachable from Go 1.23:
+
+      | SDK | requires |
+      |---|---|
+      | v2.36.1 | go 1.22.0 |
+      | **v2.37.0** | **go 1.23.0** ← current ceiling |
+      | v2.38.0–v2.39.0 | go 1.24.0 |
+      | v2.40.0 | go 1.25.0 |
+      | v2.40.1 | go 1.25.8 |
+
+      The installed toolchain is go1.23.4, so v2.40.1 needs a two-minor jump, not a near
+      miss. Deferred rather than forcing a `GOTOOLCHAIN` download mid-task. Do this when
+      pinning the CI Go version — that is where the toolchain floor gets set anyway — and
+      the SDK bump is then a one-line `go mod edit`. A 2026 release should not ship on a
+      Feb-2025 SDK.
+      Note the `toolchain go1.23.4` line `go mod tidy` auto-inserts was stripped
+      deliberately: it would impose a 1.23.4 floor on anyone running an older 1.23.x.
 - [ ] `.github/workflows/ci.yml`: `go build ./...`, `go vet ./...`, `go test ./provider/`,
       `gofmt -l`, on push + PR
 - [ ] `release.yml`: `actions/checkout@v4`, `setup-go@v5` (version from `go.mod`),
