@@ -14,23 +14,23 @@ func TestAccResourceGraph(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // lazy load config, needed for skipfunc that look at meta
-				Config: `
-resource "zabbix_hostgroup" "lazyconfigload" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "lazyconfigload" {
 	name = "lazyload" 
 }
-`,
+`),
 			},
 			{ // simple create
 				// SkipFunc: func() (bool, error) {
 				// 	api := testAccProvider.Meta().(*zabbix.API)
 				// 	return api.Config.Version >= 50400, nil
 				// },
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -52,18 +52,18 @@ resource "zabbix_graph" "test" {
 		itemid = zabbix_item_agent.testitem.id
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_graph.test", "name", "test"),
 				),
 			},
 			{ // adjust and optional settings, second item
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -110,7 +110,7 @@ resource "zabbix_graph" "test" {
 		itemid = zabbix_item_agent.testitem-2.id
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_graph.test", "name", "testb"),
 				),

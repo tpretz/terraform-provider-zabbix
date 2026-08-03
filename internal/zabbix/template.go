@@ -3,10 +3,13 @@ package zabbix
 // Template represent Zabbix Template type returned from Zabbix API
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/template/object
 type Template struct {
-	TemplateID      string       `json:"templateid,omitempty"`
-	Host            string       `json:"host"`
-	Description     string       `json:"description,omitempty"`
-	Name            string       `json:"name,omitempty"`
+	TemplateID  string `json:"templateid,omitempty"`
+	Host        string `json:"host"`
+	Description string `json:"description,omitempty"`
+	Name        string `json:"name,omitempty"`
+	// Groups carries template group ids on Zabbix 6.2+ and host group ids
+	// below that; the wire property is "groups" either way. The id types are
+	// structurally identical ({"groupid": "..."}), so HostGroupIDs is reused.
 	Groups          HostGroupIDs `json:"groups"`
 	UserMacros      Macros       `json:"macros"`
 	LinkedTemplates TemplateIDs  `json:"templates,omitempty"`

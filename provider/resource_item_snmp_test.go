@@ -15,11 +15,11 @@ func TestAccResourceItemSnmp(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // lazy init
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
-`,
+`),
 			},
 
 			// ge version 5, just simple snmp options onlyu
@@ -31,12 +31,12 @@ resource "zabbix_hostgroup" "testgrp" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50000, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmp" "testitem" {
@@ -67,7 +67,7 @@ resource "zabbix_item_snmp" "testitem3" {
 	#snmp3_securitylevel = ""
 	#snmp3_securityname = ""
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -92,12 +92,12 @@ resource "zabbix_item_snmp" "testitem3" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmp" "testitem" {
@@ -128,7 +128,7 @@ resource "zabbix_item_snmp" "testitem3" {
 	snmp3_securitylevel = "authnopriv"
 	snmp3_securityname = "dave"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -153,12 +153,12 @@ resource "zabbix_item_snmp" "testitem3" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmp" "testitem" {
@@ -170,7 +170,7 @@ resource "zabbix_item_snmp" "testitem" {
 
 	snmp_oid = "1.2.2.5"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),
@@ -183,12 +183,12 @@ resource "zabbix_item_snmp" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmp" "testitem" {
@@ -200,7 +200,7 @@ resource "zabbix_item_snmp" "testitem" {
 
 	snmp_oid = "1.2.3.5"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "key", "script[\"abc\"]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmp.testitem", "name", "Ext Item"),

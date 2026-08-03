@@ -760,6 +760,49 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 	return val
 }
 
+// existingTemplateIds filters a set of template ids down to those the server
+// still knows about.
+//
+// Terraform will happily destroy a zabbix_template in the same apply that
+// removes it from a host's `templates`, and does not always order the host
+// update first. Deleting a template unlinks it from its hosts anyway, so
+// naming it in `templates_clear` is redundant - but Zabbix 7.0 made unknown
+// object ids a hard error, so the redundant entry fails the whole host.update.
+func existingTemplateIds(api *zabbix.API, s *schema.Set) (zabbix.TemplateIDs, error) {
+	ids := buildTemplateIds(s)
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	lookup := make([]string, len(ids))
+	for i, t := range ids {
+		lookup[i] = t.TemplateID
+	}
+
+	found, err := api.TemplatesGet(zabbix.Params{
+		"templateids": lookup,
+		"output":      []string{"templateid"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	alive := map[string]bool{}
+	for _, t := range found {
+		alive[t.TemplateID] = true
+	}
+
+	out := make(zabbix.TemplateIDs, 0, len(ids))
+	for _, t := range ids {
+		if alive[t.TemplateID] {
+			out = append(out, t)
+		} else {
+			log.Debug("template %s no longer exists, dropping from templates_clear", t.TemplateID)
+		}
+	}
+	return out, nil
+}
+
 // resourceHostUpdate terraform update resource handler
 func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 	api := m.(*zabbix.API)
@@ -777,7 +820,13 @@ func resourceHostUpdate(d *schema.ResourceData, m interface{}) error {
 
 		// removals, we need to unlink and clear
 		if diff.Len() > 0 {
-			item.TemplateIDsClear = buildTemplateIds(diff)
+			toClear, err := existingTemplateIds(api, diff)
+			if err != nil {
+				return err
+			}
+			if len(toClear) > 0 {
+				item.TemplateIDsClear = toClear
+			}
 		}
 	}
 

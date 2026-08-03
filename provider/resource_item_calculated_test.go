@@ -21,12 +21,12 @@ func TestAccResourceItemCalculated(t *testing.T) {
 					fmt.Printf("got version %d\n", api.Config.Version)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_calculated" "testitem" {
@@ -38,7 +38,7 @@ resource "zabbix_item_calculated" "testitem" {
 
 	formula = "avg(/Zabbix Server/zabbix[wcache,values],10m)"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "key", "hello"),
 					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "name", "Test Item"),
@@ -51,12 +51,12 @@ resource "zabbix_item_calculated" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50400, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_calculated" "testitem" {
@@ -67,7 +67,7 @@ resource "zabbix_item_calculated" "testitem" {
 	valuetype = "float"
 	formula = "max(/Zabbix Server/zabbix[wcache,values],10m)"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "key", "goodbye"),
 					resource.TestCheckResourceAttr("zabbix_item_calculated.testitem", "name", "Test Item Changed"),

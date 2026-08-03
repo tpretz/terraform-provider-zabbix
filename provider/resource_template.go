@@ -9,6 +9,13 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// templateGroupsDescription documents the one field whose meaning depends on
+// the server version: on 6.2+ a template belongs to template groups, below
+// that to host groups. The id spaces are disjoint on 6.2+.
+const templateGroupsDescription = "Group IDs this template belongs to. " +
+	"On Zabbix 6.2 and later these are template group ids (zabbix_templategroup); " +
+	"on 6.0/6.1 they are host group ids (zabbix_hostgroup)."
+
 // template resource function
 func resourceTemplate() *schema.Resource {
 	return &schema.Resource{
@@ -20,6 +27,17 @@ func resourceTemplate() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		// v0 -> v1: "groups" holds template group ids on Zabbix 6.2+ where it
+		// previously held host group ids. See resourceTemplateStateUpgradeV0.
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Version: 0,
+				Type:    resourceTemplateV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceTemplateStateUpgradeV0,
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"groups": &schema.Schema{
 				Type: schema.TypeSet,
@@ -28,7 +46,7 @@ func resourceTemplate() *schema.Resource {
 					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 				},
 				Required:    true,
-				Description: "Host Group IDs",
+				Description: templateGroupsDescription,
 			},
 			"host": &schema.Schema{
 				Type:         schema.TypeString,
@@ -72,7 +90,7 @@ func dataTemplate() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Computed:    true,
-				Description: "Host Group IDs",
+				Description: templateGroupsDescription,
 			},
 			"host": &schema.Schema{
 				Type:        schema.TypeString,

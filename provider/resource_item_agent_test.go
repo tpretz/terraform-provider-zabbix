@@ -15,12 +15,12 @@ func TestAccResourceItemAgent(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -30,7 +30,7 @@ resource "zabbix_item_agent" "testitem" {
 	name = "Test Item"
 	valuetype = "text"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "key", "testitem"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "name", "Test Item"),
@@ -38,12 +38,12 @@ resource "zabbix_item_agent" "testitem" {
 				),
 			},
 			{ // change values
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -53,7 +53,7 @@ resource "zabbix_item_agent" "testitem" {
 	name = "Test Item Changed"
 	valuetype = "float"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "key", "testitemchanged"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "name", "Test Item Changed"),
@@ -65,12 +65,12 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -86,7 +86,7 @@ resource "zabbix_item_agent" "testitem" {
 	history = "1h"
 	trends = "7d"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "true"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -99,12 +99,12 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50400, nil
 				},
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "testitem" {
@@ -125,7 +125,7 @@ resource "zabbix_item_agent" "testitem" {
 		value = "test"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "true"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -136,7 +136,7 @@ resource "zabbix_item_agent" "testitem" {
 				),
 			},
 			{ // attached to interface id
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -162,7 +162,7 @@ resource "zabbix_item_agent" "testitem" {
 	history = "1h"
 	trends = "7d"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -176,7 +176,7 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version >= 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -211,7 +211,7 @@ resource "zabbix_item_agent" "testitem" {
 		type = "10"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -228,7 +228,7 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -279,7 +279,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
@@ -302,7 +302,7 @@ resource "zabbix_item_agent" "testitem" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -339,7 +339,7 @@ resource "zabbix_item_agent" "testitem" {
 		error_handler = "0"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),

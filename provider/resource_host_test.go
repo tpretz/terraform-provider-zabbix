@@ -15,7 +15,7 @@ func TestAccResourceHost(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -27,14 +27,14 @@ resource "zabbix_host" "testhost" {
 		ip   = "127.0.0.1"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "disabled"),
 				),
 			},
 			{ // enable inventory, set something
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -50,13 +50,13 @@ resource "zabbix_host" "testhost" {
 		location = "test location A"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory.0.location", "test location A"),
 				),
 			},
 			{ // change something in inventory, also change mode of inventory
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -72,14 +72,14 @@ resource "zabbix_host" "testhost" {
 		location = "test location B"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory.0.location", "test location B"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "inventory_mode", "automatic"),
 				),
 			},
 			{ // add a second interface, change interface types, add a macro too
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -102,7 +102,7 @@ resource "zabbix_host" "testhost" {
 		name = "{$BOB}"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host-renamed"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "macro.0.value", "fish"),
@@ -116,14 +116,17 @@ resource "zabbix_host" "testhost" {
 
 			// relate to a proxy (tricky as we don't manage those resources ... yet, manual setup api call may be warrented)
 			{ // relate to a template, and disable
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
+}
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
 	host = "test-template"
 	name = "test-template"
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host-renamed"
@@ -146,20 +149,23 @@ resource "zabbix_host" "testhost" {
 		name = "{$BOB}"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "enabled", "false"),
 				),
 			},
 			{ // remove macros
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
+}
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group" 
 }
 resource "zabbix_template" "testtmpl" {
 	host = "test-template"
 	name = "test-template"
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
 }
 resource "zabbix_host" "testhost" {
 	host   = "test-host-renamed"
@@ -177,14 +183,14 @@ resource "zabbix_host" "testhost" {
 		type = "jmx"
 	}
 }
-`,
+`),
 			},
 			{ // add a tag
 				SkipFunc: func() (bool, error) {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -200,7 +206,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue"),
@@ -211,7 +217,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -227,7 +233,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue1"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
@@ -238,7 +244,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -258,7 +264,7 @@ resource "zabbix_host" "testhost" {
 		value = "testvalue1"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
@@ -271,7 +277,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -287,7 +293,7 @@ resource "zabbix_host" "testhost" {
 		snmp_bulk = false
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "1"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
@@ -299,7 +305,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -315,7 +321,7 @@ resource "zabbix_host" "testhost" {
 		snmp_bulk = false
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "2"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
@@ -327,7 +333,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -349,7 +355,7 @@ resource "zabbix_host" "testhost" {
 		snmp3_contextname = "testcname"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
@@ -367,7 +373,7 @@ resource "zabbix_host" "testhost" {
 					api := testAccProvider.Meta().(*zabbix.API)
 					return api.Config.Version < 50000, nil
 				},
-				Config: `
+				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
 }
@@ -389,7 +395,7 @@ resource "zabbix_host" "testhost" {
 		snmp3_contextname = "testcname"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),

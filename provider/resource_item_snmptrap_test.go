@@ -14,12 +14,12 @@ func TestAccResourceItemSnmpTrap(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmptrap" "testitem" {
@@ -29,7 +29,7 @@ resource "zabbix_item_snmptrap" "testitem" {
 	name = "Ext Item"
 	valuetype = "text"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmptrap.testitem", "key", "snmptrap[.*]"),
 					resource.TestCheckResourceAttr("zabbix_item_snmptrap.testitem", "name", "Ext Item"),
@@ -37,12 +37,12 @@ resource "zabbix_item_snmptrap" "testitem" {
 				),
 			},
 			{ // change values
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_snmptrap" "testitem" {
@@ -52,7 +52,7 @@ resource "zabbix_item_snmptrap" "testitem" {
 	name = "Ext Item A"
 	valuetype = "unsigned"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_snmptrap.testitem", "key", "snmptrap.fallback"),
 					resource.TestCheckResourceAttr("zabbix_item_snmptrap.testitem", "name", "Ext Item A"),

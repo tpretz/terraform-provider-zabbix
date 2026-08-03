@@ -14,42 +14,42 @@ func TestAccResourceTemplate(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "test-template"),
 				),
 			},
 			{ // rename
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template-renamed"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template-renamed"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "test-template"),
 				),
 			},
 			{ // friendly name, description and a macro
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template-renamed"
 	name = "bob"
 	description = "test description"
@@ -64,7 +64,7 @@ resource "zabbix_template" "testtmpl" {
 		value = "fish"
 	}
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template-renamed"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "bob"),
@@ -74,17 +74,17 @@ resource "zabbix_template" "testtmpl" {
 				),
 			},
 			{ // remove all macros
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template-renamed"
 	name = "bob"
 	description = "test description"
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template-renamed"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "bob"),
@@ -92,26 +92,26 @@ resource "zabbix_template" "testtmpl" {
 				),
 			},
 			{ // add a second group, add a linked template
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
-resource "zabbix_hostgroup" "testgrp2" {
+resource "zabbix_templategroup" "testgrp2" {
 	name = "test-group-2" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id, zabbix_hostgroup.testgrp2.id ]
+	groups = [ zabbix_templategroup.testgrp.id, zabbix_templategroup.testgrp2.id ]
 	host = "test-template-renamed"
 	name = "bob"
 	description = "test description"
 }
 resource "zabbix_template" "testtmpl2" {
-	groups = [ zabbix_hostgroup.testgrp.id, zabbix_hostgroup.testgrp2.id ]
+	groups = [ zabbix_templategroup.testgrp.id, zabbix_templategroup.testgrp2.id ]
 	host = "test-template-2"
 
 	templates = [ zabbix_template.testtmpl.id ]
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl2", "templates.#", "1"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "groups.#", "2"),

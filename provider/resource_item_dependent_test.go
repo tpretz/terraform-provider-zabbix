@@ -14,12 +14,12 @@ func TestAccResourceItemDependent(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "parentitem" {
@@ -37,7 +37,7 @@ resource "zabbix_item_dependent" "testitem" {
 	valuetype = "text"
 	master_itemid = zabbix_item_agent.parentitem.id
 }
-`,
+`),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "key", "depitem"),
 					resource.TestCheckResourceAttr("zabbix_item_dependent.testitem", "name", "Dep Item"),
@@ -45,12 +45,12 @@ resource "zabbix_item_dependent" "testitem" {
 				),
 			},
 			{ // change values
-				Config: `
-resource "zabbix_hostgroup" "testgrp" {
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
 }
 resource "zabbix_template" "testtmpl" {
-	groups = [ zabbix_hostgroup.testgrp.id ]
+	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
 }
 resource "zabbix_item_agent" "parentitem" {
@@ -75,7 +75,7 @@ resource "zabbix_item_dependent" "testitem" {
 	valuetype = "text"
 	master_itemid = zabbix_item_agent.parentitem2.id
 }
-`,
+`),
 			},
 		},
 	})
