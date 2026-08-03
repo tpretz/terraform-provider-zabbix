@@ -4,7 +4,11 @@ package zabbix
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/proxy/object
 type Proxy struct {
 	ProxyID string `json:"proxyid,omitempty"`
-	Host    string `json:"host"`
+	// Zabbix 7.0 renamed the proxy's technical name from "host" to "name" and
+	// dropped the separate proxy interface object. ProxiesGet folds Name back
+	// into Host so callers see one field.
+	Host string `json:"host,omitempty"`
+	Name string `json:"name,omitempty"`
 	// add rest later
 }
 
@@ -18,5 +22,10 @@ func (api *API) ProxiesGet(params Params) (res Proxies, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("proxy.get", params, &res)
+	for i := range res {
+		if res[i].Host == "" {
+			res[i].Host = res[i].Name
+		}
+	}
 	return
 }

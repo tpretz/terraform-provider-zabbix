@@ -12,6 +12,19 @@ type (
 	StatusType int
 
 	InventoryMode int
+
+	// MonitoredByType is the Zabbix >= 7.0 "monitored_by" host property: what
+	// carries out the host's monitoring.
+	MonitoredByType string
+)
+
+const (
+	// MonitoredByServer host is monitored by the Zabbix server (default)
+	MonitoredByServer MonitoredByType = "0"
+	// MonitoredByProxy host is monitored by a proxy
+	MonitoredByProxy MonitoredByType = "1"
+	// MonitoredByProxyGroup host is monitored by a proxy group
+	MonitoredByProxyGroup MonitoredByType = "2"
 )
 
 const (
@@ -60,9 +73,24 @@ type Host struct {
 	TemplateIDsClear TemplateIDs    `json:"templates_clear,omitempty"`
 	// templates are read back from this one
 	ParentTemplateIDs TemplateIDs     `json:"parentTemplates,omitempty"`
-	ProxyID           string          `json:"proxy_hostid,omitempty"`
 	Tags              Tags            `json:"-"`
 	RawTags           json.RawMessage `json:"tags,omitempty"`
+
+	// Host groups. The write path always uses "groups"; the read path depends on
+	// what was selected. Zabbix 7.2 removed selectGroups in favour of
+	// selectHostGroups, which returns the membership under "hostgroups" instead.
+	// HostsGet folds HostGroups back into GroupIds so callers see one field.
+	HostGroups HostGroupIDs `json:"hostgroups,omitempty"`
+
+	// Proxy assignment. Zabbix 7.0 renamed "proxy_hostid" to "proxyid" and made
+	// the link explicit via "monitored_by". ProxyID is the version-independent
+	// value callers read and write; the wire fields either side of it are
+	// populated by prepHosts (write) and HostsGet (read).
+	ProxyID      string          `json:"-"`
+	ProxyHostID  string          `json:"proxy_hostid,omitempty"` // < 7.0
+	ProxyIDField string          `json:"proxyid,omitempty"`      // >= 7.0
+	ProxyGroupID string          `json:"proxy_groupid,omitempty"`
+	MonitoredBy  MonitoredByType `json:"monitored_by,omitempty"` // >= 7.0
 }
 
 // Hosts is an array of Host
@@ -99,6 +127,22 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 				panic(err)
 			}
 			res[i].Interfaces[j].Details = &out
+		}
+
+		// host groups: >= 7.2 answers selectHostGroups under "hostgroups",
+		// everything below answers selectGroups under "groups"
+		if len(res[i].GroupIds) == 0 && len(h.HostGroups) > 0 {
+			res[i].GroupIds = h.HostGroups
+		}
+
+		// proxy: >= 7.0 reports "proxyid", below that "proxy_hostid"
+		if api.Config.Version >= V70 {
+			res[i].ProxyID = h.ProxyIDField
+		} else {
+			res[i].ProxyID = h.ProxyHostID
+		}
+		if res[i].ProxyID == "" {
+			res[i].ProxyID = "0"
 		}
 
 		// omitted = disabled
@@ -229,9 +273,40 @@ func (api *API) HostGetByHost(host string) (res *Host, err error) {
 }
 
 // handle manual marshal
-func prepHosts(hosts Hosts) {
+func (api *API) prepHosts(hosts Hosts) {
 	for i := 0; i < len(hosts); i++ {
 		h := hosts[i]
+
+		// Never send the read-only host group mirror back.
+		hosts[i].HostGroups = nil
+
+		// Proxy link. Zabbix 7.0 replaced "proxy_hostid" with "proxyid" and
+		// requires "monitored_by" to say who does the monitoring; sending
+		// proxyid while monitored_by is 0 (server) is rejected.
+		hosts[i].ProxyHostID = ""
+		hosts[i].ProxyIDField = ""
+		hosts[i].MonitoredBy = ""
+		hasProxy := h.ProxyID != "" && h.ProxyID != "0"
+		if api.Config.Version >= V70 {
+			switch {
+			case h.ProxyGroupID != "" && h.ProxyGroupID != "0":
+				hosts[i].MonitoredBy = MonitoredByProxyGroup
+			case hasProxy:
+				hosts[i].MonitoredBy = MonitoredByProxy
+				hosts[i].ProxyIDField = h.ProxyID
+			default:
+				hosts[i].MonitoredBy = MonitoredByServer
+				hosts[i].ProxyGroupID = ""
+			}
+		} else {
+			// Before 7.0 there is no monitored_by: proxy_hostid = 0 is how a
+			// host is handed back to the server, so it must always be sent.
+			hosts[i].ProxyGroupID = ""
+			hosts[i].ProxyHostID = h.ProxyID
+			if hosts[i].ProxyHostID == "" {
+				hosts[i].ProxyHostID = "0"
+			}
+		}
 		for j := 0; j < len(h.Interfaces); j++ {
 			in := h.Interfaces[j]
 
@@ -259,7 +334,7 @@ func prepHosts(hosts Hosts) {
 // HostsCreate Wrapper for host.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/create
 func (api *API) HostsCreate(hosts Hosts) (err error) {
-	prepHosts(hosts)
+	api.prepHosts(hosts)
 	response, err := api.CallWithError("host.create", hosts)
 	if err != nil {
 		return
@@ -276,7 +351,7 @@ func (api *API) HostsCreate(hosts Hosts) (err error) {
 // HostsUpdate Wrapper for host.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/host/update
 func (api *API) HostsUpdate(hosts Hosts) (err error) {
-	prepHosts(hosts)
+	api.prepHosts(hosts)
 	_, err = api.CallWithError("host.update", hosts)
 	return
 }

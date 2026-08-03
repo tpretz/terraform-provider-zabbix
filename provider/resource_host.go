@@ -588,12 +588,23 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceHostRead(d, m)
 }
 
+// hostGroupSelectParam names the host.get parameter that returns host group
+// membership. Zabbix 7.2 removed "selectGroups" (deprecated since 6.2) in
+// favour of "selectHostGroups"; on 7.2+ the old name is silently ignored, which
+// reads back as a host with no groups rather than as an error.
+func hostGroupSelectParam(m interface{}) string {
+	if m.(*zabbix.API).Config.Version >= zabbix.V72 {
+		return "selectHostGroups"
+	}
+	return "selectGroups"
+}
+
 // dataHostRead read handler for data resource
 func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	params := zabbix.Params{
 		"selectInterfaces":      "extend",
 		"selectParentTemplates": "extend",
-		"selectGroups":          "extend",
+		hostGroupSelectParam(m): "extend",
 		"selectMacros":          "extend",
 		"selectTags":            "extend",
 		"selectInventory":       "extend",
@@ -622,7 +633,7 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 	return hostRead(d, m, zabbix.Params{
 		"selectInterfaces":      "extend",
 		"selectParentTemplates": "extend",
-		"selectGroups":          "extend",
+		hostGroupSelectParam(m): "extend",
 		"selectMacros":          "extend",
 		"selectTags":            "extend",
 		"selectInventory":       "extend",

@@ -29,16 +29,24 @@ func dataProxy() *schema.Resource {
 
 // dataProxyRead read handler for data resource
 func dataProxyRead(d *schema.ResourceData, m interface{}) error {
+	api := m.(*zabbix.API)
+
 	params := zabbix.Params{
-		"selectInterface": "extend",
-		"filter":          map[string]interface{}{},
+		"filter": map[string]interface{}{},
 	}
 
-	lookups := []string{"host"}
-	for _, k := range lookups {
-		if v, ok := d.GetOk(k); ok {
-			params["filter"].(map[string]interface{})[k] = v
-		}
+	// Zabbix 7.0 folded the proxy interface into the proxy object itself, so
+	// "selectInterface" no longer exists, and renamed the technical name
+	// property from "host" to "name". Both are rejected outright on 7.0+.
+	nameKey := "host"
+	if api.Config.Version >= zabbix.V70 {
+		nameKey = "name"
+	} else {
+		params["selectInterface"] = "extend"
+	}
+
+	if v, ok := d.GetOk("host"); ok {
+		params["filter"].(map[string]interface{})[nameKey] = v
 	}
 
 	if len(params["filter"].(map[string]interface{})) < 1 {

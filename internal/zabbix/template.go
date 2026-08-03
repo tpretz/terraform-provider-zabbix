@@ -13,6 +13,13 @@ type Template struct {
 	ParentTemplates TemplateIDs  `json:"parentTemplates,omitempty"`
 	TemplatesClear  TemplateIDs  `json:"templates_clear,omitempty"`
 	LinkedHosts     []string     `json:"hosts,omitempty"`
+
+	// Group membership on read. Zabbix 7.2 removed "selectGroups" in favour of
+	// "selectTemplateGroups"/"selectHostGroups", which answer under different
+	// property names. TemplatesGet folds these back into Groups so callers see
+	// one field; the write path always uses "groups".
+	TemplateGroups HostGroupIDs `json:"templategroups,omitempty"`
+	HostGroups     HostGroupIDs `json:"hostgroups,omitempty"`
 }
 
 // Templates is an Array of Template structs.
@@ -33,6 +40,16 @@ func (api *API) TemplatesGet(params Params) (res Templates, err error) {
 		params["output"] = "extend"
 	}
 	err = api.CallWithErrorParse("template.get", params, &res)
+	for i := range res {
+		if len(res[i].Groups) > 0 {
+			continue
+		}
+		if len(res[i].TemplateGroups) > 0 {
+			res[i].Groups = res[i].TemplateGroups
+		} else if len(res[i].HostGroups) > 0 {
+			res[i].Groups = res[i].HostGroups
+		}
+	}
 	return
 }
 
@@ -52,9 +69,19 @@ func (api *API) TemplateGetByID(id string) (template *Template, err error) {
 	return
 }
 
+// prepTemplates strips the read-only group mirrors; template.create/update
+// reject unknown object properties.
+func prepTemplates(templates Templates) {
+	for i := range templates {
+		templates[i].TemplateGroups = nil
+		templates[i].HostGroups = nil
+	}
+}
+
 // TemplatesCreate Wrapper for template.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/template/create
 func (api *API) TemplatesCreate(templates Templates) (err error) {
+	prepTemplates(templates)
 	response, err := api.CallWithError("template.create", templates)
 	if err != nil {
 		return
@@ -71,6 +98,7 @@ func (api *API) TemplatesCreate(templates Templates) (err error) {
 // TemplatesUpdate Wrapper for template.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/template/update
 func (api *API) TemplatesUpdate(templates Templates) (err error) {
+	prepTemplates(templates)
 	_, err = api.CallWithError("template.update", templates)
 	return
 }

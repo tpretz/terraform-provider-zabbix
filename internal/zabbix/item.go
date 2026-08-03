@@ -3,6 +3,7 @@ package zabbix
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 )
 
 type (
@@ -59,6 +60,10 @@ const (
 	Dependent ItemType = 18
 	HTTPAgent ItemType = 19
 	SNMPAgent ItemType = 20
+	// Script type (5.4+)
+	Script ItemType = 21
+	// Browser type (7.0+)
+	Browser ItemType = 22
 )
 
 const (
@@ -105,19 +110,119 @@ const (
 
 type HttpHeaders map[string]string
 
+// httpHeaderPair is the Zabbix >= 7.0 wire form of a single HTTP header.
+type httpHeaderPair struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// marshalHttpHeaders renders headers in the shape the server expects. Zabbix
+// 7.0 changed the "headers" property of items, item prototypes and discovery
+// rules from a name-indexed object to an array of {name, value} objects, and
+// rejects the old shape with `an array is expected`.
+func (api *API) marshalHttpHeaders(h HttpHeaders) json.RawMessage {
+	if api.Config.Version >= V70 {
+		// sorted so the request is stable and diffs stay readable
+		names := make([]string, 0, len(h))
+		for k := range h {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+		arr := make([]httpHeaderPair, 0, len(names))
+		for _, k := range names {
+			arr = append(arr, httpHeaderPair{Name: k, Value: h[k]})
+		}
+		b, _ := json.Marshal(arr)
+		return json.RawMessage(b)
+	}
+	b, _ := json.Marshal(map[string]string(h))
+	return json.RawMessage(b)
+}
+
+// unmarshalHttpHeaders accepts either wire shape, so a client talking to a
+// mixed-version estate does not need to know which it will get.
+func (api *API) unmarshalHttpHeaders(raw json.RawMessage) HttpHeaders {
+	out := HttpHeaders{}
+	if len(raw) == 0 {
+		return out
+	}
+	asStr := string(raw)
+	if asStr == "[]" || asStr == "{}" || asStr == "null" {
+		return out
+	}
+
+	var arr []httpHeaderPair
+	if err := json.Unmarshal(raw, &arr); err == nil {
+		for _, p := range arr {
+			out[p.Name] = p.Value
+		}
+		return out
+	}
+
+	obj := map[string]string{}
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		api.printf("got error during unmarshal %s", err)
+		panic(err)
+	}
+	for k, v := range obj {
+		out[k] = v
+	}
+	return out
+}
+
+// PreprocNotSupported is the "check for not supported value" preprocessing step.
+const PreprocNotSupported = "26"
+
+// preprocNotSupportedAnyError is the params value that step 26 takes from
+// Zabbix 7.0 on to mean "any error". Before 7.0 the step took no parameters at
+// all and the server rejected a non-empty params.
+const preprocNotSupportedAnyError = "-1"
+
+// prepPreprocessors adapts preprocessing steps to the target version. Zabbix
+// 7.0 gave "check for not supported value" a mandatory params value.
+func (api *API) prepPreprocessors(p Preprocessors) {
+	if api.Config.Version < V70 {
+		return
+	}
+	for i := range p {
+		if p[i].Type == PreprocNotSupported && p[i].Params == "" {
+			p[i].Params = preprocNotSupportedAnyError
+		}
+	}
+}
+
+// readPreprocessors is the inverse of prepPreprocessors, so a configuration
+// that leaves step 26 without params round-trips cleanly on 7.0+.
+func (api *API) readPreprocessors(p Preprocessors) {
+	if api.Config.Version < V70 {
+		return
+	}
+	for i := range p {
+		if p[i].Type == PreprocNotSupported && p[i].Params == preprocNotSupportedAnyError {
+			p[i].Params = ""
+		}
+	}
+}
+
 // Item represent Zabbix item object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type Item struct {
-	ItemID       string    `json:"itemid,omitempty"`
-	Delay        string    `json:"delay"`
-	HostID       string    `json:"hostid"`
-	InterfaceID  string    `json:"interfaceid,omitempty"`
-	Key          string    `json:"key_"`
-	Name         string    `json:"name"`
-	Type         ItemType  `json:"type,string"`
-	ValueType    ValueType `json:"value_type,string"`
-	DataType     DataType  `json:"data_type,string"`
-	Delta        DeltaType `json:"delta,string"`
+	ItemID string `json:"itemid,omitempty"`
+	Delay  string `json:"delay"`
+	// hostid is create-only from Zabbix 7.0 on — item.update and
+	// itemprototype.update reject it as an unexpected parameter, so
+	// prepItemsUpdate strips it.
+	HostID      string    `json:"hostid,omitempty"`
+	InterfaceID string    `json:"interfaceid,omitempty"`
+	Key         string    `json:"key_"`
+	Name        string    `json:"name"`
+	Type        ItemType  `json:"type,string"`
+	ValueType   ValueType `json:"value_type,string"`
+	// data_type and delta were dropped from the item object in Zabbix 3.4 and
+	// are rejected outright by item.create/update from 7.0 on, so they are not
+	// serialised at all.
+	DataType     DataType  `json:"-"`
+	Delta        DeltaType `json:"-"`
 	Description  string    `json:"description"`
 	Error        string    `json:"error,omitempty"`
 	History      string    `json:"history,omitempty"`
@@ -129,7 +234,9 @@ type Item struct {
 	RawApplications json.RawMessage `json:"applications,omitempty"`
 	Applications    []string        `json:"-"`
 
-	ItemParent Hosts `json:"hosts"`
+	// read-only, only populated by selectHosts; omitempty keeps it off the
+	// write path, where 7.0+ rejects it as an unexpected property
+	ItemParent Hosts `json:"hosts,omitempty"`
 
 	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
 
@@ -165,9 +272,11 @@ type Item struct {
 	// Dependent Fields
 	MasterItemID string `json:"master_itemid,omitempty"`
 
-	// Prototype
+	// Prototype. discoveryRule is read-only (selectDiscoveryRule) — note the
+	// tag was "omitEmpty", which encoding/json does not recognise, so it used
+	// to be serialised as null on every create/update.
 	RuleID        string   `json:"ruleid,omitempty"`
-	DiscoveryRule *LLDRule `json:"discoveryRule,omitEmpty"`
+	DiscoveryRule *LLDRule `json:"discoveryRule,omitempty"`
 
 	Tags Tags `json:"tags,omitempty"`
 }
@@ -236,28 +345,12 @@ func (api *API) itemsHeadersUnmarshal(item Items) {
 			}
 		}
 
-		item[i].Headers = HttpHeaders{}
-
-		if len(h.RawHeaders) == 0 {
-			continue
-		}
-
-		asStr := string(h.RawHeaders)
-		if asStr == "[]" {
-			continue
-		}
-
-		out := HttpHeaders{}
-		err := json.Unmarshal(h.RawHeaders, &out)
-		if err != nil {
-			api.printf("got error during unmarshal %s", err)
-			panic(err)
-		}
-		item[i].Headers = out
+		item[i].Headers = api.unmarshalHttpHeaders(h.RawHeaders)
+		api.readPreprocessors(item[i].Preprocessors)
 	}
 }
 
-func prepItems(item Items) {
+func (api *API) prepItems(item Items) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
 
@@ -267,11 +360,28 @@ func prepItems(item Items) {
 			h.RawApplications = raw
 		}
 
+		// read-only, never valid on the write path
+		item[i].ItemParent = nil
+		item[i].DiscoveryRule = nil
+
+		api.prepPreprocessors(item[i].Preprocessors)
+
 		if h.Headers == nil {
 			continue
 		}
-		asB, _ := json.Marshal(h.Headers)
-		item[i].RawHeaders = json.RawMessage(asB)
+		item[i].RawHeaders = api.marshalHttpHeaders(h.Headers)
+	}
+}
+
+// prepItemsUpdate is prepItems plus the properties that are valid on create but
+// not on update.
+func (api *API) prepItemsUpdate(item Items) {
+	api.prepItems(item)
+	if api.Config.Version < V70 {
+		return
+	}
+	for i := range item {
+		item[i].HostID = ""
 	}
 }
 
@@ -316,7 +426,7 @@ func (api *API) ProtoItemsGetByApplicationID(id string) (res Items, err error) {
 // ItemsCreate Wrapper for item.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
 func (api *API) ItemsCreate(items Items) (err error) {
-	prepItems(items)
+	api.prepItems(items)
 	response, err := api.CallWithError("item.create", items)
 	if err != nil {
 		return
@@ -330,7 +440,7 @@ func (api *API) ItemsCreate(items Items) (err error) {
 	return
 }
 func (api *API) ProtoItemsCreate(items Items) (err error) {
-	prepItems(items)
+	api.prepItems(items)
 	response, err := api.CallWithError("itemprototype.create", items)
 	if err != nil {
 		return
@@ -347,12 +457,12 @@ func (api *API) ProtoItemsCreate(items Items) (err error) {
 // ItemsUpdate Wrapper for item.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
 func (api *API) ItemsUpdate(items Items) (err error) {
-	prepItems(items)
+	api.prepItemsUpdate(items)
 	_, err = api.CallWithError("item.update", items)
 	return
 }
 func (api *API) ProtoItemsUpdate(items Items) (err error) {
-	prepItems(items)
+	api.prepItemsUpdate(items)
 	_, err = api.CallWithError("itemprototype.update", items)
 	return
 }

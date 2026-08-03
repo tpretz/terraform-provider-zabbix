@@ -19,6 +19,30 @@ type (
 	Params map[string]interface{}
 )
 
+// Zabbix API version gates. Config.Version is encoded by parseVersionString as
+// major*10000 + minor*100 + patch — 6.0.13 is 60013 and 7.4.13 is 70413 — so a
+// minor release is 100, not 1000, apart. (PLAN.md and API-COVERAGE.md quote
+// these gates as 62000/64000/72000/74000; under this encoding those are
+// versions 6.20/6.40/7.20/7.40 and would never match. The names below are the
+// documented ones, the values are the ones that actually compare correctly.)
+// Use these instead of bare integers so version-conditional behaviour stays
+// greppable.
+const (
+	// V62 6.2: template groups split out from host groups
+	V62 = 60200
+	// V64 6.4: "Authorization: Bearer" header accepted; template vendor fields
+	V64 = 60400
+	// V70 7.0: proxy model rewrite (proxyid/monitored_by), HTTP header arrays,
+	// item.create/discoveryrule.create reject unknown object properties,
+	// preprocessing "check for not supported value" requires params
+	V70 = 70000
+	// V72 7.2: "auth" request property removed; selectGroups replaced by
+	// selectHostGroups / selectTemplateGroups
+	V72 = 70200
+	// V74 7.4: LLD rule prototypes
+	V74 = 70400
+)
+
 type request struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
@@ -175,7 +199,19 @@ func (api *API) printf(format string, v ...interface{}) {
 
 func (api *API) callBytes(method string, params interface{}) (b []byte, err error) {
 	id := atomic.AddInt32(&api.id, 1)
-	jsonobj := request{"2.0", method, params, api.Auth, id}
+
+	// Zabbix 6.4 started accepting the auth token in an "Authorization: Bearer"
+	// header, and 7.2 removed the "auth" JSON-RPC body property entirely — it is
+	// now rejected as an unexpected parameter, which fails every call. Send
+	// exactly one of the two, never both. Config.Version is 0 until the
+	// unauthenticated apiinfo.version probe in NewAPI has run, and api.Auth is
+	// empty until Login(), so neither is attached to that probe.
+	useBearer := api.Auth != "" && api.Config.Version >= V64
+
+	jsonobj := request{Jsonrpc: "2.0", Method: method, Params: params, ID: id}
+	if !useBearer {
+		jsonobj.Auth = api.Auth
+	}
 	b, err = json.Marshal(jsonobj)
 	if err != nil {
 		return
@@ -189,6 +225,9 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	req.ContentLength = int64(len(b))
 	req.Header.Add("Content-Type", "application/json-rpc")
 	req.Header.Add("User-Agent", api.UserAgent)
+	if useBearer {
+		req.Header.Add("Authorization", "Bearer "+api.Auth)
+	}
 
 	if api.Config.Serialize {
 		api.ex.Lock()

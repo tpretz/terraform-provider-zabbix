@@ -116,14 +116,25 @@ func resourceTemplateCreate(d *schema.ResourceData, m interface{}) error {
 	return resourceTemplateRead(d, m)
 }
 
+// templateGroupSelectParam names the template.get parameter that returns group
+// membership. Zabbix 7.2 removed "selectGroups" (deprecated since 6.2) in
+// favour of "selectTemplateGroups"; on 7.2+ the old name is silently ignored,
+// so the template reads back with no groups rather than erroring.
+func templateGroupSelectParam(m interface{}) string {
+	if m.(*zabbix.API).Config.Version >= zabbix.V72 {
+		return "selectTemplateGroups"
+	}
+	return "selectGroups"
+}
+
 // terraform template read handler (data source)
 func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 
 	params := zabbix.Params{
-		"filter":                map[string]interface{}{},
-		"selectMacros":          "extend",
-		"selectParentTemplates": "extend",
-		"selectGroups":          "extend",
+		"filter":                    map[string]interface{}{},
+		"selectMacros":              "extend",
+		"selectParentTemplates":     "extend",
+		templateGroupSelectParam(m): "extend",
 	}
 
 	if v := d.Get("host").(string); v != "" {
@@ -147,10 +158,10 @@ func resourceTemplateRead(d *schema.ResourceData, m interface{}) error {
 	log.Debug("Lookup of template with id %s", d.Id())
 
 	return templateRead(d, m, zabbix.Params{
-		"templateids":           d.Id(),
-		"selectMacros":          "extend",
-		"selectParentTemplates": "extend",
-		"selectGroups":          "extend",
+		"templateids":               d.Id(),
+		"selectMacros":              "extend",
+		"selectParentTemplates":     "extend",
+		templateGroupSelectParam(m): "extend",
 	})
 }
 

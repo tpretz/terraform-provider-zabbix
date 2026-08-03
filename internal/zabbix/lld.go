@@ -42,9 +42,11 @@ type LLDMacroPaths []LLDMacroPath
 // Item represent Zabbix lld object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/object
 type LLDRule struct {
-	ItemID      string   `json:"itemid,omitempty"`
-	Delay       string   `json:"delay"`
-	HostID      string   `json:"hostid"`
+	ItemID string `json:"itemid,omitempty"`
+	Delay  string `json:"delay"`
+	// hostid is create-only from Zabbix 7.0 on — discoveryrule.update rejects
+	// it as an unexpected parameter, so prepLLDsUpdate strips it.
+	HostID      string   `json:"hostid,omitempty"`
 	InterfaceID string   `json:"interfaceid,omitempty"`
 	Key         string   `json:"key_"`
 	Name        string   `json:"name"`
@@ -107,38 +109,33 @@ type LLDRules []LLDRule
 
 func (api *API) lldsHeadersUnmarshal(item LLDRules) {
 	for i := 0; i < len(item); i++ {
-		h := item[i]
-
-		item[i].Headers = HttpHeaders{}
-
-		if len(h.RawHeaders) == 0 {
-			continue
-		}
-
-		asStr := string(h.RawHeaders)
-		if asStr == "[]" {
-			continue
-		}
-
-		out := HttpHeaders{}
-		err := json.Unmarshal(h.RawHeaders, &out)
-		if err != nil {
-			api.printf("got error during unmarshal %s", err)
-			panic(err)
-		}
-		item[i].Headers = out
+		item[i].Headers = api.unmarshalHttpHeaders(item[i].RawHeaders)
+		api.readPreprocessors(item[i].Preprocessors)
 	}
 }
 
-func prepLLDs(item LLDRules) {
+func (api *API) prepLLDs(item LLDRules) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
+
+		api.prepPreprocessors(item[i].Preprocessors)
 
 		if h.Headers == nil {
 			continue
 		}
-		asB, _ := json.Marshal(h.Headers)
-		item[i].RawHeaders = json.RawMessage(asB)
+		item[i].RawHeaders = api.marshalHttpHeaders(h.Headers)
+	}
+}
+
+// prepLLDsUpdate is prepLLDs plus the properties that are valid on create but
+// not on update.
+func (api *API) prepLLDsUpdate(item LLDRules) {
+	api.prepLLDs(item)
+	if api.Config.Version < V70 {
+		return
+	}
+	for i := range item {
+		item[i].HostID = ""
 	}
 }
 
@@ -172,7 +169,7 @@ func (api *API) LLDGetByID(id string) (res *LLDRule, err error) {
 // ItemsCreate Wrapper for item.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/create
 func (api *API) LLDsCreate(items LLDRules) (err error) {
-	prepLLDs(items)
+	api.prepLLDs(items)
 	response, err := api.CallWithError("discoveryrule.create", items)
 	if err != nil {
 		return
@@ -189,7 +186,7 @@ func (api *API) LLDsCreate(items LLDRules) (err error) {
 // ItemsUpdate Wrapper for item.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/item/update
 func (api *API) LLDsUpdate(items LLDRules) (err error) {
-	prepLLDs(items)
+	api.prepLLDsUpdate(items)
 	_, err = api.CallWithError("discoveryrule.update", items)
 	return
 }
