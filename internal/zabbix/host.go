@@ -145,13 +145,7 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			res[i].ProxyID = "0"
 		}
 
-		// omitted = disabled
-		if h.RawInventoryMode == nil {
-			// v4 stores this nested in the inventory object, lets see if we can pull that out later
-			res[i].InventoryMode = InventoryDisabled
-		} else {
-			res[i].InventoryMode = api.getInvModeFromRaw(&h.RawInventoryMode)
-		}
+		res[i].InventoryMode = api.getInvModeFromRaw(&h.RawInventoryMode)
 
 		// tags
 		if h.RawTags == nil {
@@ -178,26 +172,6 @@ func (api *API) HostsGet(params Params) (res Hosts, err error) {
 			if err := json.Unmarshal(h.RawInventory, &inv); err != nil {
 				api.printf("got error during unmarshal %s", err)
 				panic(err)
-			}
-
-			// v4 checks
-			if _, ok := inv["hostid"]; ok {
-				delete(inv, "hostid")
-			}
-			if v, ok := inv["inventory_mode"]; ok {
-				delete(inv, "inventory_mode")
-
-				// we found a legacy inventory mode, but no modern
-				if h.RawInventoryMode == nil {
-					switch v {
-					case "-1":
-						res[i].InventoryMode = InventoryDisabled
-					case "0":
-						res[i].InventoryMode = InventoryManual
-					case "1":
-						res[i].InventoryMode = InventoryAutomatic
-					}
-				}
 			}
 
 			res[i].Inventory = inv

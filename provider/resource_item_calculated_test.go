@@ -1,11 +1,9 @@
 package provider
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func TestAccResourceItemCalculated(t *testing.T) {
@@ -16,11 +14,6 @@ func TestAccResourceItemCalculated(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{ // simple create
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					fmt.Printf("got version %d\n", api.Config.Version)
-					return api.Config.Version >= 50400, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 
@@ -47,10 +40,6 @@ resource "zabbix_item_calculated" "testitem" {
 				),
 			},
 			{ // change values
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version >= 50400, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 

@@ -24,22 +24,14 @@ const (
 
 	// ZabbixAgent type
 	ZabbixAgent ItemType = 0
-	// SNMPv1Agent type
-	SNMPv1Agent ItemType = 1
 	// ZabbixTrapper type
 	ZabbixTrapper ItemType = 2
 	// SimpleCheck type
 	SimpleCheck ItemType = 3
-	// SNMPv2Agent type
-	SNMPv2Agent ItemType = 4
 	// ZabbixInternal type
 	ZabbixInternal ItemType = 5
-	// SNMPv3Agent type
-	SNMPv3Agent ItemType = 6
 	// ZabbixAgentActive type
 	ZabbixAgentActive ItemType = 7
-	// ZabbixAggregate type
-	ZabbixAggregate ItemType = 8
 	// WebItem type
 	WebItem ItemType = 9
 	// ExternalCheck type
@@ -230,10 +222,6 @@ type Item struct {
 	TrapperHosts string    `json:"trapper_hosts,omitempty"`
 	Params       string    `json:"params,omitempty"`
 
-	// list of strings on set, but list of objects on get
-	RawApplications json.RawMessage `json:"applications,omitempty"`
-	Applications    []string        `json:"-"`
-
 	// read-only, only populated by selectHosts; omitempty keeps it off the
 	// write path, where 7.0+ rejects it as an unexpected property
 	ItemParent Hosts `json:"hosts,omitempty"`
@@ -259,15 +247,7 @@ type Item struct {
 	FollowRedirects string          `json:"follow_redirects,omitempty"`
 
 	// SNMP Fields
-	SNMPOid              string `json:"snmp_oid,omitempty"`
-	SNMPCommunity        string `json:"snmp_community,omitempty"`
-	SNMPv3AuthPassphrase string `json:"snmpv3_authpassphrase,omitempty"`
-	SNMPv3AuthProtocol   string `json:"snmpv3_authprotocol,omitempty"`
-	SNMPv3ContextName    string `json:"snmpv3_contextname,omitempty"`
-	SNMPv3PrivPasshrase  string `json:"snmpv3_privpassphrase,omitempty"`
-	SNMPv3PrivProtocol   string `json:"snmpv3_privprotocol,omitempty"`
-	SNMPv3SecurityLevel  string `json:"snmpv3_securitylevel,omitempty"`
-	SNMPv3SecurityName   string `json:"snmpv3_securityname,omitempty"`
+	SNMPOid string `json:"snmp_oid,omitempty"`
 
 	// Dependent Fields
 	MasterItemID string `json:"master_itemid,omitempty"`
@@ -329,22 +309,6 @@ func (api *API) itemsHeadersUnmarshal(item Items) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
 
-		if len(h.RawApplications) != 0 {
-			asStr := string(h.RawApplications)
-			if asStr != "[]" {
-				var applications Applications
-				err := json.Unmarshal(h.RawApplications, &applications)
-				if err != nil {
-					panic(err)
-				}
-				ids := []string{}
-				for _, a := range applications {
-					ids = append(ids, a.ApplicationID)
-				}
-				item[i].Applications = ids
-			}
-		}
-
 		item[i].Headers = api.unmarshalHttpHeaders(h.RawHeaders)
 		api.readPreprocessors(item[i].Preprocessors)
 	}
@@ -353,12 +317,6 @@ func (api *API) itemsHeadersUnmarshal(item Items) {
 func (api *API) prepItems(item Items) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
-
-		if h.Applications != nil {
-			text, _ := json.Marshal(h.Applications)
-			raw := json.RawMessage(text)
-			h.RawApplications = raw
-		}
 
 		// read-only, never valid on the write path
 		item[i].ItemParent = nil
@@ -413,14 +371,6 @@ func (api *API) ProtoItemGetByID(id string) (res *Item, err error) {
 	}
 	res = &items[0]
 	return
-}
-
-// ItemsGetByApplicationID Gets items by application Id.
-func (api *API) ItemsGetByApplicationID(id string) (res Items, err error) {
-	return api.ItemsGet(Params{"applicationids": id})
-}
-func (api *API) ProtoItemsGetByApplicationID(id string) (res Items, err error) {
-	return api.ProtoItemsGet(Params{"applicationids": id})
 }
 
 // ItemsCreate Wrapper for item.create

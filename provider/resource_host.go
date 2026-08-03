@@ -13,13 +13,10 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
-var HSNMP_LOOKUP = map[string]zabbix.ItemType{
-	"1": zabbix.SNMPv1Agent,
-	"2": zabbix.SNMPv2Agent,
-	"3": zabbix.SNMPv3Agent,
-}
-var HSNMP_LOOKUP_REV = map[zabbix.ItemType]string{}
-var HSNMP_LOOKUP_ARR = []string{}
+// HSNMP_LOOKUP_ARR lists the valid values of the host interface "snmp_version"
+// field (1/2/3), which Zabbix's interface "details" object still takes as of
+// 6.0+ even though the item-level v1/v2/v3 type split was collapsed at 5.0.
+var HSNMP_LOOKUP_ARR = []string{"1", "2", "3"}
 
 var HINV_LOOKUP = map[string]zabbix.InventoryMode{
 	"disabled":  zabbix.InventoryDisabled,
@@ -153,10 +150,6 @@ var inventorySchema = &schema.Schema{
 
 // generate the above structures
 var _ = func() bool {
-	for k, v := range HSNMP_LOOKUP {
-		HSNMP_LOOKUP_REV[v] = k
-		HSNMP_LOOKUP_ARR = append(HSNMP_LOOKUP_ARR, k)
-	}
 	for k, v := range HINV_LOOKUP {
 		HINV_LOOKUP_REV[v] = k
 		HINV_LOOKUP_ARR = append(HINV_LOOKUP_ARR, k)
@@ -468,8 +461,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 		}
 
 		log.Debug("interface config abc: %+v", api.Config)
-		// version 5 and snmp
-		if api.Config.Version >= 50000 && typeId == zabbix.SNMP {
+		if typeId == zabbix.SNMP {
 			details := zabbix.HostInterfaceDetail{}
 			details.Version = d.Get(prefix + "snmp_version").(string)
 			details.Bulk = "0"
@@ -702,7 +694,6 @@ func flattenInventory(host zabbix.Host) []interface{} {
 
 // flattenHostInterfaces convert API response into terraform structs
 func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface{}) []interface{} {
-	api := m.(*zabbix.API)
 	val := make([]interface{}, len(host.Interfaces))
 	for i := 0; i < len(host.Interfaces); i++ {
 		port, _ := strconv.ParseInt(host.Interfaces[i].Port, 10, 64)
@@ -736,7 +727,7 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 		// need to handle detail
 		details := host.Interfaces[i].Details
 		log.Debug("got details: %+v", details)
-		if api.Config.Version >= 50000 && params["type"] == "snmp" && details != nil {
+		if params["type"] == "snmp" && details != nil {
 			log.Debug("interface new logic")
 			params["snmp_version"] = details.Version
 			params["snmp_bulk"] = details.Bulk == "1"

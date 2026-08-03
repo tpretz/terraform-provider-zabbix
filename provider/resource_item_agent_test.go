@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func TestAccResourceItemAgent(t *testing.T) {
@@ -60,11 +59,7 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "valuetype", "float"),
 				),
 			},
-			{ // optionals, >=v5
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
+			{ // optionals
 				Config: hcl(t, `
 resource "zabbix_templategroup" "testtmplgrp" {
 	name = "test-template-group" 
@@ -81,7 +76,6 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "float"
 
 	active = true
-	#applications = [zabbix_application.testapp.id]
 	delay = "2m"
 	history = "1h"
 	trends = "7d"
@@ -94,11 +88,7 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "trends", "7d"),
 				),
 			},
-			{ // optionals, with tags >=v5.4
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50400, nil
-				},
+			{ // optionals, with tags
 				Config: hcl(t, `
 resource "zabbix_templategroup" "testtmplgrp" {
 	name = "test-template-group" 
@@ -115,7 +105,6 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "float"
 
 	active = true
-	#applications = [zabbix_application.testapp.id]
 	delay = "2m"
 	history = "1h"
 	trends = "7d"
@@ -157,7 +146,6 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "float"
 
 	active = false
-	#applications = [zabbix_application.testapp.id]
 	delay = "2m"
 	history = "1h"
 	trends = "7d"
@@ -171,63 +159,7 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttrSet("zabbix_item_agent.testitem", "interfaceid"),
 				),
 			},
-			{ // preprocessor, <v5
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version >= 50000, nil
-				},
-				Config: hcl(t, `
-resource "zabbix_hostgroup" "testgrp" {
-	name = "test-group" 
-}
-resource "zabbix_host" "testhost" {
-	host   = "test-host"
-	groups = [zabbix_hostgroup.testgrp.id]
-	interface {
-		type = "agent"
-		ip   = "127.0.0.1"
-	}
-}
-resource "zabbix_item_agent" "testitem" {
-	hostid = zabbix_host.testhost.id
-	key = "testitemchanged"
-	interfaceid = zabbix_host.testhost.interface.0.id
-
-	name = "Test Item Changed"
-	valuetype = "float"
-
-	active = false
-	#applications = [zabbix_application.testapp.id]
-	delay = "2m"
-	history = "1h"
-	trends = "7d"
-
-	preprocessor {
-		type = "1"
-		params = [ "55" ]
-	}
-	
-	preprocessor {
-		type = "10"
-	}
-}
-`),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "active", "false"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "delay", "2m"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "history", "1h"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "trends", "7d"),
-					resource.TestCheckResourceAttrSet("zabbix_item_agent.testitem", "interfaceid"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "1"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.0", "55"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "10"),
-				),
-			},
-			{ // preprocessor, javascript, >=v5
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
+			{ // preprocessor, javascript
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -255,7 +187,6 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "float"
 
 	active = false
-	#applications = [zabbix_application.testapp.id]
 	delay = "2m"
 	history = "1h"
 	trends = "7d"
@@ -297,11 +228,7 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.params.1", "return fish;"),
 				),
 			},
-			{ // preprocessor, >=v5
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
+			{ // preprocessor
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -323,7 +250,6 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "float"
 
 	active = false
-	#applications = [zabbix_application.testapp.id]
 	delay = "2m"
 	history = "1h"
 	trends = "7d"
@@ -351,8 +277,6 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "10"),
 				),
 			},
-			// preprocessor
-			// application, conditional only works on < 5.4
 		},
 	})
 }

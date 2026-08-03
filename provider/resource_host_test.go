@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func TestAccResourceHost(t *testing.T) {
@@ -186,10 +185,6 @@ resource "zabbix_host" "testhost" {
 `),
 			},
 			{ // add a tag
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -213,10 +208,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // change the tag values
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -240,10 +231,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // add a second tag
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -273,10 +260,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // snmp attributes, v1, also clear tags
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -301,10 +284,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // snmp attributes, v2
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -329,10 +308,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // snmp attributes, v3
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -369,10 +344,6 @@ resource "zabbix_host" "testhost" {
 				),
 			},
 			{ // snmp attributes, v3, change to some that eval to "0"
-				SkipFunc: func() (bool, error) {
-					api := testAccProvider.Meta().(*zabbix.API)
-					return api.Config.Version < 50000, nil
-				},
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 

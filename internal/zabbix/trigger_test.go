@@ -36,10 +36,7 @@ func TestTrigger(t *testing.T) {
 	host := CreateHost(group, t)
 	defer DeleteHost(host, t)
 
-	app := CreateApplication(host, t)
-	defer DeleteApplication(app, t)
-
-	item := CreateItem(app, t)
+	item := CreateItem(host, t)
 	defer DeleteItem(item, t)
 
 	triggerParam := zapi.Params{"hostids": host.HostID}

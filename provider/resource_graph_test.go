@@ -21,10 +21,6 @@ resource "zabbix_templategroup" "lazyconfigload" {
 `),
 			},
 			{ // simple create
-				// SkipFunc: func() (bool, error) {
-				// 	api := testAccProvider.Meta().(*zabbix.API)
-				// 	return api.Config.Version >= 50400, nil
-				// },
 				Config: hcl(t, `
 resource "zabbix_templategroup" "testgrp" {
 	name = "test-group" 

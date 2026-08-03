@@ -56,7 +56,6 @@ func Provider() *schema.Provider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"zabbix_host":          dataHost(),
-			"zabbix_application":   dataApplication(),
 			"zabbix_proxy":         dataProxy(),
 			"zabbix_hostgroup":     dataHostgroup(),
 			"zabbix_templategroup": dataTemplategroup(),
@@ -69,7 +68,6 @@ func Provider() *schema.Provider {
 			"zabbix_hostgroup":     resourceHostgroup(),
 			"zabbix_templategroup": resourceTemplategroup(),
 			"zabbix_host":          resourceHost(),
-			"zabbix_application":   resourceApplication(),
 
 			"zabbix_graph":       resourceGraph(),
 			"zabbix_proto_graph": resourceProtoGraph(),
@@ -104,9 +102,6 @@ func Provider() *schema.Provider {
 			"zabbix_item_agent":       resourceItemAgent(),
 			"zabbix_proto_item_agent": resourceProtoItemAgent(),
 			"zabbix_lld_agent":        resourceLLDAgent(),
-
-			"zabbix_item_aggregate":       resourceItemAggregate(),
-			"zabbix_proto_item_aggregate": resourceProtoItemAggregate(),
 
 			"zabbix_item_calculated":       resourceItemCalculated(),
 			"zabbix_proto_item_calculated": resourceProtoItemCalculated(),

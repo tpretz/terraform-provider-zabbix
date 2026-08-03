@@ -77,16 +77,7 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Required:     true,
 	},
 	"preprocessor": itemPreprocessorSchema,
-	"applications": &schema.Schema{
-		Type:        schema.TypeSet,
-		Description: "Application IDs to associate this item with",
-		Elem: &schema.Schema{
-			Type:         schema.TypeString,
-			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
-		},
-		Optional: true,
-	},
-	"tag": tagSetSchema,
+	"tag":          tagSetSchema,
 }
 
 // Delay schema
@@ -272,7 +263,6 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	params := zabbix.Params{
 		"itemids":             []string{d.Id()},
 		"selectPreprocessing": "extend",
-		"selectApplications":  "extend",
 		"selectTags":          "extend",
 	}
 
@@ -310,11 +300,6 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
 	}
 
-	applicationSet := schema.NewSet(schema.HashString, []interface{}{})
-	for _, v := range item.Applications {
-		applicationSet.Add(v)
-	}
-	d.Set("applications", applicationSet)
 	d.Set("tag", flattenTags(item.Tags))
 
 	// run custom
@@ -334,20 +319,12 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *z
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
 	item.Preprocessors = itemGeneratePreprocessors(d)
-	apps := d.Get("applications").(*schema.Set).List()
-	lst := []string{}
-	for _, a := range apps {
-		lst = append(lst, a.(string))
-	}
-	item.Applications = lst
 	item.Tags = tagGenerate(d)
 
 	if v, ok := d.GetOk("trends"); ok {
 		item.Trends = v.(string)
 	} else {
-		if api.Config.Version >= 50400 &&
-			(item.ValueType == zabbix.Text ||
-				item.ValueType == zabbix.Log) {
+		if item.ValueType == zabbix.Text || item.ValueType == zabbix.Log {
 			item.Trends = "0"
 		} else {
 			item.Trends = "365d"
