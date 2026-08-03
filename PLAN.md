@@ -220,10 +220,18 @@ The current one only works inside the devcontainer and targets four EOL versions
 - [ ] **CI acceptance workflow:** GH Actions matrix over 6.0/7.0/7.4 as release-gating,
       8.0 with `continue-on-error: true`. Compose brought up as a step. Nightly schedule
       plus manual dispatch — acceptance runs are too slow for every PR.
-- [ ] **Sweepers** (`resource.AddTestSweepers`) for every object type, so an aborted run
-      does not poison the next one.
-- [ ] **Unique naming helper** — random-suffix all fixture names so versions can run in
-      parallel and reruns don't collide.
+- [ ] **`CheckDestroy` on every resource test.** There is currently **zero** `CheckDestroy`
+      in the suite. This is a correctness gap rather than hygiene: a test can pass while
+      leaving its objects on the server, so a broken `Delete` path goes undetected. Every
+      resource has a delete path and none is verified.
+- [ ] **Sweepers** (`resource.AddTestSweepers`) as a *recovery* path, for runs killed
+      mid-flight where `CheckDestroy` never runs. Keyed off the consistent `test-*` prefix.
+- [ ] ~~Unique naming helper~~ — **dropped after review.** Each version has its own
+      dedicated Postgres container and tests run sequentially (no `t.Parallel`), so
+      cross-version and intra-run collisions are impossible. Consistent `test-*` names are
+      better anyway, because sweepers need a predictable prefix. The random-suffix
+      convention comes from cloud providers sharing one account across many CI jobs — that
+      topology does not exist here.
 - [ ] Devcontainer updated to reference the new compose file rather than duplicating it.
 
 **Exit criteria:** `make testenv-up` brings up all four versions from a clean checkout on
