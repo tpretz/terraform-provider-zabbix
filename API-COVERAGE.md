@@ -17,13 +17,13 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 | host | `zabbix_host` | `zabbix_host` | 🟡 | 7.x fixed (`selectHostGroups`, `proxyid`/`monitored_by`, `templates_clear` filtering). Still missing: full inventory, IPMI, TLS/PSK |
 | hostgroup | `zabbix_hostgroup` | `zabbix_hostgroup` | ✅ | |
 | template | `zabbix_template` | `zabbix_template` | 🟡 | 7.x fixed; template groups handled with a state upgrader. Still missing: `uuid`, `vendor_name`/`vendor_version`, `readme`, `wizard_ready` |
-| item | 10 of 17 types | ❌ | 🟡 | see §3 |
-| item prototype | 10 of 17 types | ❌ | 🟡 | see §3 |
+| item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types |
+| item prototype | 10 of 17 types | ❌ | 🟡 | all tested; see §3 |
 | LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3 |
 | trigger | `zabbix_trigger` | ❌ | 🟡 | tested. Field audit outstanding: `event_name`, `manual_close`, correlation fields |
-| trigger prototype | `zabbix_proto_trigger` | ❌ | 🟡 | no acceptance test |
+| trigger prototype | `zabbix_proto_trigger` | ❌ | ✅ | |
 | graph | `zabbix_graph` | ❌ | ✅ | |
-| graph prototype | `zabbix_proto_graph` | ❌ | 🟡 | no acceptance test |
+| graph prototype | `zabbix_proto_graph` | ❌ | ✅ | |
 | proxy | `zabbix_proxy` | `zabbix_proxy` | ✅ | resource + data source, 7.0 model translated for 6.0–8.0 |
 | host interface | inline in `zabbix_host` | — | 🟡 | not separately addressable; SNMPv3 details partial |
 | user macro | inline (host/template) | — | 🟡 | no **global** macro resource |
@@ -106,12 +106,18 @@ Landed:
 - **`CheckDestroy`** on 17+ tests via a shared helper, verified to genuinely fail when a delete is broken
 - **Sweepers** for every object type with dependency ordering, plus `TestMain`
 
-Remaining gaps:
-- **No prototype coverage** — every `zabbix_proto_item_*` resource is still untested
-- **No test file** for the `zabbix_item_http` triad, `zabbix_proto_trigger`, `zabbix_proto_graph`
-- **Data source coverage** — `zabbix_proxy` and `zabbix_templategroup` are tested; `zabbix_host`, `zabbix_hostgroup`, `zabbix_template` are not
+**46 acceptance tests pass on every version.** The Phase 3 exit criterion — every
+registered resource and data source has an acceptance test including an import step —
+is met. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
+`tls_psk_identity`/`tls_psk`, which `proxy.get` never returns on any version.
 
-Bugs found by writing these tests, both invisible for years behind empty stubs:
+Still open: the `terraform-plugin-testing` migration, and a `v0.17.0` state fixture for
+the template state upgrader.
+
+Bugs found by writing these tests — five so far, all invisible behind missing coverage:
+- **Every `zabbix_proto_item_*` was impossible to update on Zabbix 7.2+.** `itemprototype.update` was sent the create-only `ruleid`; 7.2 made unknown parameters a hard error, so any change to any item prototype failed. Item prototypes were effectively write-once on both current Zabbix releases.
+- **`post_type` defaulted to `"body"` across the whole http triad** — not a valid value (raw/json/xml); copied from `retrieve_mode` where `"body"` is valid. It mapped to `""`, Zabbix applied `raw`, and the item read back as `raw` against a config saying `body`: a permanent, unappliable diff on every http item.
+- **The `zabbix_template` data source panicked the provider on every read** — shared `templateRead` calls `d.Set("templates", ...)`, absent from the data source schema, and SDKv2 `Set` panics on an undeclared key.
 - `zabbix_lld_dependent` **could never be created** — `delay` defaulted to 3600, Zabbix requires 0
 - `templates_clear` could reference an already-deleted template; 6.0 tolerated it, 7.0+ rejects it
 

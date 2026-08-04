@@ -266,6 +266,11 @@ The provider cannot talk to a 7.2+ server at all today.
       (0 server / 1 proxy / 2 proxy group) accordingly. `internal/zabbix/host.go:63`.
 - [ ] **LLD HTTP headers/query fields** → array-of-`{name,value}` on `>= 70000`.
 - [ ] **Preprocessing** `params` mandatory for "check for not supported value" on `>= 70000`.
+- [x] **`ruleid` on `itemprototype.update`** — a fourth 7.2 hard-error parameter,
+      alongside `auth`, `selectGroups` and `proxy_hostid`. Missed in the original audit
+      because it is an object property on the update path rather than a request
+      parameter; found later by the first prototype acceptance test. Fixed in
+      `prepItemsUpdate`.
 - [ ] **Strict-validation audit.** Grep every `zabbix.Params{...}` literal in provider and
       client and check each key against the 7.4 reference. 7.2 made unknown parameters a
       hard error rather than ignoring them, so this needs to be exhaustive, not spot-checked.
@@ -328,16 +333,18 @@ Grouped by what's actually missing (see [API-COVERAGE.md §4](./API-COVERAGE.md)
       surfaced two real bugs: `zabbix_lld_dependent` could never be created
       (delay defaulted to 3600, Zabbix requires 0), and PSK attributes cannot
       round-trip on import because `proxy.get` never returns them.
-- [ ] **No test file at all** — `item_http` / `proto_item_http` / `lld_http`,
-      `proto_trigger`, `proto_graph`
-- [ ] **Prototype coverage** — every `zabbix_proto_item_*` resource (11 of them) is
-      currently untested; the mod/read funcs are shared with the item variant, so these
-      are cheap, but the `ruleid` wiring is not covered anywhere
-- [ ] **Data source coverage** — all five (`host`, `hostgroup`, `template`, `proxy`,
-      and whatever replaces `application`) have zero tests
-- [ ] **Import tests** — add `ImportState: true, ImportStateVerify: true` to every
-      resource test; all resources advertise `ImportStatePassthrough` and none of it is
-      verified
+- [x] **No test file at all** — `item_http` / `proto_item_http` / `lld_http`,
+      `proto_trigger`, `proto_graph` — all covered
+- [x] **Prototype coverage** — all ten `zabbix_proto_item_*` resources covered, each
+      asserting `ruleid` via `TestCheckResourceAttrPair` so it is proven to survive the
+      `selectDiscoveryRule` round trip. This found that **item prototypes could not be
+      updated at all on Zabbix 7.2+** — `itemprototype.update` was sent the create-only
+      `ruleid`, which 7.2 made a hard error.
+- [x] **Data source coverage** — `host`, `hostgroup`, `template`, `proxy` and
+      `templategroup` all covered
+- [x] **Import tests** — every resource test has `ImportState`/`ImportStateVerify`.
+      Only one exclusion exists suite-wide: proxy `tls_psk_identity`/`tls_psk`, which
+      `proxy.get` never returns on any version.
 - [ ] **Migrate to `terraform-plugin-testing`** — `helper/resource`'s test harness is
       deprecated in SDKv2 in favour of the standalone
       `github.com/hashicorp/terraform-plugin-testing` module. Do this before writing
