@@ -11,7 +11,8 @@ func TestAccResourceItemExternal(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // simple create
 				Config: hcl(t, `

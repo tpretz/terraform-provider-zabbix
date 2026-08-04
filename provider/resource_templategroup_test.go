@@ -26,7 +26,8 @@ func TestAccResourceTemplategroup(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // simple create
 				Config: `
@@ -80,7 +81,8 @@ func TestAccDataSourceTemplategroup(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -113,7 +115,8 @@ func TestAccResourceTemplategroupUnsupported(t *testing.T) {
 				t.Skip("server has template groups; nothing to reject")
 			}
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -137,7 +140,8 @@ func TestAccTemplateStateUpgradeV0(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers: testAccProviders,
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `
