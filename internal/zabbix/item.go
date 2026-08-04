@@ -335,6 +335,17 @@ func (api *API) prepItems(item Items) {
 // not on update.
 func (api *API) prepItemsUpdate(item Items) {
 	api.prepItems(item)
+
+	// "ruleid" names the discovery rule an item prototype is created under. It
+	// is create-only: itemprototype.update rejects it outright on 7.2+, where
+	// unknown request parameters became a hard error, which made every
+	// zabbix_proto_item_* resource impossible to update there. Older versions
+	// ignored it, so clearing it unconditionally is safe. Plain items never
+	// carry a RuleID, so this is a no-op for item.update.
+	for i := range item {
+		item[i].RuleID = ""
+	}
+
 	if api.Config.Version < V70 {
 		return
 	}

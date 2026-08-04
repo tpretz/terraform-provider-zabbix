@@ -109,6 +109,18 @@ func dataTemplate() *schema.Resource {
 				Computed:    true,
 				Description: "Template Display Name (defaults to host)",
 			},
+			// templateRead is shared with the resource and unconditionally sets
+			// "templates"; without a matching attribute here helper/schema
+			// panics with "Invalid address to set", which crashed the provider
+			// on every use of this data source.
+			"templates": &schema.Schema{
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed:    true,
+				Description: "Linked template IDs",
+			},
 			"macro": macroSetSchema,
 		},
 	}

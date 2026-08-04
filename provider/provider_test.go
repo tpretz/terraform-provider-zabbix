@@ -95,3 +95,15 @@ func hcl(t *testing.T, config string) string {
 	}
 	return strings.ReplaceAll(config, "zabbix_templategroup", "zabbix_hostgroup")
 }
+
+// tmplGroupAddr is the Terraform address a template-group fixture ends up with
+// once hcl() has rewritten it, so that a TestCheckResourceAttr* can name it.
+// hcl() only rewrites the configuration string; check functions take addresses
+// as literals and would otherwise look for a zabbix_templategroup that does not
+// exist in state below 6.2.
+func tmplGroupAddr(t *testing.T, label string) string {
+	if testAccTemplateGroups(t) {
+		return "zabbix_templategroup." + label
+	}
+	return "zabbix_hostgroup." + label
+}

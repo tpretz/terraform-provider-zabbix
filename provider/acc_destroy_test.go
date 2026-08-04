@@ -83,6 +83,38 @@ func testAccItemExists(api *zabbix.API, id string) (bool, error) {
 	return len(res) > 0, err
 }
 
+// testAccProtoItemExists is testAccItemExists for the zabbix_proto_item_*
+// resources. Item prototypes live in a separate API namespace
+// (itemprototype.get, not item.get), so an id that is gone from one is not
+// necessarily gone from the other and the two checks cannot be shared.
+func testAccProtoItemExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.ProtoItemsGet(zabbix.Params{"itemids": []string{id}})
+	return len(res) > 0, err
+}
+
+// testAccLLDExists backs every zabbix_lld_* resource: like items, all LLD
+// rules are one object type distinguished by "type", and discoveryrule.get
+// filters them all by itemids.
+func testAccLLDExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.LLDsGet(zabbix.Params{"itemids": []string{id}})
+	return len(res) > 0, err
+}
+
+func testAccTriggerExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.TriggersGet(zabbix.Params{"triggerids": []string{id}})
+	return len(res) > 0, err
+}
+
+func testAccProtoTriggerExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.ProtoTriggersGet(zabbix.Params{"triggerids": []string{id}})
+	return len(res) > 0, err
+}
+
+func testAccProtoGraphExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.GraphProtosGet(zabbix.Params{"graphids": []string{id}})
+	return len(res) > 0, err
+}
+
 // testAccCheckAllDestroyed is the CheckDestroy attached to every acceptance
 // test in this package. Rather than hand-picking which of the object types
 // above a given test's config happens to create, it checks all of them --
@@ -98,14 +130,39 @@ func testAccCheckAllDestroyed(s *terraform.State) error {
 		testAccCheckDestroyed("zabbix_proxy", testAccProxyExists),
 		testAccCheckDestroyed("zabbix_template", testAccTemplateExists),
 		testAccCheckDestroyed("zabbix_graph", testAccGraphExists),
+		testAccCheckDestroyed("zabbix_proto_graph", testAccProtoGraphExists),
+		testAccCheckDestroyed("zabbix_trigger", testAccTriggerExists),
+		testAccCheckDestroyed("zabbix_proto_trigger", testAccProtoTriggerExists),
+
 		testAccCheckDestroyed("zabbix_item_agent", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_calculated", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_dependent", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_external", testAccItemExists),
+		testAccCheckDestroyed("zabbix_item_http", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_internal", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_simple", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_snmp", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_snmptrap", testAccItemExists),
 		testAccCheckDestroyed("zabbix_item_trapper", testAccItemExists),
+
+		testAccCheckDestroyed("zabbix_proto_item_agent", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_calculated", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_dependent", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_external", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_http", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_internal", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_simple", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_snmp", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_snmptrap", testAccProtoItemExists),
+		testAccCheckDestroyed("zabbix_proto_item_trapper", testAccProtoItemExists),
+
+		testAccCheckDestroyed("zabbix_lld_agent", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_dependent", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_external", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_http", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_internal", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_simple", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_snmp", testAccLLDExists),
+		testAccCheckDestroyed("zabbix_lld_trapper", testAccLLDExists),
 	)(s)
 }

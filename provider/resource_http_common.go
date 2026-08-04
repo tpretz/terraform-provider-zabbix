@@ -92,7 +92,13 @@ var schemaHttp = map[string]*schema.Schema{
 		Optional:     true,
 		Description:  "HTTP post type, one of: " + strings.Join(HTTP_POSTTYPE_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(HTTP_POSTTYPE_ARR, false),
-		Default:      "body",
+		// "raw", not "body": post_type's values are raw/json/xml. The default
+		// used to be "body" -- copied from retrieve_mode, where it is valid --
+		// which is not in HTTP_POSTTYPE, so it mapped to "" and was omitted
+		// from the request. Zabbix then applied its own default of 0 (raw) and
+		// the item read back as "raw" against a config saying "body", leaving
+		// every http item with a diff that could never be applied away.
+		Default: "raw",
 	},
 	"retrieve_mode": &schema.Schema{
 		Type:         schema.TypeString,
