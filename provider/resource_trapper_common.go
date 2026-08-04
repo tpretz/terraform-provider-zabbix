@@ -42,7 +42,7 @@ func resourceLLDTrapper() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: lldCommonSchema,
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema),
 	}
 }
 

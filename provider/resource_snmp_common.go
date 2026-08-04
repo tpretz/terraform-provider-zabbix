@@ -50,7 +50,7 @@ func resourceLLDSnmp() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, lldInterfaceSchema, schemaSnmp),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp),
 	}
 }
 

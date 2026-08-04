@@ -57,13 +57,6 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Description:  "Host ID",
 		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 	},
-	"delay": &schema.Schema{
-		Type:         schema.TypeString,
-		Optional:     true,
-		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Default:      "3600",
-		Description:  "LLD Delay period",
-	},
 	"lifetime": &schema.Schema{
 		Type:         schema.TypeString,
 		Optional:     true,
@@ -311,7 +304,10 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("hostid", lld.HostID)
 	d.Set("key", lld.Key)
 	d.Set("name", lld.Name)
-	d.Set("delay", lld.Delay)
+	// dependent LLD rules have no "delay" in their schema
+	if _, ok := d.GetOk("delay"); ok || lld.Delay != "0" {
+		d.Set("delay", lld.Delay)
+	}
 	d.Set("lifetime", lld.LifeTime)
 	d.Set("evaltype", LLD_EVALTYPE_REV[lld.Filter.EvalType])
 	d.Set("formula", lld.Filter.Formula)
@@ -325,14 +321,34 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	return nil
 }
 
+// lldDelaySchema is separate from lldCommonSchema because dependent LLD rules
+// are driven by their master item rather than polled: Zabbix requires delay == 0
+// for them and rejects any other value. This mirrors how itemDelaySchema is kept
+// out of resourceItemDependent.
+var lldDelaySchema = map[string]*schema.Schema{
+	"delay": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringIsNotWhiteSpace,
+		Default:      "3600",
+		Description:  "LLD Delay period",
+	},
+}
+
 // Build the base lld Object
 func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 	lld := zabbix.LLDRule{
 		Key:      d.Get("key").(string),
 		HostID:   d.Get("hostid").(string),
 		Name:     d.Get("name").(string),
-		Delay:    d.Get("delay").(string),
 		LifeTime: d.Get("lifetime").(string),
+	}
+
+	// absent from the dependent LLD schema; Zabbix demands 0 there
+	if v, ok := d.GetOk("delay"); ok {
+		lld.Delay = v.(string)
+	} else {
+		lld.Delay = "0"
 	}
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)

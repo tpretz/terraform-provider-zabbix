@@ -60,6 +60,10 @@ func itemDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.It
 func lldDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.Dependent
 	item.MasterItemID = d.Get("master_itemid").(string)
+	// A dependent LLD rule is driven by its master item, not polled, so Zabbix
+	// requires delay == 0 and rejects anything else. lldCommonSchema defaults
+	// delay to "3600" for every LLD type, so it has to be overridden here.
+	item.Delay = "0"
 }
 
 func itemDependentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {

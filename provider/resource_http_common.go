@@ -199,7 +199,7 @@ func resourceLLDHttp() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, itemInterfaceSchema, schemaHttp),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema, schemaHttp),
 	}
 }
 

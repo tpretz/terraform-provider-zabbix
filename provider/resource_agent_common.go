@@ -51,7 +51,7 @@ func resourceLLDAgent() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldInterfaceSchema, schemaAgent),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent),
 	}
 }
 

@@ -42,7 +42,7 @@ func resourceLLDSimple() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, itemInterfaceSchema),
+		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema),
 	}
 }
 
