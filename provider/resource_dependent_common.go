@@ -6,6 +6,20 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// lldDependentDelaySchema pins delay to "0": a dependent LLD rule is driven by
+// its master item rather than polled, and Zabbix rejects any other value. It is
+// kept in the schema (rather than omitted like itemDelaySchema is for dependent
+// items) so the shared LLD read path can always populate it, which import needs.
+var lldDependentDelaySchema = map[string]*schema.Schema{
+	"delay": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "0",
+		ValidateFunc: validation.StringInSlice([]string{"0"}, false),
+		Description:  "LLD Delay period, must be 0 for dependent discovery rules",
+	},
+}
+
 var schemaDependent = map[string]*schema.Schema{
 	"master_itemid": &schema.Schema{
 		Type:         schema.TypeString,
@@ -49,7 +63,7 @@ func resourceLLDDependent() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, schemaDependent),
+		Schema: mergeSchemas(lldCommonSchema, lldDependentDelaySchema, schemaDependent),
 	}
 }
 
@@ -60,10 +74,6 @@ func itemDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.It
 func lldDependentModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.Dependent
 	item.MasterItemID = d.Get("master_itemid").(string)
-	// A dependent LLD rule is driven by its master item, not polled, so Zabbix
-	// requires delay == 0 and rejects anything else. lldCommonSchema defaults
-	// delay to "3600" for every LLD type, so it has to be overridden here.
-	item.Delay = "0"
 }
 
 func itemDependentReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {

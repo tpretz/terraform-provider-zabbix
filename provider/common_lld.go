@@ -304,10 +304,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("hostid", lld.HostID)
 	d.Set("key", lld.Key)
 	d.Set("name", lld.Name)
-	// dependent LLD rules have no "delay" in their schema
-	if _, ok := d.GetOk("delay"); ok || lld.Delay != "0" {
-		d.Set("delay", lld.Delay)
-	}
+	d.Set("delay", lld.Delay)
 	d.Set("lifetime", lld.LifeTime)
 	d.Set("evaltype", LLD_EVALTYPE_REV[lld.Filter.EvalType])
 	d.Set("formula", lld.Filter.Formula)
@@ -341,14 +338,8 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 		Key:      d.Get("key").(string),
 		HostID:   d.Get("hostid").(string),
 		Name:     d.Get("name").(string),
+		Delay:    d.Get("delay").(string),
 		LifeTime: d.Get("lifetime").(string),
-	}
-
-	// absent from the dependent LLD schema; Zabbix demands 0 there
-	if v, ok := d.GetOk("delay"); ok {
-		lld.Delay = v.(string)
-	} else {
-		lld.Delay = "0"
 	}
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)
