@@ -294,7 +294,7 @@ Close the gaps in current resources before adding new ones.
 
 - [x] `zabbix_templategroup` resource + data source; teach `zabbix_template` to use
       template groups on `>= 60200` and host groups below. **Breaking** — migration guide.
-- [ ] `zabbix_proxy` **resource** (currently data source only), modelled on 7.0
+- [x] `zabbix_proxy` **resource** (currently data source only), modelled on 7.0
       (`name`, `operating_mode`, `address`, `port`, `allowed_addresses`, TLS fields) with
       pre-7.0 translation; update the data source likewise.
 - [ ] `zabbix_host`: (`templates_clear` on removal DONE) proxy assignment (`monitored_by`/`proxyid`), full inventory fields,
@@ -322,9 +322,12 @@ first plan under v2.
 
 Grouped by what's actually missing (see [API-COVERAGE.md §4](./API-COVERAGE.md)):
 
-- [ ] **Nine empty stubs** — files containing only `package provider`:
-      `resource_trigger_test.go`, `resource_proxy_test.go`, and
-      `resource_lld_{agent,dependent,external,internal,simple,snmp,trapper}_test.go`
+- [x] **Nine empty stubs** — all filled (`resource_trigger_test.go`,
+      `resource_proxy_test.go`, and the seven `resource_lld_*_test.go`), each with
+      `CheckDestroy` and an `ImportState`/`ImportStateVerify` step. Writing them
+      surfaced two real bugs: `zabbix_lld_dependent` could never be created
+      (delay defaulted to 3600, Zabbix requires 0), and PSK attributes cannot
+      round-trip on import because `proxy.get` never returns them.
 - [ ] **No test file at all** — `item_http` / `proto_item_http` / `lld_http`,
       `proto_trigger`, `proto_graph`
 - [ ] **Prototype coverage** — every `zabbix_proto_item_*` resource (11 of them) is

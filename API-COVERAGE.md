@@ -23,7 +23,7 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 | trigger prototype | `zabbix_proto_trigger` | ❌ | 🟡 | no acceptance test |
 | graph | `zabbix_graph` | ❌ | ✅ | |
 | graph prototype | `zabbix_proto_graph` | ❌ | 🟡 | no acceptance test |
-| proxy | ❌ | `zabbix_proxy` | 🟡 | **data source only**; not updated for the 7.0 proxy redesign |
+| proxy | `zabbix_proxy` | `zabbix_proxy` | ✅ | resource + data source, 7.0 model translated for 6.0–8.0 |
 | host interface | inline in `zabbix_host` | — | 🟡 | not separately addressable; SNMPv3 details partial |
 | user macro | inline (host/template) | — | 🟡 | no **global** macro resource |
 | application | `zabbix_application` | `zabbix_application` | 💀 | API removed in Zabbix 5.4 |
@@ -36,7 +36,6 @@ Grouped by value for a Terraform user.
 | API object | Proposed resource |
 |---|---|
 | templategroup | `zabbix_templategroup` (+ data source) — **required** for template management on ≥6.2 |
-| proxy | `zabbix_proxy` (resource; 7.0 model) |
 | proxygroup | `zabbix_proxygroup` (7.0+) |
 | user | `zabbix_user` (+ data source) |
 | usergroup | `zabbix_usergroup` (+ data source) |
