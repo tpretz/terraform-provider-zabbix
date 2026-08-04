@@ -54,6 +54,11 @@ func testAccTemplateGroupExists(api *zabbix.API, id string) (bool, error) {
 	return len(res) > 0, err
 }
 
+func testAccProxyExists(api *zabbix.API, id string) (bool, error) {
+	res, err := api.ProxiesGet(zabbix.Params{"proxyids": []string{id}})
+	return len(res) > 0, err
+}
+
 func testAccHostExists(api *zabbix.API, id string) (bool, error) {
 	res, err := api.HostsGet(zabbix.Params{"hostids": []string{id}})
 	return len(res) > 0, err
@@ -90,6 +95,7 @@ func testAccCheckAllDestroyed(s *terraform.State) error {
 		testAccCheckDestroyed("zabbix_hostgroup", testAccHostGroupExists),
 		testAccCheckDestroyed("zabbix_templategroup", testAccTemplateGroupExists),
 		testAccCheckDestroyed("zabbix_host", testAccHostExists),
+		testAccCheckDestroyed("zabbix_proxy", testAccProxyExists),
 		testAccCheckDestroyed("zabbix_template", testAccTemplateExists),
 		testAccCheckDestroyed("zabbix_graph", testAccGraphExists),
 		testAccCheckDestroyed("zabbix_item_agent", testAccItemExists),

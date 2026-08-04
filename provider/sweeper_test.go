@@ -119,6 +119,14 @@ func init() {
 		F:            sweepTemplates,
 	})
 
+	// A proxy cannot be deleted while a host is still monitored by it, so
+	// this has to follow the hosts.
+	resource.AddTestSweepers("zabbix_proxy", &resource.Sweeper{
+		Name:         "zabbix_proxy",
+		Dependencies: []string{"zabbix_host"},
+		F:            sweepProxies,
+	})
+
 	resource.AddTestSweepers("zabbix_hostgroup", &resource.Sweeper{
 		Name:         "zabbix_hostgroup",
 		Dependencies: []string{"zabbix_host"},
@@ -270,6 +278,36 @@ func sweepTemplates(_ string) error {
 	}
 	if err := api.TemplatesDeleteByIds(ids); err != nil {
 		return fmt.Errorf("deleting %d template(s): %w", len(ids), err)
+	}
+	return nil
+}
+
+func sweepProxies(_ string) error {
+	api, err := testSweepAPI()
+	if err != nil {
+		return err
+	}
+
+	// The proxy's technical name is "host" before 7.0 and "name" from 7.0,
+	// and search parameters are passed to the API verbatim.
+	proxies, err := api.ProxiesGet(zabbix.Params{
+		"output":      []string{"proxyid"},
+		"search":      map[string]interface{}{api.ProxyNameProperty(): sweepTestPrefix},
+		"startSearch": true,
+	})
+	if err != nil {
+		return fmt.Errorf("listing proxies to sweep: %w", err)
+	}
+	if len(proxies) == 0 {
+		return nil
+	}
+
+	ids := make([]string, len(proxies))
+	for i, p := range proxies {
+		ids[i] = p.ProxyID
+	}
+	if err := api.ProxiesDeleteByIds(ids); err != nil {
+		return fmt.Errorf("deleting %d proxy/proxies: %w", len(ids), err)
 	}
 	return nil
 }
