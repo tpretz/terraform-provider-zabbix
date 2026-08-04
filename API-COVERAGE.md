@@ -1,7 +1,8 @@
 # Zabbix API coverage matrix
 
 Baseline: Zabbix 7.4 API reference (59 documented API objects).
-Provider state as of commit `8a9169f` (last touched 2023-05-09).
+Provider state as of commit `88f2ff7` (phases 0-2 complete, phase 3 in progress).
+Verified against live 6.0.48 / 7.0.29 / 7.4.13 / 8.0-trunk servers.
 
 Target support floor is **Zabbix 6.0 LTS** (see [PLAN.md](./PLAN.md)) — anything marked
 💀 below is removed from the API at or before 6.0 and is scheduled for deletion, not
@@ -13,20 +14,20 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 
 | API object | Resource | Data source | State | Notes |
 |---|---|---|---|---|
-| host | `zabbix_host` | `zabbix_host` | 🟡 | `selectGroups` breaks on ≥7.2; `proxy_hostid`/`monitored_by` not handled for ≥7.0; no `inventory` beyond mode; no IPMI/TLS fields |
+| host | `zabbix_host` | `zabbix_host` | 🟡 | 7.x fixed (`selectHostGroups`, `proxyid`/`monitored_by`, `templates_clear` filtering). Still missing: full inventory, IPMI, TLS/PSK |
 | hostgroup | `zabbix_hostgroup` | `zabbix_hostgroup` | ✅ | |
-| template | `zabbix_template` | `zabbix_template` | 🟡 | `selectGroups` breaks on ≥7.2; `groups` must reference **template groups** on ≥6.2; no `uuid`/`vendor_name`/`vendor_version` |
-| item | 11 of 18 types | ❌ | 🟡 | see §3 |
-| item prototype | 11 of 18 types | ❌ | 🟡 | see §3 |
+| template | `zabbix_template` | `zabbix_template` | 🟡 | 7.x fixed; template groups handled with a state upgrader. Still missing: `uuid`, `vendor_name`/`vendor_version`, `readme`, `wizard_ready` |
+| item | 10 of 17 types | ❌ | 🟡 | see §3 |
+| item prototype | 10 of 17 types | ❌ | 🟡 | see §3 |
 | LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3 |
-| trigger | `zabbix_trigger` | ❌ | 🟡 | no acceptance test; no `event_name`, `manual_close`, correlation fields audit |
+| trigger | `zabbix_trigger` | ❌ | 🟡 | tested. Field audit outstanding: `event_name`, `manual_close`, correlation fields |
 | trigger prototype | `zabbix_proto_trigger` | ❌ | 🟡 | no acceptance test |
 | graph | `zabbix_graph` | ❌ | ✅ | |
 | graph prototype | `zabbix_proto_graph` | ❌ | 🟡 | no acceptance test |
 | proxy | `zabbix_proxy` | `zabbix_proxy` | ✅ | resource + data source, 7.0 model translated for 6.0–8.0 |
 | host interface | inline in `zabbix_host` | — | 🟡 | not separately addressable; SNMPv3 details partial |
 | user macro | inline (host/template) | — | 🟡 | no **global** macro resource |
-| application | `zabbix_application` | `zabbix_application` | 💀 | API removed in Zabbix 5.4 |
+| templategroup | `zabbix_templategroup` | `zabbix_templategroup` | ✅ | 6.2+; below that templates use host groups |
 
 ## 2. Objects with no coverage at all
 
@@ -35,7 +36,6 @@ Grouped by value for a Terraform user.
 ### Tier 1 — commonly managed as code, high demand
 | API object | Proposed resource |
 |---|---|
-| templategroup | `zabbix_templategroup` (+ data source) — **required** for template management on ≥6.2 |
 | proxygroup | `zabbix_proxygroup` (7.0+) |
 | user | `zabbix_user` (+ data source) |
 | usergroup | `zabbix_usergroup` (+ data source) |
@@ -79,7 +79,6 @@ Zabbix 7.4 item types and what the triad covers:
 | 2 | Zabbix trapper | ✅ | ✅ | ✅ |
 | 3 | Simple check | ✅ | ✅ | ✅ |
 | 5 | Zabbix internal | ✅ | ✅ | ✅ |
-| 8 | Zabbix aggregate | 💀 | 💀 | — |
 | 9 | Web item | n/a (read-only) | n/a | n/a |
 | 10 | External check | ✅ | ✅ | ✅ |
 | 11 | Database monitor | ❌ | ❌ | ❌ |
@@ -95,40 +94,47 @@ Zabbix 7.4 item types and what the triad covers:
 | 21 | Script | ❌ | ❌ | ❌ |
 | 22 | Browser (7.0+) | ❌ | ❌ | ❌ |
 
-Client-side enums in `go-zabbix-api/item.go` stop at `SNMPAgent = 20`; `Script` (21) and `Browser` (22) are absent.
+`Script` (21) and `Browser` (22) now exist in the `internal/zabbix/item.go` enum but have no Terraform resources yet. Aggregate (8) and the legacy SNMP v1/v2/v3 types (1/4/6) were deleted with pre-6.0 support.
 
 ## 4. Acceptance test coverage
 
-15 `TestAcc*` functions exist. Gaps:
+**Every version passes**: 6.0.48, 7.0.29, 7.4.13, 8.0-trunk.
 
-**Empty stubs** (file contains only `package provider`):
-`resource_trigger_test.go`, `resource_proxy_test.go`, and every `resource_lld_*_test.go`
-(agent, dependent, external, internal, simple, snmp, trapper).
+Landed:
+- **All nine empty stubs filled** — `zabbix_trigger`, `zabbix_proxy`, and the seven `zabbix_lld_*`
+- **Import coverage** — `ImportState`/`ImportStateVerify` on every test that has one; this found that proxy PSK attributes cannot round-trip (`proxy.get` never returns them, so they need `ImportStateVerifyIgnore`)
+- **`CheckDestroy`** on 17+ tests via a shared helper, verified to genuinely fail when a delete is broken
+- **Sweepers** for every object type with dependency ordering, plus `TestMain`
 
-**No test file at all:** `zabbix_item_http` / `zabbix_proto_item_http` / `zabbix_lld_http`, `zabbix_proto_trigger`, `zabbix_proto_graph`.
+Remaining gaps:
+- **No prototype coverage** — every `zabbix_proto_item_*` resource is still untested
+- **No test file** for the `zabbix_item_http` triad, `zabbix_proto_trigger`, `zabbix_proto_graph`
+- **Data source coverage** — `zabbix_proxy` and `zabbix_templategroup` are tested; `zabbix_host`, `zabbix_hostgroup`, `zabbix_template` are not
 
-**No prototype coverage:** every `zabbix_proto_item_*` resource is untested.
+Bugs found by writing these tests, both invisible for years behind empty stubs:
+- `zabbix_lld_dependent` **could never be created** — `delay` defaulted to 3600, Zabbix requires 0
+- `templates_clear` could reference an already-deleted template; 6.0 tolerated it, 7.0+ rejects it
 
-**No data source coverage:** none of `zabbix_host`, `zabbix_application`, `zabbix_proxy`, `zabbix_hostgroup`, `zabbix_template` has a test.
+## 5. Version-compatibility breakages — all resolved
 
-**No import coverage:** every resource declares `ImportStatePassthrough` but no test uses `ImportState: true`.
+Every row below was fixed in phases 2a/2b/3a and is verified against live servers.
 
-**No sweepers:** failed runs leak objects into the test server.
-
-## 5. Version-compatibility breakages (verified against docs)
-
-| Symptom | Cause | Affected versions |
+| Symptom | Cause | Resolution |
 |---|---|---|
-| All API calls rejected | `auth` sent as a JSON-RPC body property (`base.go:26`); removed upstream, replaced by `Authorization: Bearer` (available 6.4+) | **≥7.2** |
-| `host`/`template` read fails | `"selectGroups"` (`resource_host.go:596,625`; `resource_template.go:126,153`) removed | **≥7.2** |
-| `item` read may fail | `"selectApplications"` (`common_item.go:275`) sent unconditionally | ≥5.4 — *verify empirically* |
-| Host proxy assignment wrong | `proxy_hostid` (`host.go:63`) renamed `proxyid`; `monitored_by` now required when using a proxy | **≥7.0** |
-| Proxy data source wrong | `host`→`name`, `status`→`operating_mode`, `interface`→`address`/`port`, `proxy_address`→`allowed_addresses` | **≥7.0** |
-| Template groups | templates live in template groups, not host groups | **≥6.2** |
-| `zabbix_application` | applications removed | **≥5.4** |
-| `zabbix_item_aggregate` | aggregate item type removed (use calculated + aggregate functions) | **≥6.0** |
-| LLD HTTP headers/query fields | name-indexed object → array of `{name,value}` | **≥7.0** |
-| Preprocessing "check for not supported value" | `params` now mandatory | **≥7.0** |
+| All API calls rejected on ≥7.2 | `auth` sent as a JSON-RPC body property | `Authorization: Bearer` at `>= V64`, body property below |
+| `host`/`template` read silently wrong on ≥7.2 | `selectGroups` removed | `selectHostGroups`/`selectTemplateGroups` at `>= V72` |
+| `item` read | `selectApplications` | deleted with applications |
+| Host proxy assignment wrong on ≥7.0 | `proxy_hostid` → `proxyid` | plus `monitored_by` |
+| Proxy data source wrong on ≥7.0 | proxy object rewritten | full resource + data source translating both models |
+| Template groups on ≥6.2 | templates left host groups | `zabbix_templategroup` + state upgrader |
+| `zabbix_application`, `zabbix_item_aggregate` | removed upstream | deleted |
+| LLD HTTP headers/query fields on ≥7.0 | object → array | translated at `>= V70` |
+| Preprocessing "not supported" on ≥7.0 | `params` mandatory | handled |
+
+Two findings that contradicted the original assumptions:
+
+- **Strict validation arrived in 7.0, not 7.2, and is per-method.** `item.create`, `itemprototype.create` and `discoveryrule.create` reject unknown properties from 7.0; `host.create` and `graph.create` are lenient even on 8.0. `.get` methods ignore unknown params on *all* versions, so a stale `selectGroups` was a **silent wrong answer**, not an error.
+- **`hostid` became create-only in 7.0** — every item update on 7.x would have failed.
 
 ## 6. Zabbix support lifecycle (drives the test matrix)
 
@@ -138,10 +144,6 @@ Client-side enums in `go-zabbix-api/item.go` stop at `SNMPAgent = 20`; `Script` 
 | 7.0 LTS | 2024-06-04 | 2027-06-30 | 2029-06-30 |
 | 7.4 | 2025-07-01 | until 8.0 LTS | Q4 2026 |
 | 8.0 LTS | Q3 2026 (imminent) | Q3 2029 | Q3 2031 |
-
-4.0, 5.0, 5.4, 6.2, 6.4, 7.2 are all past end of limited support. The current
-`Makefile` targets 4.0/5.0/5.4/6.0 — i.e. **every** target except 6.0 is EOL, and
-the two versions Zabbix considers current (7.0, 7.4) are untested.
 
 Target matrix: **6.0, 7.0, 7.4** release-gating, plus **8.0** non-blocking via the
 nightly `ubuntu-trunk` images from day one (no `*8.0*` tag is published yet as of
