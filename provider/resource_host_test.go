@@ -380,6 +380,88 @@ resource "zabbix_host" "testhost" {
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_contextname", "testcname"),
 				),
 			},
+			{ // IPMI access and certificate encryption
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+
+	ipmi_authtype  = "md5"
+	ipmi_privilege = "admin"
+	ipmi_username  = "ipmiuser"
+	ipmi_password  = "ipmipass"
+
+	tls_connect = "cert"
+	tls_accept  = "cert"
+	tls_issuer  = "CN=Test CA"
+	tls_subject = "CN=test-host"
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_authtype", "md5"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_privilege", "admin"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_username", "ipmiuser"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_password", "ipmipass"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_connect", "cert"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_accept", "cert"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_issuer", "CN=Test CA"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_subject", "CN=test-host"),
+				),
+			},
+			{ // import: everything above round-trips, including ipmi_password,
+				// which host.get does return
+				ResourceName:      "zabbix_host.testhost",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{ // switch to pre-shared key encryption
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+
+	tls_connect      = "psk"
+	tls_accept       = "psk"
+	tls_psk_identity = "test-psk-id"
+	tls_psk          = "0123456789abcdef0123456789abcdef"
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_connect", "psk"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_accept", "psk"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_psk_identity", "test-psk-id"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_psk", "0123456789abcdef0123456789abcdef"),
+					// the cert attributes are cleared by the same update
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_issuer", ""),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tls_subject", ""),
+					// and IPMI reverts to the Zabbix defaults
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_authtype", "default"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "ipmi_privilege", "user"),
+				),
+			},
+			{ // tls_psk_identity and tls_psk are the only attributes excluded
+				// from import verification: host.get never returns them on any
+				// version, even when asked for by name, so an imported host
+				// cannot know what they were.
+				ResourceName:            "zabbix_host.testhost",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"tls_psk_identity", "tls_psk"},
+			},
 			// remove / replace templates (with items, check they are cleaned up)
 		},
 	})

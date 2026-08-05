@@ -1,9 +1,11 @@
 package provider
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 func TestAccResourceTemplate(t *testing.T) {
@@ -27,6 +29,17 @@ resource "zabbix_template" "testtmpl" {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "test-template"),
+					// Zabbix generates the uuid; it must land in state on
+					// every supported version
+					resource.TestCheckResourceAttrSet("zabbix_template.testtmpl", "uuid"),
+					resource.TestMatchResourceAttr("zabbix_template.testtmpl", "uuid", regexp.MustCompile(`^[0-9a-f]{32}$`)),
+					// the version-gated attributes read back at their zero
+					// value on every version, including the ones that do not
+					// have the underlying field at all
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_name", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_version", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "readme", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "wizard_ready", "false"),
 				),
 			},
 			{ // rename
@@ -118,6 +131,74 @@ resource "zabbix_template" "testtmpl2" {
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "groups.#", "2"),
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl2", "groups.#", "2"),
 				),
+			},
+			{ // vendor_name / vendor_version, 6.4+ only
+				SkipFunc: skipBelow(t, zabbix.V64),
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_template" "testtmpl" {
+	groups = [ zabbix_templategroup.testgrp.id ]
+	host = "test-template-renamed"
+	name = "bob"
+
+	vendor_name    = "test vendor"
+	vendor_version = "1.0-0"
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_name", "test vendor"),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_version", "1.0-0"),
+				),
+			},
+			{ // readme / wizard_ready, 7.4+ only
+				SkipFunc: skipBelow(t, zabbix.V74),
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_template" "testtmpl" {
+	groups = [ zabbix_templategroup.testgrp.id ]
+	host = "test-template-renamed"
+	name = "bob"
+
+	vendor_name    = "test vendor"
+	vendor_version = "1.0-0"
+
+	readme       = "test readme text"
+	wizard_ready = true
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "readme", "test readme text"),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "wizard_ready", "true"),
+				),
+			},
+			{ // clearing the gated attributes again, 6.4+ only (below that
+				// they were never set in the first place)
+				SkipFunc: skipBelow(t, zabbix.V64),
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_template" "testtmpl" {
+	groups = [ zabbix_templategroup.testgrp.id ]
+	host = "test-template-renamed"
+	name = "bob"
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_name", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "vendor_version", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "readme", ""),
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "wizard_ready", "false"),
+				),
+			},
+			{ // import: everything round-trips, including the generated uuid
+				ResourceName:      "zabbix_template.testtmpl",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

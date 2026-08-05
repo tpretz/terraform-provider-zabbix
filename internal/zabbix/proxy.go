@@ -13,11 +13,15 @@ type (
 	// different codes 5 (active) and 6 (passive), and proxyParams translates.
 	ProxyMode int
 
-	// TLSMode is a Zabbix encryption mode, as used by the proxy properties
-	// "tls_connect" (how the server connects to a passive proxy) and
-	// "tls_accept" (what the server accepts from an active proxy). The values
-	// are the API's own numeric codes and have not changed across any
-	// supported version.
+	// TLSMode is a Zabbix encryption mode, as used by the "tls_connect" and
+	// "tls_accept" properties of both proxies and hosts: tls_connect is how
+	// the outgoing connection is encrypted, tls_accept what is accepted from
+	// the far end. The values are the API's own numeric codes and have not
+	// changed across any supported version.
+	//
+	// tls_accept is a bitmask server-side (3 = unencrypted or PSK, and so on);
+	// the provider exposes a single mode, matching how the field is used in
+	// practice, so only the three values below round-trip.
 	TLSMode string
 )
 

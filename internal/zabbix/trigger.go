@@ -74,7 +74,10 @@ type Trigger struct {
 	//TemplateId  string    `json:"templateid"`
 	//Value ValueType `json:""`
 
-	Opdata             string `json:"opdata,omitempty"`
+	// EventName is the problem name shown for a generated event; it may use
+	// the trigger expression's macros. Empty means "use the trigger name".
+	EventName          string `json:"event_name"`
+	Opdata             string `json:"opdata"`
 	Type               int    `json:"type,string"`
 	Url                string `json:"url,omitempty"`
 	RecoveryMode       int    `json:"recovery_mode,string"`

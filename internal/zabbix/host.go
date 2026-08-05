@@ -91,6 +91,26 @@ type Host struct {
 	ProxyIDField string          `json:"proxyid,omitempty"`      // >= 7.0
 	ProxyGroupID string          `json:"proxy_groupid,omitempty"`
 	MonitoredBy  MonitoredByType `json:"monitored_by,omitempty"` // >= 7.0
+
+	// IPMI access parameters. Present on every supported version. Unlike the
+	// TLS pre-shared key below, host.get does return ipmi_password, so these
+	// all round-trip.
+	IPMIAuthType  string `json:"ipmi_authtype,omitempty"`
+	IPMIPrivilege string `json:"ipmi_privilege,omitempty"`
+	IPMIUsername  string `json:"ipmi_username"`
+	IPMIPassword  string `json:"ipmi_password"`
+
+	// Connection encryption. TLSPSKIdentity and TLSPSK are write only: the
+	// API accepts them on create/update but host.get never returns them, on
+	// any version, even when asked for by name. Sending them empty is
+	// accepted whenever the host is not in PSK mode, so they are always on
+	// the wire and can be cleared.
+	TLSConnect     TLSMode `json:"tls_connect,omitempty"`
+	TLSAccept      TLSMode `json:"tls_accept,omitempty"`
+	TLSIssuer      string  `json:"tls_issuer"`
+	TLSSubject     string  `json:"tls_subject"`
+	TLSPSKIdentity string  `json:"tls_psk_identity"`
+	TLSPSK         string  `json:"tls_psk"`
 }
 
 // Hosts is an array of Host

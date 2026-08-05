@@ -63,6 +63,16 @@ func buildTemplateIds(s *schema.Set) zabbix.TemplateIDs {
 	return groups
 }
 
+// derefOr returns *p, or def when p is nil. The API client uses pointers for
+// properties that only exist from a given Zabbix version on, where nil means
+// "this server does not have the field" as opposed to "the field is empty".
+func derefOr[T any](p *T, def T) T {
+	if p == nil {
+		return def
+	}
+	return *p
+}
+
 // mergeSchemas, take a varadic list of schemas and merge, latter overwrites former
 func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schema {
 	n := map[string]*schema.Schema{}

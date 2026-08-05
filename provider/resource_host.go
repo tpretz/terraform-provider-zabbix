@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,43 @@ var HSNMP_SECLEVEL = map[string]string{
 }
 var HSNMP_SECLEVEL_REV = map[string]string{}
 var HSNMP_SECLEVEL_ARR = []string{}
+
+// HOST_TLS_LOOKUP maps the Terraform tls_connect / tls_accept values onto the
+// API's numeric encryption codes. Deliberately the same vocabulary as
+// zabbix_proxy's tls_connect / tls_accept.
+var HOST_TLS_LOOKUP = map[string]zabbix.TLSMode{
+	"unencrypted": zabbix.TLSUnencrypted,
+	"psk":         zabbix.TLSPSKMode,
+	"cert":        zabbix.TLSCertificate,
+}
+var HOST_TLS_LOOKUP_REV = map[zabbix.TLSMode]string{}
+var HOST_TLS_LOOKUP_ARR = []string{}
+
+// HOST_IPMI_AUTHTYPE maps the Terraform ipmi_authtype values onto the API's
+// numeric codes. "default" (-1) is Zabbix's own default.
+var HOST_IPMI_AUTHTYPE = map[string]string{
+	"default":  "-1",
+	"none":     "0",
+	"md2":      "1",
+	"md5":      "2",
+	"straight": "4",
+	"oem":      "5",
+	"rmcp+":    "6",
+}
+var HOST_IPMI_AUTHTYPE_REV = map[string]string{}
+var HOST_IPMI_AUTHTYPE_ARR = []string{}
+
+// HOST_IPMI_PRIVILEGE maps the Terraform ipmi_privilege values onto the API's
+// numeric codes. "user" (2) is Zabbix's own default.
+var HOST_IPMI_PRIVILEGE = map[string]string{
+	"callback": "1",
+	"user":     "2",
+	"operator": "3",
+	"admin":    "4",
+	"oem":      "5",
+}
+var HOST_IPMI_PRIVILEGE_REV = map[string]string{}
+var HOST_IPMI_PRIVILEGE_ARR = []string{}
 
 // interface type conversions
 var HOST_IFACE_TYPES = map[string]zabbix.InterfaceType{
@@ -166,12 +204,29 @@ var _ = func() bool {
 		HSNMP_SECLEVEL_REV[v] = k
 		HSNMP_SECLEVEL_ARR = append(HSNMP_SECLEVEL_ARR, k)
 	}
+	for k, v := range HOST_TLS_LOOKUP {
+		HOST_TLS_LOOKUP_REV[v] = k
+		HOST_TLS_LOOKUP_ARR = append(HOST_TLS_LOOKUP_ARR, k)
+	}
+	for k, v := range HOST_IPMI_AUTHTYPE {
+		HOST_IPMI_AUTHTYPE_REV[v] = k
+		HOST_IPMI_AUTHTYPE_ARR = append(HOST_IPMI_AUTHTYPE_ARR, k)
+	}
+	for k, v := range HOST_IPMI_PRIVILEGE {
+		HOST_IPMI_PRIVILEGE_REV[v] = k
+		HOST_IPMI_PRIVILEGE_ARR = append(HOST_IPMI_PRIVILEGE_ARR, k)
+	}
 	for _, v := range INVENTORY_KEYS {
 		inventorySchema.Elem.(*schema.Resource).Schema[v] = &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Description: "Inventory " + v,
 		}
+	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	for _, a := range [][]string{HOST_TLS_LOOKUP_ARR, HOST_IPMI_AUTHTYPE_ARR, HOST_IPMI_PRIVILEGE_ARR} {
+		sort.Strings(a)
 	}
 	return false
 }()
@@ -341,6 +396,70 @@ var hostSchemaBase = map[string]*schema.Schema{
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
 	},
+	"ipmi_authtype": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "default",
+		Description:  "IPMI authentication algorithm, one of: " + strings.Join(HOST_IPMI_AUTHTYPE_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HOST_IPMI_AUTHTYPE_ARR, false),
+	},
+	"ipmi_privilege": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "user",
+		Description:  "IPMI privilege level, one of: " + strings.Join(HOST_IPMI_PRIVILEGE_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HOST_IPMI_PRIVILEGE_ARR, false),
+	},
+	"ipmi_username": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "IPMI username",
+	},
+	"ipmi_password": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "IPMI password",
+	},
+	"tls_connect": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  "unencrypted",
+		Description: "Encryption used for outgoing connections to the host, one of: " +
+			strings.Join(HOST_TLS_LOOKUP_ARR, ", "),
+		ValidateFunc: validation.StringInSlice(HOST_TLS_LOOKUP_ARR, false),
+	},
+	"tls_accept": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Default:  "unencrypted",
+		Description: "Encryption accepted for incoming connections from the host, one of: " +
+			strings.Join(HOST_TLS_LOOKUP_ARR, ", ") +
+			". Zabbix stores this as a bitmask and the frontend allows combinations; only a single mode is expressible here",
+		ValidateFunc: validation.StringInSlice(HOST_TLS_LOOKUP_ARR, false),
+	},
+	"tls_issuer": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Certificate issuer, requires cert encryption",
+	},
+	"tls_subject": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Certificate subject, requires cert encryption",
+	},
+	"tls_psk_identity": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "PSK identity, requires psk encryption. Write only: host.get never returns it, so it cannot be read back or imported",
+	},
+	"tls_psk": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Pre-shared key, at least 32 hex digits, requires psk encryption. Write only: host.get never returns it, so it cannot be read back or imported",
+	},
 	"macro": macroSetSchema,
 	"tag":   tagSetSchema,
 }
@@ -397,11 +516,22 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 
 		// computed
 		switch k {
+		case "tls_psk_identity", "tls_psk":
+			// write-only in the API: there is nothing to look up
+			continue
 		case "host", "templates":
 			schema.Optional = true
 			fallthrough
 		case "interface", "groups", "macro", "proxyid", "inventory":
 			schema.Computed = true
+		case "ipmi_authtype", "ipmi_privilege", "ipmi_username", "ipmi_password",
+			"tls_connect", "tls_accept", "tls_issuer", "tls_subject":
+			// read-only here; the SDK rejects a default or a validator on a
+			// purely computed attribute
+			schema.Computed = true
+			schema.Optional = false
+			schema.Default = nil
+			schema.ValidateFunc = nil
 		}
 
 		o[k] = &schema
@@ -521,6 +651,18 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 		ProxyID:       d.Get("proxyid").(string),
 		InventoryMode: HINV_LOOKUP[d.Get("inventory_mode").(string)],
 		Status:        0,
+
+		IPMIAuthType:  HOST_IPMI_AUTHTYPE[d.Get("ipmi_authtype").(string)],
+		IPMIPrivilege: HOST_IPMI_PRIVILEGE[d.Get("ipmi_privilege").(string)],
+		IPMIUsername:  d.Get("ipmi_username").(string),
+		IPMIPassword:  d.Get("ipmi_password").(string),
+
+		TLSConnect:     HOST_TLS_LOOKUP[d.Get("tls_connect").(string)],
+		TLSAccept:      HOST_TLS_LOOKUP[d.Get("tls_accept").(string)],
+		TLSIssuer:      d.Get("tls_issuer").(string),
+		TLSSubject:     d.Get("tls_subject").(string),
+		TLSPSKIdentity: d.Get("tls_psk_identity").(string),
+		TLSPSK:         d.Get("tls_psk").(string),
 	}
 
 	if !d.Get("enabled").(bool) {
@@ -662,6 +804,20 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	d.Set("proxyid", host.ProxyID)
 	d.Set("enabled", host.Status == 0)
 	d.Set("inventory_mode", HINV_LOOKUP_REV[host.InventoryMode])
+
+	d.Set("ipmi_authtype", HOST_IPMI_AUTHTYPE_REV[host.IPMIAuthType])
+	d.Set("ipmi_privilege", HOST_IPMI_PRIVILEGE_REV[host.IPMIPrivilege])
+	d.Set("ipmi_username", host.IPMIUsername)
+	d.Set("ipmi_password", host.IPMIPassword)
+
+	d.Set("tls_connect", HOST_TLS_LOOKUP_REV[host.TLSConnect])
+	d.Set("tls_accept", HOST_TLS_LOOKUP_REV[host.TLSAccept])
+	d.Set("tls_issuer", host.TLSIssuer)
+	d.Set("tls_subject", host.TLSSubject)
+	// tls_psk_identity / tls_psk are write-only in the API and deliberately
+	// not set here: host.get never returns them, so writing back what it did
+	// not send would destroy what the configuration put in state. The data
+	// source does not declare them at all.
 
 	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))

@@ -76,6 +76,17 @@ func testAccTemplateGroups(t *testing.T) bool {
 	return testAccVersion(t) >= zabbix.V62
 }
 
+// skipBelow builds a TestStep SkipFunc that skips the step unless the server
+// under test is at least the given encoded version. It is for attributes that
+// simply do not exist on an older server -- from Zabbix 7.2 an unknown request
+// property is a hard error -- as opposed to attributes whose behaviour merely
+// differs, which belong in the shared fixtures.
+func skipBelow(t *testing.T, version int) func() (bool, error) {
+	return func() (bool, error) {
+		return testAccVersion(t) < version, nil
+	}
+}
+
 // hcl adapts a test configuration to the server under test.
 //
 // Templates belong to *template* groups from Zabbix 6.2 onwards and to *host*
