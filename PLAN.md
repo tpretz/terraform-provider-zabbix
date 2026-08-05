@@ -302,11 +302,11 @@ Close the gaps in current resources before adding new ones.
 - [x] `zabbix_proxy` **resource** (currently data source only), modelled on 7.0
       (`name`, `operating_mode`, `address`, `port`, `allowed_addresses`, TLS fields) with
       pre-7.0 translation; update the data source likewise.
-- [ ] `zabbix_host`: (`templates_clear` on removal DONE) proxy assignment (`monitored_by`/`proxyid`), full inventory fields,
+- [x] `zabbix_host`: `templates_clear`, proxy assignment (`monitored_by`/`proxyid`), full inventory fields,
       IPMI settings, TLS connect/accept + PSK, `templates_clear` on removal.
-- [ ] `zabbix_template`: `uuid`, `vendor_name`/`vendor_version` (6.4+), `readme` and
+- [x] `zabbix_template`: `uuid`, `vendor_name`/`vendor_version` (6.4+), `readme` and
       `wizard_ready` (7.4+).
-- [ ] `zabbix_trigger`: audit against the 7.4 object — `event_name`, `manual_close`,
+- [x] `zabbix_trigger`: audit against the 7.4 object — `event_name`, `manual_close`,
       `correlation_mode`/`correlation_tag`, `opdata`, dependencies.
 ### 3b — state migration for the breaking changes
 

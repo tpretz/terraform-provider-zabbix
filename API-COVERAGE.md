@@ -14,13 +14,13 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 
 | API object | Resource | Data source | State | Notes |
 |---|---|---|---|---|
-| host | `zabbix_host` | `zabbix_host` | 🟡 | 7.x fixed (`selectHostGroups`, `proxyid`/`monitored_by`, `templates_clear` filtering). Still missing: full inventory, IPMI, TLS/PSK |
+| host | `zabbix_host` | `zabbix_host` | ✅ | 7.x fixed; 70 inventory fields, IPMI, TLS/PSK all covered |
 | hostgroup | `zabbix_hostgroup` | `zabbix_hostgroup` | ✅ | |
-| template | `zabbix_template` | `zabbix_template` | 🟡 | 7.x fixed; template groups handled with a state upgrader. Still missing: `uuid`, `vendor_name`/`vendor_version`, `readme`, `wizard_ready` |
+| template | `zabbix_template` | `zabbix_template` | ✅ | 7.x fixed; template groups with state upgrader; `uuid`, `vendor_*` (6.4+), `readme`/`wizard_ready` (7.4+) |
 | item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types |
 | item prototype | 10 of 17 types | ❌ | 🟡 | all tested; see §3 |
 | LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3 |
-| trigger | `zabbix_trigger` | ❌ | 🟡 | tested. Field audit outstanding: `event_name`, `manual_close`, correlation fields |
+| trigger | `zabbix_trigger` | ❌ | ✅ | field audit done: `event_name`, `opdata`, `manual_close`, correlation fields, dependencies |
 | trigger prototype | `zabbix_proto_trigger` | ❌ | ✅ | |
 | graph | `zabbix_graph` | ❌ | ✅ | |
 | graph prototype | `zabbix_proto_graph` | ❌ | ✅ | |
@@ -113,6 +113,13 @@ is met. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
 
 Still open: the `terraform-plugin-testing` migration, and a `v0.17.0` state fixture for
 the template state upgrader.
+
+**One known failure on 8.0-trunk only** (non-blocking by policy): `TestAccResourceGraph`
+and `TestAccResourceProtoGraph`. `graph.get` returns `gitems` in a different order than
+6.0/7.x, and `item` is a `TypeList` whose order must match config. Sorting by `sortorder`
+is not the fix — it breaks 7.4, because config order need not match `sortorder`. Needs
+either a `TypeSet` migration or config-order matching on read. Must be resolved before
+8.0 becomes release-gating on GA.
 
 Bugs found by writing these tests — five so far, all invisible behind missing coverage:
 - **Every `zabbix_proto_item_*` was impossible to update on Zabbix 7.2+.** `itemprototype.update` was sent the create-only `ruleid`; 7.2 made unknown parameters a hard error, so any change to any item prototype failed. Item prototypes were effectively write-once on both current Zabbix releases.
