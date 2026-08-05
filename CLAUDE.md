@@ -123,6 +123,26 @@ Each `resource_<type>_common.go` provides two callbacks and wires them into all 
 
 **To add a new item backend type**: create `resource_<type>_common.go` following an existing one (snmp is the fullest example), then register the three resource constructors in `provider/provider.go`. Seven types are still missing — db_monitor, ipmi, ssh, telnet, jmx, script, browser — and are enumerated in PLAN.md § 4a. Follow the S1–S8 definition of done in PLAN.md § "The unit of work": every new resource lands with an acceptance test including an import step, a sweeper, docs and an example.
 
+### Collections: do not model unordered server data as an ordered list
+
+**A `TypeList` asserts that order is semantic.** Use it only when the Zabbix API
+guarantees an order *and* that order carries meaning. Otherwise use `TypeSet` — the
+server's return order is an implementation detail and is subject to change between
+versions, which is exactly how the 8.0 graph regression happened.
+
+Do not "fix" an ordering mismatch by sorting the read result. Sorting picks some order,
+but a `TypeList` must match the *config's* order, which need not agree with any field
+the server sorts by. Sorting graph items by `sortorder` fixed nothing and broke 7.4.
+
+| Collection | Type | Why |
+|---|---|---|
+| item / LLD `preprocessing` | `TypeList` | correct — steps execute in sequence, order is semantic |
+| host `inventory` | `TypeList` | correct — a single nested block, not a collection |
+| trigger `dependencies`, tags, macros | `TypeSet` | correct |
+| graph `item` | `TypeList` | **wrong** — `sortorder` carries the order explicitly; broken on 8.0 |
+| host `interface` | `TypeList` | **suspect** — untested with more than one interface |
+| LLD filter `condition` | `TypeList` | **suspect** — matched by macro/value, Zabbix assigns `formulaid` |
+
 ### Shared schema helpers & the lookup-table idiom
 
 - `common_tag.go` — shared `tagSetSchema` (a `TypeSet` of key/value) plus `tagGenerate`/`flattenTags`, reused by host, trigger, and item resources.
