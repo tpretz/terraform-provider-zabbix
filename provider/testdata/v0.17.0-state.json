@@ -1,0 +1,361 @@
+{
+  "version": 4,
+  "terraform_version": "0.14.11",
+  "serial": 17,
+  "lineage": "0f1d3a2c-6b8e-4b0f-9c1d-7e5a2b4c8d90",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "zabbix_host",
+      "name": "web01",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "enabled": true,
+            "groups": ["4", "11"],
+            "host": "web01.example.com",
+            "id": "10634",
+            "interface": [
+              {
+                "dns": "",
+                "id": "5",
+                "ip": "10.0.0.11",
+                "main": true,
+                "port": 10050,
+                "snmp3_authpassphrase": "{$SNMP3_AUTHPASSPHRASE}",
+                "snmp3_authprotocol": "sha",
+                "snmp3_contextname": "{$SNMP3_CONTEXTNAME}",
+                "snmp3_privpassphrase": "{$SNMP3_PRIVPASSPHRASE}",
+                "snmp3_privprotocol": "aes",
+                "snmp3_securitylevel": "authpriv",
+                "snmp3_securityname": "{$SNMP3_SECURITYNAME}",
+                "snmp_bulk": true,
+                "snmp_community": "{$SNMP_COMMUNITY}",
+                "snmp_version": "2",
+                "type": "agent"
+              },
+              {
+                "dns": "",
+                "id": "6",
+                "ip": "10.0.0.11",
+                "main": true,
+                "port": 161,
+                "snmp3_authpassphrase": "{$SNMP3_AUTHPASSPHRASE}",
+                "snmp3_authprotocol": "sha",
+                "snmp3_contextname": "{$SNMP3_CONTEXTNAME}",
+                "snmp3_privpassphrase": "{$SNMP3_PRIVPASSPHRASE}",
+                "snmp3_privprotocol": "aes",
+                "snmp3_securitylevel": "authpriv",
+                "snmp3_securityname": "{$SNMP3_SECURITYNAME}",
+                "snmp_bulk": true,
+                "snmp_community": "{$SNMP_COMMUNITY}",
+                "snmp_version": "2",
+                "type": "snmp"
+              }
+            ],
+            "inventory": [],
+            "inventory_mode": "disabled",
+            "macro": [
+              { "id": "31", "name": "{$ROLE}", "value": "web" },
+              { "id": "32", "name": "{$TIER}", "value": "frontend" }
+            ],
+            "name": "web01.example.com",
+            "proxyid": "0",
+            "tag": [{ "key": "env", "value": "prod" }],
+            "templates": ["10001"]
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_template",
+      "name": "linux",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "description": "Base Linux template",
+            "groups": ["16"],
+            "host": "tf-linux-base",
+            "id": "10500",
+            "macro": [{ "id": "44", "name": "{$CPU_LOAD_CRIT}", "value": "8" }],
+            "name": "TF Linux Base",
+            "templates": []
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_item_agent",
+      "name": "cpu_load",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "active": false,
+            "applications": ["712", "713"],
+            "delay": "1m",
+            "history": "90d",
+            "hostid": "10634",
+            "id": "31201",
+            "interfaceid": "5",
+            "key": "system.cpu.load[all,avg1]",
+            "name": "CPU load (1m avg)",
+            "preprocessor": [],
+            "tag": [{ "key": "component", "value": "cpu" }],
+            "trends": "365d",
+            "valuetype": "float"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_item_snmp",
+      "name": "if_in",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "applications": ["714"],
+            "delay": "1m",
+            "history": "90d",
+            "hostid": "10634",
+            "id": "31202",
+            "interfaceid": "6",
+            "key": "ifHCInOctets[1]",
+            "name": "Interface 1: bits in",
+            "preprocessor": [
+              {
+                "error_handler": "",
+                "error_handler_params": "",
+                "id": "",
+                "params": ["8"],
+                "type": "1"
+              }
+            ],
+            "snmp3_authpassphrase": "{$SNMP3_AUTHPASSPHRASE}",
+            "snmp3_authprotocol": "sha",
+            "snmp3_contextname": "{$SNMP3_CONTEXTNAME}",
+            "snmp3_privpassphrase": "{$SNMP3_PRIVPASSPHRASE}",
+            "snmp3_privprotocol": "aes",
+            "snmp3_securitylevel": "authpriv",
+            "snmp3_securityname": "{$SNMP3_SECURITYNAME}",
+            "snmp_community": "{$SNMP_COMMUNITY}",
+            "snmp_oid": "1.3.6.1.2.1.31.1.1.1.6.1",
+            "snmp_version": "2",
+            "tag": [],
+            "trends": "365d",
+            "valuetype": "unsigned"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_proto_item_agent",
+      "name": "fs_used",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "active": true,
+            "applications": ["715"],
+            "delay": "5m",
+            "history": "90d",
+            "hostid": "10634",
+            "id": "31203",
+            "interfaceid": "5",
+            "key": "vfs.fs.size[{#FSNAME},used]",
+            "name": "{#FSNAME}: used space",
+            "preprocessor": [],
+            "ruleid": "31300",
+            "tag": [],
+            "trends": "365d",
+            "valuetype": "unsigned"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_lld_agent",
+      "name": "mounts",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "active": false,
+            "condition": [
+              { "id": "A", "macro": "{#FSTYPE}", "operator": "match", "value": "ext4|xfs" },
+              { "id": "B", "macro": "{#FSNAME}", "operator": "notmatch", "value": "^/run" }
+            ],
+            "delay": "1h",
+            "evaltype": "andor",
+            "formula": "",
+            "hostid": "10634",
+            "id": "31300",
+            "interfaceid": "5",
+            "key": "vfs.fs.discovery",
+            "lifetime": "30d",
+            "macro": [],
+            "name": "Mounted filesystem discovery",
+            "preprocessor": []
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_graph",
+      "name": "cpu",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "do3d": false,
+            "height": "200",
+            "id": "600",
+            "item": [
+              {
+                "color": "FF0000",
+                "drawtype": "line",
+                "function": "avg",
+                "id": "9001",
+                "itemid": "31201",
+                "sortorder": "0",
+                "type": "simple",
+                "yaxis_side": "left"
+              },
+              {
+                "color": "00FF00",
+                "drawtype": "line",
+                "function": "avg",
+                "id": "9002",
+                "itemid": "31202",
+                "sortorder": "1",
+                "type": "simple",
+                "yaxis_side": "left"
+              }
+            ],
+            "legend": true,
+            "name": "CPU",
+            "percent_left": "0",
+            "percent_right": "0",
+            "type": "normal",
+            "width": "900",
+            "work_period": true,
+            "ymax": "100",
+            "ymax_itemid": "",
+            "ymax_type": "calculated",
+            "ymin": "0",
+            "ymin_itemid": "",
+            "ymin_type": "calculated"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_proto_graph",
+      "name": "fs",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "do3d": false,
+            "height": "200",
+            "id": "601",
+            "item": [
+              {
+                "color": "0000FF",
+                "drawtype": "line",
+                "function": "avg",
+                "id": "9003",
+                "itemid": "31203",
+                "sortorder": "0",
+                "type": "simple",
+                "yaxis_side": "left"
+              }
+            ],
+            "legend": true,
+            "name": "{#FSNAME}: usage",
+            "percent_left": "0",
+            "percent_right": "0",
+            "type": "normal",
+            "width": "900",
+            "work_period": true,
+            "ymax": "100",
+            "ymax_itemid": "",
+            "ymax_type": "calculated",
+            "ymin": "0",
+            "ymin_itemid": "",
+            "ymin_type": "calculated"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_application",
+      "name": "general",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "hostid": "10634",
+            "id": "712",
+            "name": "General"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "zabbix_item_aggregate",
+      "name": "cluster_load",
+      "provider": "provider[\"registry.terraform.io/tpretz/zabbix\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "applications": ["712"],
+            "delay": "1m",
+            "history": "90d",
+            "hostid": "10634",
+            "id": "31204",
+            "key": "grpavg[\"web servers\",\"system.cpu.load\",last]",
+            "name": "Cluster CPU load",
+            "preprocessor": [],
+            "tag": [],
+            "trends": "365d",
+            "valuetype": "float"
+          },
+          "private": "bnVsbA=="
+        }
+      ]
+    }
+  ]
+}

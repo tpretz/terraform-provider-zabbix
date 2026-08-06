@@ -86,6 +86,32 @@ func hostStateUpgraders() []schema.StateUpgrader {
 	}
 }
 
+// Why zabbix_item_* and zabbix_proto_item_* have no state upgrader
+//
+// Phase 2b deleted `applications` from every item schema, and the legacy SNMP
+// item attributes (`snmp_version`, `snmp_community`, `snmp3_*`) with it. A
+// v0.17.0 state carries all of them, so the obvious move is a SchemaVersion
+// bump plus an upgrader that strips them. It would do nothing.
+//
+// helper/schema removes attributes the current schema no longer declares
+// *before* it decodes prior state - `removeAttributes` in
+// grpc_provider.go's UpgradeResourceState, which runs whether or not the
+// resource declares an upgrader, on both the JSON and the flatmap path. The
+// removed keys are dropped silently, with no diagnostic. An upgrader here
+// would be handed state those keys had already been deleted from.
+//
+// This is not an assumption. TestV0StateFixtureItemsDropRemovedAttributes
+// drives real v0.17.0 state through UpgradeResourceState and asserts both
+// halves: the upgrade succeeds and the rest of the item survives, *and*
+// decoding the same state directly against the v2 schema fails with
+// `unsupported attribute "applications"` - so the strip is load-bearing SDK
+// behaviour rather than a coincidence. If a future SDK stops doing it, that
+// test fails and this comment is the instruction to write the upgraders.
+//
+// What no upgrader can fix is the *configuration*: `applications = [...]` in
+// HCL is now "An argument named "applications" is not expected here". That is
+// a hand edit, and MIGRATING.md documents it.
+
 // lldStateUpgraders builds the v0 -> v1 upgrader for one zabbix_lld_* resource.
 // Every LLD backend type has a different merged schema, so the prior shape has
 // to be derived from the resource's own schema rather than written out once.
