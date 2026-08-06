@@ -99,9 +99,44 @@ shape is defined once here, and Phase 4 lists the instances.
 | S3 | Resource schema | `provider/resource_<obj>.go` — schema with a `Description` on every field, `ValidateFunc`s, lookup tables via the `_LOOKUP`/`_REV`/`_ARR` idiom |
 | S4 | CRUD funcs + registration | Create/Read/Update/Delete + `ImportStatePassthrough`; register in `provider.go` |
 | S5 | Data source | where a lookup-by-name is useful (not all objects need one) |
-| S6 | Acceptance test | create → update → re-read, plus `ImportState`/`ImportStateVerify`, plus a `SkipFunc` for version-bound behaviour |
+| S6 | Acceptance test | create → update → re-read, plus `ImportState`/`ImportStateVerify`, plus a `SkipFunc` for version-bound behaviour. Every collection attribute additionally meets `C1`–`C7` below |
 | S7 | Sweeper | `resource.AddTestSweepers` entry so aborted runs self-clean |
 | S8 | Docs + example | schema descriptions drive `tfplugindocs`; hand-written intro in `templates/`, runnable HCL in `examples/` |
+
+**Definition of done for a collection attribute** (`C1`–`C7`).
+
+Most of the provider's schema is collections — sets of ids, blocks of interfaces, items,
+conditions, tags, macros, preprocessing steps. Every collection bug found so far hid
+behind a fixture that used **exactly one element**: the 8.0 graph reordering, the LLD
+formula ids the provider echoed back to a server that rejects them, and a whole class of
+silently-dropped edits that only a multi-element set can expose. One element cannot
+distinguish a set from a list, cannot show an ordering assumption, and cannot show an
+identity assumption. A collection is not tested until it has been tested plural.
+
+| | Case | What it must do |
+|---|---|---|
+| C1 | **none** | attribute omitted entirely (where it is optional) — creates, plans clean, and imports back empty |
+| C2 | **one** | the trivial case |
+| C3 | **many** | three elements where the server may reorder, two otherwise. At least two must be *of the same kind* — two SNMP interfaces, two conditions on one macro — so that element identity is proven to come from content and not from position |
+| C4 | **reordered** | the same elements rewritten in a different order, as a `PlanOnly: true` step. For a **set** this must plan empty. For a **list** the opposite is the assertion: the reorder must produce a diff and the new order must survive the round trip, because that is what claiming `TypeList` means |
+| C5 | **edit one of many** | change one attribute of one element and assert the *others* are untouched — and, where the object has a server-assigned id, that the edited element kept it rather than being silently recreated |
+| C6 | **remove one, then all** | N → N-1 → 0. The removal has to be shown reaching the server, not merely leaving state; Zabbix's update calls replace collections wholesale and an omitted element is a deletion |
+| C7 | **import at full size** | `ImportStateVerify` with the collection at its largest. This is the only check that the flatten function and the set hash agree — a mismatch there is invisible in every other step |
+
+Assert set elements by content (`TestCheckTypeSetElemNestedAttrs`,
+`TestCheckTypeSetElemAttrPair`), never by index: a set's indices in test state are
+positional artefacts of the shim and mean nothing.
+
+Two schema rules that fall out of the same place, and that C3–C5 are what catch:
+
+- **A `TypeSet` hash must cover every user-settable attribute of the element.**
+  `helper/schema`'s `diffSet` returns early when the old and new hash-code lists match
+  and never compares the elements themselves, so an attribute left out of the hash can
+  never be seen to change — the edit is *silently discarded*, with an empty plan.
+  Exclude only server-assigned ids, which config does not have and which would otherwise
+  replace every element on every plan (`hashElementExcept` in `provider/utils.go`).
+- **`TypeList` is a claim that order is semantic**, and C4 is where that claim gets
+  audited against the server. See CLAUDE.md § "Collections".
 
 A resource that is version-bound (proxy, connector, browser items) costs roughly 1.5×
 because S2 and S6 double up. An item backend type costs less than a standalone object —
@@ -120,6 +155,7 @@ S1/S3 are mostly free, since `common_item.go` supplies the machinery and the wor
 | 4 — feature completeness | 35 instances (+2 deferred) | ~250 (35 × S1–S8) |
 | 5 — documentation | 7 | ~55 (per-resource descriptions) |
 | 6 — maintenance posture | 5 | ~10 |
+| 7 — collection test backfill | 8 | ~40 |
 
 Critical path to v2.0.0 is phases 0–3: **42 enumerated tasks, ~130 sub-tasks.**
 Everything after is incremental `v2.x`.
@@ -524,6 +560,53 @@ without a breaking change.
 
 ---
 
+## Phase 7 — Collection test backfill
+
+Apply `C1`–`C7` (see "The unit of work") to every collection already in the schema. This
+is a backfill: the rules were written after the 8.0 graph regression showed what a
+one-element fixture cannot see, and most of the suite predates them.
+
+Audit as of the TypeSet conversion — cardinalities are the maximum any single test step
+reaches, across the whole suite:
+
+| Area | Attribute | Now | Missing |
+|---|---|---|---|
+| graph, proto_graph | `item` (set) | 1, 2, 3; reorder; edit-one-of-many; import | C6 — an item is never removed from a graph. `zabbix_graph` itself has no import step (only `zabbix_proto_graph` does) |
+| host | `interface` (set) | 1–4 incl. two SNMP; reorder; edit-one-of-many; remove-one; import | complete (C1/C6-to-zero are N/A: `interface` is Required, Min 1) |
+| lld_* | `condition` (set) | 1, 2, 3; reorder; edit-one-of-many; remove-one; `evaltype = "custom"`; import | C6 — never returns to zero conditions |
+| item_*, proto_item_*, lld_* | `preprocessor` (**list**) | max 3, and only in `item_agent` + `proto_item_snmp` | **C4 — no test reorders preprocessing steps.** This is the one collection whose order genuinely is semantic, and nothing proves the provider preserves it. Also C6, and 8 of 10 item types never exercise it at all |
+| host, template | `macro` (set) | 1, 2; remove-all | C4, C5 — never reordered, never edited one-of-several |
+| host, trigger, item_*, proto_* | `tag` (set) | 2 on host, 1 everywhere else; host covers edit-one and remove-all | C3 on every resource but host; C4 everywhere |
+| trigger, proto_trigger | `dependencies` (set of ids) | 1, on `trigger` only | C2 on `proto_trigger`, which never sets one at all; C3, C6 on both — a trigger never depends on two triggers, and a dependency is never removed |
+| host, template | `templates` (set of ids) | 1 | C3, C6 — and `existingTemplateIds`/`templates_clear`, which exists precisely to survive a template being destroyed in the same apply, is only ever exercised with one template |
+| host, template | `groups` (set of ids) | 1 (2 once) | C3, C6 — a group is never removed from a host |
+| item_http, proto_item_http, lld_http | `headers` (map) | 1, 2 | C6 — headers never emptied |
+| host | `inventory` (list, single block) | 0, 1, changed | complete — not a collection, a single nested block |
+
+Tasks:
+
+- [ ] `preprocessor` reorder test first — it is the only list left claiming semantic
+      order, and the claim is currently unverified on any version
+- [ ] C3 + C4 for `tag` on one item resource and on `trigger`; the item triad shares
+      `common_tag.go`, so one item type covers the machinery for all ten
+- [ ] C3 + C6 for `dependencies`, `templates`, `groups`
+- [ ] C6 for `item`, `condition`, `headers`
+- [ ] import step for `zabbix_graph`
+- [ ] Where a collection's coverage comes from shared machinery (`common_tag.go`,
+      `common_macro.go`, `common_lld.go`, `common_item.go`), test it thoroughly **once**
+      and reference that from the others rather than copying eleven near-identical
+      fixtures. Note where that decision is made, so a later reader does not read the
+      absence as an oversight.
+- [ ] Mirror `C1`–`C7` into CLAUDE.md § "Testing expectations" — the rules are only
+      useful if they are read before the test is written, and CLAUDE.md is what gets read
+- [ ] Fold the checklist into the S1–S8 review for every Phase 4 resource, so the
+      backlog stops growing while it is being paid down
+
+**Exit criteria:** every row in the table above reads "complete", and any deliberate
+exception is written down next to the collection it applies to.
+
+---
+
 ## Sequencing
 
 ```
@@ -544,6 +627,10 @@ dependency on provider code, so it can be built immediately; from that point eve
 change in phases 2–6 is validated against all four Zabbix versions as it lands. The
 per-version failure list captured at the end of Phase 1 is the worklist for Phase 2 and
 the progress measure through it.
+
+Phase 7 is not a stage in that sequence: it is a standing quality bar. The `C1`–`C7`
+checklist applies to new work from now on, and the backfill table is worked through
+alongside phases 4–6 rather than gating them.
 
 Phases 0–3 are one campaign on the critical path — the provider is non-functional on
 current Zabbix until Phase 2 ships. Phase 4 onward is the routine-maintenance backlog,
