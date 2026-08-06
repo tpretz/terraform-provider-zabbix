@@ -106,9 +106,10 @@ Landed:
 - **`CheckDestroy`** on 17+ tests via a shared helper, verified to genuinely fail when a delete is broken
 - **Sweepers** for every object type with dependency ordering, plus `TestMain`
 
-**46 acceptance tests pass on every version.** The Phase 3 exit criterion — every
-registered resource and data source has an acceptance test including an import step —
-is met. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
+**46 acceptance tests pass on every version.** The Phase 3 exit criterion is *almost*
+met: every registered resource and data source has an acceptance test, and all but one
+include an import step — **`zabbix_graph` has no `ImportState` step** (`zabbix_proto_graph`
+does). Tracked in Phase 7. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
 `tls_psk_identity`/`tls_psk`, which `proxy.get` never returns on any version.
 
 Still open: the `terraform-plugin-testing` migration, and a `v0.17.0` state fixture for
