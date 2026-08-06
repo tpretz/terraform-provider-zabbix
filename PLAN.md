@@ -362,6 +362,9 @@ Cut from the `v2` branch, once phases 0–3 are done and the 6.0/7.0/7.4 matrix 
 Everything breaking lands in this one release:
 
 - Minimum Zabbix version is now 6.0
+- `graph.item`, `host.interface` and the LLD filter `condition` block are **sets, not
+  lists** — server return order is not stable across Zabbix versions. Sets cannot be
+  indexed: use `one(...)` instead of `interface[0]`
 - `zabbix_application` and its data source removed → migrate to item tags
 - `zabbix_item_aggregate` / `zabbix_proto_item_aggregate` removed → migrate to
   calculated items with aggregate functions

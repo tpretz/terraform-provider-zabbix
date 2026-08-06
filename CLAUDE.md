@@ -136,12 +136,33 @@ the server sorts by. Sorting graph items by `sortorder` fixed nothing and broke 
 
 | Collection | Type | Why |
 |---|---|---|
-| item / LLD `preprocessing` | `TypeList` | correct — steps execute in sequence, order is semantic |
-| host `inventory` | `TypeList` | correct — a single nested block, not a collection |
-| trigger `dependencies`, tags, macros | `TypeSet` | correct |
-| graph `item` | `TypeList` | **wrong** — `sortorder` carries the order explicitly; broken on 8.0 |
-| host `interface` | `TypeList` | **suspect** — untested with more than one interface |
-| LLD filter `condition` | `TypeList` | **suspect** — matched by macro/value, Zabbix assigns `formulaid` |
+| item / LLD `preprocessing` | `TypeList` | steps execute in sequence — order is genuinely semantic |
+| host `inventory` | `TypeList` | a single nested block, not a collection |
+| graph `item`, host `interface`, LLD filter `condition` | `TypeSet` | converted; server return order is not stable across versions |
+| trigger `dependencies`, tags, macros | `TypeSet` | |
+
+LLD conditions were confirmed unordered empirically, not by inspection: submitting
+`{#CCC},{#AAA},{#BBB}` comes back in submission order on 6.0 but sorted by formulaid on
+7.4/8.0. The order is not merely undefined — it *changed between versions*.
+
+### A set's hash must cover every user-settable attribute
+
+This is the trap, and it is worse than the ordering problem it replaces.
+`helper/schema`'s `diffSet` short-circuits on `reflect.DeepEqual(os.listCode(), ns.listCode())`
+(`schema.go:1609`) — it compares **hash codes only** and never looks at elements when they
+match. An attribute left out of the hash therefore cannot be seen to change, and the edit
+is **silently discarded**: no diff, no API call, no error.
+
+Hash every user-settable field and exclude only server-assigned ids (which config lacks,
+and which would otherwise replace every element on every plan). `hashElementExcept` in
+`provider/utils.go` does this generically so a newly added field cannot be forgotten.
+
+Because an edited element arrives with no id, `hostReuseInterfaceIDs` in
+`resource_host.go` reassigns the prior `interfaceid` of the same type. Without it Zabbix
+is asked to delete and recreate an interface, which it refuses once items are bound to it.
+
+**Sets cannot be indexed from HCL.** `zabbix_host.x.interface[0].id` no longer parses;
+use `one(...)`. This is the change most likely to break an existing config.
 
 ### Shared schema helpers & the lookup-table idiom
 
