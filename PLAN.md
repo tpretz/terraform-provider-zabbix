@@ -350,14 +350,27 @@ Removing attributes from a schema does not remove them from users' state files. 
 upgraders, a `v0.17.0` state hits "Invalid address to set" / unknown-attribute errors on
 first plan under v2.
 
-- [ ] Bump `SchemaVersion` on every item resource; add a `StateUpgraders` entry that
-      strips `applications` from prior state.
+- [x] ~~Bump `SchemaVersion` on every item resource; add a `StateUpgraders` entry that
+      strips `applications` from prior state.~~ **Not needed — verified, not assumed.**
+      `helper/schema`'s `GRPCProviderServer.removeAttributes` (`grpc_provider.go:516`)
+      deletes every key the current schema no longer declares, *after* any upgraders run
+      and *before* decoding, whether or not the resource declares one. The flatmap path
+      does the same by only iterating declared attributes. Twenty `SchemaVersion` bumps
+      would each have been handed state the key was already gone from.
+      `TestV0StateFixtureItemsDropRemovedAttributes` pins this with a negative control
+      (decoding the fixture straight into the v2 schema must fail), so it breaks loudly
+      if a future SDK stops doing it. Same applies to the legacy SNMP item attributes.
+      What no upgrader can fix is the *config* — `applications = [...]` in HCL is a hard
+      error and needs a hand edit. `MIGRATING.md` § 3 covers it.
 - [x] `SchemaVersion` + upgrader on `zabbix_template` for the host-group →
       template-group `groups` transition on 6.2+.
-- [ ] For the removed resources (`zabbix_application`, `zabbix_item_aggregate`,
+- [x] For the removed resources (`zabbix_application`, `zabbix_item_aggregate`,
       `zabbix_proto_item_aggregate`) there is no upgrade path — document
       `terraform state rm` in `MIGRATING.md`.
-- [ ] Test the upgraders with a checked-in `v0.17.0` state fixture.
+- [x] Test the upgraders with a checked-in `v0.17.0` state fixture —
+      `provider/testdata/v0.17.0-state.json` and `-flatmap.json`, driven through the real
+      `UpgradeResourceState` handler. Flatmap is covered too, which is the path the
+      TypeSet upgraders exist for and which nothing had exercised.
 
 ### 3c — fill the test gaps
 
@@ -407,7 +420,7 @@ Everything breaking lands in this one release:
 - `zabbix_template.groups` references template groups on 6.2+ → `zabbix_templategroup`
 - `applications` attribute removed from every item schema
 
-Ship with a `MIGRATING.md` covering each of the five, with before/after HCL, framed as a
+`MIGRATING.md` is written. Ship with it covering each of the five, with before/after HCL, framed as a
 `v0.17.0 → v2.0.0` upgrade.
 
 Post-release, `v2` becomes the default branch and `master` is archived.
