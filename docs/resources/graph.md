@@ -18,7 +18,7 @@ description: |-
 ### Required
 
 - **height** (String) Height
-- **item** (Block List, Min: 1) (see [below for nested schema](#nestedblock--item))
+- **item** (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
 - **name** (String) Graph Name
 - **width** (String) Width
 
@@ -40,6 +40,9 @@ description: |-
 
 <a id="nestedblock--item"></a>
 ### Nested Schema for `item`
+
+A graph's items are an unordered set - the drawing order is carried by
+`sortorder`, not by the order the blocks appear in.
 
 Required:
 

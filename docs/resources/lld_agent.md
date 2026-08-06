@@ -24,7 +24,7 @@ description: |-
 ### Optional
 
 - **active** (Boolean) Active zabbix agent Item
-- **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
+- **condition** (Block Set) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
 - **evaltype** (String) EvalType, one of: or, custom, andor, and
 - **formula** (String) Formula
@@ -37,6 +37,9 @@ description: |-
 <a id="nestedblock--condition"></a>
 ### Nested Schema for `condition`
 
+Filter conditions are an unordered set. Zabbix does not preserve the order they
+are submitted in, and returns them differently on different versions.
+
 Required:
 
 - **macro** (String) Filter Macro
@@ -44,11 +47,8 @@ Required:
 
 Optional:
 
+- **id** (String) Formula ID (A, B, C, ...). Required, and only meaningful, when evaltype is "custom"; under every other evaltype Zabbix assigns the ids itself, 7.2+ rejects a caller-supplied value, and this attribute stays empty.
 - **operator** (String) Operator, one of: match, notmatch
-
-Read-Only:
-
-- **id** (String) The ID of this resource.
 
 
 <a id="nestedblock--macro"></a>

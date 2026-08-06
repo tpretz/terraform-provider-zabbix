@@ -106,11 +106,19 @@ resource "zabbix_host" "testhost" {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host-renamed"),
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "macro.0.value", "fish"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.dns", "localhost"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.type", "agent"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.port", "1234"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.1.dns", "bob"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.1.type", "jmx"),
+					// `interface` is a set: identify elements by content, not
+					// by position.
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"dns":  "localhost",
+						"type": "agent",
+						"port": "1234",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"dns":  "bob",
+						"type": "jmx",
+						"port": "8686",
+					}),
 				),
 			},
 
@@ -279,9 +287,11 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "1"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "false"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"snmp_version":   "1",
+						"snmp_community": "testc",
+						"snmp_bulk":      "false",
+					}),
 				),
 			},
 			{ // snmp attributes, v2
@@ -303,9 +313,11 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "2"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_community", "testc"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "false"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"snmp_version":   "2",
+						"snmp_community": "testc",
+						"snmp_bulk":      "false",
+					}),
 				),
 			},
 			{ // snmp attributes, v3
@@ -333,15 +345,17 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securityname", "testc"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securitylevel", "authpriv"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authpassphrase", "testauthp"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privpassphrase", "testprivp"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authprotocol", "sha"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privprotocol", "aes"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_contextname", "testcname"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"snmp_bulk":            "true",
+						"snmp_version":         "3",
+						"snmp3_securityname":   "testc",
+						"snmp3_securitylevel":  "authpriv",
+						"snmp3_authpassphrase": "testauthp",
+						"snmp3_privpassphrase": "testprivp",
+						"snmp3_authprotocol":   "sha",
+						"snmp3_privprotocol":   "aes",
+						"snmp3_contextname":    "testcname",
+					}),
 				),
 			},
 			{ // snmp attributes, v3, change to some that eval to "0"
@@ -369,15 +383,17 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_bulk", "true"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp_version", "3"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securityname", "testc"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_securitylevel", "noauthnopriv"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authpassphrase", "testauthp"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privpassphrase", "testprivp"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_authprotocol", "md5"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_privprotocol", "des"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.0.snmp3_contextname", "testcname"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"snmp_bulk":            "true",
+						"snmp_version":         "3",
+						"snmp3_securityname":   "testc",
+						"snmp3_securitylevel":  "noauthnopriv",
+						"snmp3_authpassphrase": "testauthp",
+						"snmp3_privpassphrase": "testprivp",
+						"snmp3_authprotocol":   "md5",
+						"snmp3_privprotocol":   "des",
+						"snmp3_contextname":    "testcname",
+					}),
 				),
 			},
 			{ // IPMI access and certificate encryption
@@ -463,6 +479,158 @@ resource "zabbix_host" "testhost" {
 				ImportStateVerifyIgnore: []string{"tls_psk_identity", "tls_psk"},
 			},
 			// remove / replace templates (with items, check they are cleaned up)
+		},
+	})
+}
+
+// TestAccResourceHostMultiInterface covers what every other host test misses:
+// a host with several interfaces, including two of the same type.
+//
+// `interface` is a TypeSet, so neither the order the blocks are written in nor
+// the order host.get hands them back may affect the result. A single-interface
+// fixture cannot show that; this one reorders the blocks between steps and
+// requires the plan to stay empty.
+func TestAccResourceHostMultiInterface(t *testing.T) {
+	const groupHCL = `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // four interfaces, two of them SNMP: only one interface of a
+				// type may be `main`
+				Config: hcl(t, groupHCL+`
+resource "zabbix_host" "testhost" {
+	host   = "test-host-multi"
+	groups = [zabbix_hostgroup.testgrp.id]
+
+	interface {
+		type = "agent"
+		dns  = "localhost"
+		port = 1234
+	}
+	interface {
+		type = "jmx"
+		dns  = "jmx.example.com"
+	}
+	interface {
+		type           = "snmp"
+		ip             = "127.0.0.5"
+		snmp_community = "public"
+	}
+	interface {
+		type           = "snmp"
+		ip             = "127.0.0.6"
+		main           = false
+		snmp_community = "private"
+	}
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "4"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"type": "agent",
+						"dns":  "localhost",
+						"port": "1234",
+						"main": "true",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"type": "jmx",
+						"dns":  "jmx.example.com",
+						"port": "8686",
+						"main": "true",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"type":           "snmp",
+						"ip":             "127.0.0.5",
+						"port":           "161",
+						"main":           "true",
+						"snmp_community": "public",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"type":           "snmp",
+						"ip":             "127.0.0.6",
+						"port":           "161",
+						"main":           "false",
+						"snmp_community": "private",
+					}),
+				),
+			},
+			{ // the same four interfaces in a different order: a set has no
+				// order, so this must plan clean
+				Config: hcl(t, groupHCL+`
+resource "zabbix_host" "testhost" {
+	host   = "test-host-multi"
+	groups = [zabbix_hostgroup.testgrp.id]
+
+	interface {
+		type           = "snmp"
+		ip             = "127.0.0.6"
+		main           = false
+		snmp_community = "private"
+	}
+	interface {
+		type = "jmx"
+		dns  = "jmx.example.com"
+	}
+	interface {
+		type           = "snmp"
+		ip             = "127.0.0.5"
+		snmp_community = "public"
+	}
+	interface {
+		type = "agent"
+		dns  = "localhost"
+		port = 1234
+	}
+}
+`),
+				PlanOnly: true,
+			},
+			{ // drop one of the two SNMP interfaces and edit another's
+				// credentials in the same apply
+				Config: hcl(t, groupHCL+`
+resource "zabbix_host" "testhost" {
+	host   = "test-host-multi"
+	groups = [zabbix_hostgroup.testgrp.id]
+
+	interface {
+		type = "agent"
+		dns  = "localhost"
+		port = 1234
+	}
+	interface {
+		type = "jmx"
+		dns  = "jmx.example.com"
+	}
+	interface {
+		type           = "snmp"
+		ip             = "127.0.0.5"
+		snmp_community = "changed"
+	}
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "interface.*", map[string]string{
+						"type":           "snmp",
+						"ip":             "127.0.0.5",
+						"snmp_community": "changed",
+					}),
+				),
+			},
+			{ // import: all three interfaces round-trip
+				ResourceName:      "zabbix_host.testhost",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

@@ -42,6 +42,7 @@ func resourceProtoItemSnmp() *schema.Resource {
 }
 
 func resourceLLDSnmp() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
 		Read:   lldGetReadWrapper(lldSnmpReadFunc),
@@ -50,7 +51,12 @@ func resourceLLDSnmp() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp),
+
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

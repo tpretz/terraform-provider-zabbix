@@ -134,7 +134,7 @@ resource "zabbix_host" "testhost" {
 }
 resource "zabbix_item_http" "testitem" {
 	hostid = zabbix_host.testhost.id
-	interfaceid = zabbix_host.testhost.interface.0.id
+	interfaceid = one(zabbix_host.testhost.interface).id
 	key = "testitem.http.changed"
 
 	name = "Test HTTP Item Changed"

@@ -89,7 +89,7 @@ resource "zabbix_item_http" "a" {
   valuetype = "text"
 
   url = "http://google.com"
-  interfaceid = zabbix_host.a.interface[0].id
+  interfaceid = one(zabbix_host.a.interface).id
   verify_host = true
 
   preprocessor {

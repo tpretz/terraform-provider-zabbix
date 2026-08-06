@@ -196,6 +196,7 @@ func resourceProtoItemHttp() *schema.Resource {
 	}
 }
 func resourceLLDHttp() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema, schemaHttp)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldHttpModFunc, lldHttpReadFunc),
 		Read:   lldGetReadWrapper(lldHttpReadFunc),
@@ -205,7 +206,11 @@ func resourceLLDHttp() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema, schemaHttp),
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

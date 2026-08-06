@@ -87,10 +87,12 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Optional:     true,
 	},
 	"formula": &schema.Schema{
-		Type:        schema.TypeString,
-		Description: "Formula",
-		Default:     "",
-		Optional:    true,
+		Type: schema.TypeString,
+		Description: "Custom filter expression over the condition ids, e.g. \"A or (B and C)\". Only used when evaltype is " +
+			"\"custom\". Zabbix renumbers the ids into the order they first appear in the formula, so write it in that " +
+			"order or it will be read back rewritten.",
+		Default:  "",
+		Optional: true,
 	},
 }
 
@@ -166,15 +168,41 @@ var lldMacroPathSchema = &schema.Schema{
 	},
 }
 
+// lldConditionHash hashes a filter condition over everything the user writes:
+// macro, value, operator, and - for evaltype "custom" only - the formula id.
+//
+// Filter conditions are unordered. Zabbix does not preserve the order they are
+// submitted in, and does not even return them consistently across versions:
+// 6.0 returns them in submission order while 7.2+ returns them sorted by
+// formula id. For every evaltype but "custom" the server assigns the formula
+// ids itself, and 7.2+ rejects the request outright if the client supplies any
+// - so no ordering a caller could express survives the round trip, and this is
+// a TypeSet.
+//
+// `id` can safely be part of the hash, unlike the computed ids on graph items
+// and host interfaces, because flattenlldConditions only reports one under
+// evaltype "custom" - the one case where it came from the config in the first
+// place. Everything the user writes has to be in the hash or changes to it are
+// silently dropped; see hashElementExcept.
+func lldConditionHash(v interface{}) int {
+	return hashElementExcept(v)
+}
+
 // Schema for filter block
 var lldFilterConditionSchema = &schema.Schema{
-	Type:     schema.TypeList,
-	Optional: true,
+	Type:        schema.TypeSet,
+	Optional:    true,
+	Set:         lldConditionHash,
+	Description: "LLD filter conditions (unordered). With evaltype \"custom\", set `id` on each condition and reference those ids from `formula`.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				Description: "Formula ID (A, B, C, ...). Required, and only meaningful, when evaltype is " +
+					"\"custom\"; under every other evaltype Zabbix assigns the ids itself, 7.2+ rejects a " +
+					"caller-supplied value, and this attribute stays empty.",
+				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[A-Z]+$"), "must be one or more uppercase letters, e.g. A"),
 			},
 			"macro": &schema.Schema{
 				Type:         schema.TypeString,
@@ -393,20 +421,26 @@ func lldGenerateMacroPaths(d *schema.ResourceData) (paths zabbix.LLDMacroPaths) 
 }
 
 // Generate LLD Filter Conditions
+//
+// formulaid is only ever sent for evaltype "custom", where the formula
+// references conditions by it and Zabbix requires one per condition. Under any
+// other evaltype Zabbix assigns the formula ids itself and 7.2+ fails the
+// whole call with `value must be empty` if the client echoes back the ids it
+// read a moment earlier - which is exactly what an update would otherwise do.
 func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFilterConditions) {
-	conditionsCount := d.Get("condition.#").(int)
-	conditions = make(zabbix.LLDRuleFilterConditions, conditionsCount)
+	set := d.Get("condition").(*schema.Set).List()
+	conditions = make(zabbix.LLDRuleFilterConditions, len(set))
+	custom := LLD_EVALTYPE[d.Get("evaltype").(string)] == zabbix.LLDCustom
 
-	for i := 0; i < conditionsCount; i++ {
-		prefix := fmt.Sprintf("condition.%d.", i)
+	for i, raw := range set {
+		m := raw.(map[string]interface{})
 
 		conditions[i] = zabbix.LLDRuleFilterCondition{
-			Macro:    d.Get(prefix + "macro").(string),
-			Value:    d.Get(prefix + "value").(string),
-			Operator: LLD_OPERATOR[d.Get(prefix+"operator").(string)],
+			Macro:    m["macro"].(string),
+			Value:    m["value"].(string),
+			Operator: LLD_OPERATOR[m["operator"].(string)],
 		}
-		id := d.Get(prefix + "id").(string)
-		if id != "" {
+		if id, _ := m["id"].(string); custom && id != "" {
 			conditions[i].FormulaID = id
 		}
 	}
@@ -445,11 +479,22 @@ func flattenlldMacroPaths(lld zabbix.LLDRule) *schema.Set {
 }
 
 // Generate terraform flattened form of lld filter conditions
+//
+// The formula id is only reported back under evaltype "custom". Anywhere else
+// it is a value Zabbix invented for its own use, which the config cannot set
+// and the provider must not send; reporting it would put a value in state that
+// no configuration can ever match.
 func flattenlldConditions(lld zabbix.LLDRule) []interface{} {
+	custom := lld.Filter.EvalType == zabbix.LLDCustom
+
 	val := make([]interface{}, len(lld.Filter.Conditions))
 	for i := 0; i < len(lld.Filter.Conditions); i++ {
+		formulaID := ""
+		if custom {
+			formulaID = lld.Filter.Conditions[i].FormulaID
+		}
 		val[i] = map[string]interface{}{
-			"id":       lld.Filter.Conditions[i].FormulaID,
+			"id":       formulaID,
 			"macro":    lld.Filter.Conditions[i].Macro,
 			"value":    lld.Filter.Conditions[i].Value,
 			"operator": LLD_OPERATOR_REV[lld.Filter.Conditions[i].Operator],

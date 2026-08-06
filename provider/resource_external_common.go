@@ -33,6 +33,7 @@ func resourceProtoItemExternal() *schema.Resource {
 	}
 }
 func resourceLLDExternal() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldExternalModFunc, lldExternalReadFunc),
 		Read:   lldGetReadWrapper(lldExternalReadFunc),
@@ -42,7 +43,11 @@ func resourceLLDExternal() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema),
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

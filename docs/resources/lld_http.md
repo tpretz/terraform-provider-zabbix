@@ -25,7 +25,7 @@ description: |-
 ### Optional
 
 - **auth_type** (String) HTTP auth type, one of: basic, ntlm, kerberos, none
-- **condition** (Block List) (see [below for nested schema](#nestedblock--condition))
+- **condition** (Block Set) (see [below for nested schema](#nestedblock--condition))
 - **delay** (String) LLD Delay period
 - **evaltype** (String) EvalType, one of: or, custom, andor, and
 - **follow_redirects** (Boolean) follow http redirects
@@ -51,6 +51,9 @@ description: |-
 <a id="nestedblock--condition"></a>
 ### Nested Schema for `condition`
 
+Filter conditions are an unordered set. Zabbix does not preserve the order they
+are submitted in, and returns them differently on different versions.
+
 Required:
 
 - **macro** (String) Filter Macro
@@ -58,11 +61,8 @@ Required:
 
 Optional:
 
+- **id** (String) Formula ID (A, B, C, ...). Required, and only meaningful, when evaltype is "custom"; under every other evaltype Zabbix assigns the ids itself, 7.2+ rejects a caller-supplied value, and this attribute stays empty.
 - **operator** (String) Operator, one of: match, notmatch
-
-Read-Only:
-
-- **id** (String) The ID of this resource.
 
 
 <a id="nestedblock--macro"></a>

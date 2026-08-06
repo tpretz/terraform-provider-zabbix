@@ -104,9 +104,11 @@ resource "zabbix_lld_http" "testlld" {
 					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "delay", "10m"),
 					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "lifetime", "7d"),
 					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "macro.#", "1"),
-					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "condition.0.macro", "{#FSNAME}"),
-					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "condition.0.value", "^/data"),
-					resource.TestCheckResourceAttr("zabbix_lld_http.testlld", "condition.0.operator", "match"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_lld_http.testlld", "condition.*", map[string]string{
+						"macro":    "{#FSNAME}",
+						"value":    "^/data",
+						"operator": "match",
+					}),
 				),
 			},
 			{ // import

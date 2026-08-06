@@ -264,8 +264,9 @@ var hostSchemaBase = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice(HINV_LOOKUP_ARR, false),
 	},
 	"interface": &schema.Schema{
-		Type:        schema.TypeList,
-		Description: "Host interfaces",
+		Type:        schema.TypeSet,
+		Set:         hostInterfaceHash,
+		Description: "Host interfaces (unordered)",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"id": &schema.Schema{
@@ -475,6 +476,10 @@ func resourceHost() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+
+		// v0 -> v1: "interface" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: hostStateUpgraders(),
 	}
 }
 
@@ -546,22 +551,132 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 	return o
 }
 
+// hostInterfacePort resolves the port of an interface element: the value the
+// user gave, or the Zabbix default for the interface type. `port` is
+// Optional+Computed, so an element read from config carries 0 where the same
+// element read back from state carries the real port. Both have to reduce to
+// the same number or the two would not hash alike and the interface would look
+// replaced on every plan.
+func hostInterfacePort(m map[string]interface{}) int {
+	var port int
+	switch v := m["port"].(type) {
+	case int:
+		port = v
+	case int64:
+		port = int(v)
+	case float64:
+		port = int(v)
+	}
+	if port != 0 {
+		return port
+	}
+	t, _ := m["type"].(string)
+	return HOST_IFACE_PORTS[t]
+}
+
+// hostInterfaceHash hashes a host interface over everything the user writes.
+//
+// A host's interfaces are an unordered collection - host.get returns them in
+// whatever order it likes - so they are a TypeSet. Everything but the
+// server-assigned `id` goes into the hash, because an attribute outside it can
+// never be seen to change (see hashElementExcept); `port` is normalised first,
+// so that an omitted port and an explicitly written default port are the same
+// interface rather than two.
+//
+// One consequence needs handling rather than documenting: editing any field of
+// an interface reads as a delete plus an add, so the replacement element
+// arrives with no id. hostReuseInterfaceIDs puts the id back.
+func hostInterfaceHash(v interface{}) int {
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		return 0
+	}
+
+	normalised := make(map[string]interface{}, len(m))
+	for k, val := range m {
+		normalised[k] = val
+	}
+	normalised["port"] = hostInterfacePort(m)
+
+	return hashElementExcept(normalised, "id")
+}
+
+// hostReuseInterfaceIDs hands an interface that Terraform sees as new the id of
+// a prior interface of the same type, where one is going spare.
+//
+// Without it, editing (say) an SNMP community would send Zabbix an interface
+// with no interfaceid: the server would create a new interface and delete the
+// old one, which it refuses outright once items are bound to that interface.
+// An edit has to stay an edit. Matching the leftovers up by type is what the
+// old TypeList achieved by position, only less arbitrarily - Zabbix does not
+// allow an interface to change type in any case.
+func hostReuseInterfaceIDs(d *schema.ResourceData, interfaces zabbix.HostInterfaces) {
+	if d.Id() == "" {
+		// create: there is no prior state to reuse anything from
+		return
+	}
+
+	prior, _ := d.GetChange("interface")
+	set, ok := prior.(*schema.Set)
+	if !ok {
+		return
+	}
+
+	// ids already carried over by an interface that did not change
+	claimed := map[string]bool{}
+	for _, iface := range interfaces {
+		if iface.InterfaceID != "" {
+			claimed[iface.InterfaceID] = true
+		}
+	}
+
+	spare := map[zabbix.InterfaceType][]string{}
+	for _, raw := range set.List() {
+		m, ok := raw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		if id == "" || claimed[id] {
+			continue
+		}
+		t, _ := m["type"].(string)
+		typeId := HOST_IFACE_TYPES[t]
+		spare[typeId] = append(spare[typeId], id)
+	}
+
+	for i := range interfaces {
+		if interfaces[i].InterfaceID != "" {
+			continue
+		}
+		ids := spare[interfaces[i].Type]
+		if len(ids) == 0 {
+			continue
+		}
+		log.Debug("reusing interface id %s for edited %s interface", ids[0], HOST_IFACE_TYPES_REV[interfaces[i].Type])
+		interfaces[i].InterfaceID = ids[0]
+		spare[interfaces[i].Type] = ids[1:]
+	}
+}
+
 // hostGenerateInterfaces generate interface object array
 func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces zabbix.HostInterfaces, err error) {
 	api := m.(*zabbix.API)
-	interfaceCount := d.Get("interface.#").(int)
-	interfaces = make(zabbix.HostInterfaces, interfaceCount)
+	set := d.Get("interface").(*schema.Set).List()
+	interfaces = make(zabbix.HostInterfaces, len(set))
 
-	for i := 0; i < interfaceCount; i++ {
-		prefix := fmt.Sprintf("interface.%d.", i)
-		typeId := HOST_IFACE_TYPES[d.Get(prefix+"type").(string)]
+	for i, raw := range set {
+		iface := raw.(map[string]interface{})
+		typeName, _ := iface["type"].(string)
+		typeId := HOST_IFACE_TYPES[typeName]
 
 		interfaces[i] = zabbix.HostInterface{
-			IP:    d.Get(prefix + "ip").(string),
-			DNS:   d.Get(prefix + "dns").(string),
+			IP:    iface["ip"].(string),
+			DNS:   iface["dns"].(string),
 			Main:  "0",
 			Type:  typeId,
 			UseIP: "0",
+			Port:  strconv.FormatInt(int64(hostInterfacePort(iface)), 10),
 		}
 		if interfaces[i].IP == "" && interfaces[i].DNS == "" {
 			err = errors.New("interface requires either an IP or DNS entry")
@@ -572,49 +687,42 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 			interfaces[i].UseIP = "1"
 		}
 
-		if d.Get(prefix + "main").(bool) {
+		if iface["main"].(bool) {
 			interfaces[i].Main = "1"
 		}
 
-		// if no port set, set the default for the type
-		if v, ok := d.GetOk(prefix + "port"); ok {
-			interfaces[i].Port = strconv.FormatInt(int64(v.(int)), 10)
-		} else {
-			v := HOST_IFACE_PORTS[d.Get(prefix+"type").(string)]
-			//d.Set(prefix+"port", v)
-			interfaces[i].Port = strconv.FormatInt(int64(v), 10)
-		}
-
 		// if we have an id (i.e an update)
-		if str := d.Get(prefix + "id").(string); str != "" {
+		if str, _ := iface["id"].(string); str != "" {
 			interfaces[i].InterfaceID = str
 		}
 
 		log.Debug("interface config abc: %+v", api.Config)
 		if typeId == zabbix.SNMP {
 			details := zabbix.HostInterfaceDetail{}
-			details.Version = d.Get(prefix + "snmp_version").(string)
+			details.Version = iface["snmp_version"].(string)
 			details.Bulk = "0"
-			if d.Get(prefix + "snmp_bulk").(bool) {
+			if iface["snmp_bulk"].(bool) {
 				details.Bulk = "1"
 			}
 
 			// only pull relevent params
 			//if details.Version == "3" {
-			details.SecurityName = d.Get(prefix + "snmp3_securityname").(string)
-			details.SecurityLevel = HSNMP_SECLEVEL[d.Get(prefix+"snmp3_securitylevel").(string)]
-			details.AuthPassphrase = d.Get(prefix + "snmp3_authpassphrase").(string)
-			details.PrivPassphrase = d.Get(prefix + "snmp3_privpassphrase").(string)
-			details.AuthProtocol = HSNMP_AUTHPROTO[d.Get(prefix+"snmp3_authprotocol").(string)]
-			details.PrivProtocol = HSNMP_PRIVPROTO[d.Get(prefix+"snmp3_privprotocol").(string)]
-			details.ContextName = d.Get(prefix + "snmp3_contextname").(string)
+			details.SecurityName = iface["snmp3_securityname"].(string)
+			details.SecurityLevel = HSNMP_SECLEVEL[iface["snmp3_securitylevel"].(string)]
+			details.AuthPassphrase = iface["snmp3_authpassphrase"].(string)
+			details.PrivPassphrase = iface["snmp3_privpassphrase"].(string)
+			details.AuthProtocol = HSNMP_AUTHPROTO[iface["snmp3_authprotocol"].(string)]
+			details.PrivProtocol = HSNMP_PRIVPROTO[iface["snmp3_privprotocol"].(string)]
+			details.ContextName = iface["snmp3_contextname"].(string)
 			//} else {
-			details.Community = d.Get(prefix + "snmp_community").(string)
+			details.Community = iface["snmp_community"].(string)
 			//}
 			//interfaces[i].Details = zabbix.HostInterfaceDetails{details}
 			interfaces[i].Details = &details
 		}
 	}
+
+	hostReuseInterfaceIDs(d, interfaces)
 
 	return
 }

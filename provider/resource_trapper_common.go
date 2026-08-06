@@ -33,6 +33,7 @@ func resourceProtoItemTrapper() *schema.Resource {
 	}
 }
 func resourceLLDTrapper() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDelaySchema)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldTrapperModFunc, lldTrapperReadFunc),
 		Read:   lldGetReadWrapper(lldTrapperReadFunc),
@@ -42,7 +43,11 @@ func resourceLLDTrapper() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema),
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

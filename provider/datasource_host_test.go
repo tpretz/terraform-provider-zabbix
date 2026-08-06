@@ -62,9 +62,11 @@ data "zabbix_host" "byhost" {
 						"data.zabbix_host.byhost", "groups.0",
 						"zabbix_hostgroup.testgrp", "id"),
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.#", "1"),
-					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.0.ip", "127.0.0.1"),
-					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.0.port", "10099"),
-					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.0.type", "agent"),
+					resource.TestCheckTypeSetElemNestedAttrs("data.zabbix_host.byhost", "interface.*", map[string]string{
+						"ip":   "127.0.0.1",
+						"port": "10099",
+						"type": "agent",
+					}),
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "macro.#", "1"),
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "templates.#", "0"),
 				),
@@ -114,8 +116,10 @@ data "zabbix_host" "byhost" {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "name", "Test Host Data Renamed"),
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "enabled", "false"),
-					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.0.ip", "127.0.0.2"),
-					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "interface.0.port", "10098"),
+					resource.TestCheckTypeSetElemNestedAttrs("data.zabbix_host.byhost", "interface.*", map[string]string{
+						"ip":   "127.0.0.2",
+						"port": "10098",
+					}),
 					resource.TestCheckResourceAttr("data.zabbix_host.byhost", "macro.#", "0"),
 				),
 			},

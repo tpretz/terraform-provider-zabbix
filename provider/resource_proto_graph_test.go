@@ -78,11 +78,13 @@ resource "zabbix_proto_graph" "testgraph" {
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "type", "normal"),
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "legend", "true"),
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.#", "1"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.color", "FFFF00"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.function", "min"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.drawtype", "line"),
-					resource.TestCheckResourceAttrPair(
-						"zabbix_proto_graph.testgraph", "item.0.itemid",
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_proto_graph.testgraph", "item.*", map[string]string{
+						"color":    "FFFF00",
+						"function": "min",
+						"drawtype": "line",
+					}),
+					resource.TestCheckTypeSetElemAttrPair(
+						"zabbix_proto_graph.testgraph", "item.*.itemid",
 						"zabbix_proto_item_trapper.testproto", "id"),
 				),
 			},
@@ -133,11 +135,26 @@ resource "zabbix_proto_graph" "testgraph" {
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "ymin_type", "fixed"),
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "ymax_type", "fixed"),
 					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.#", "3"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.function", "max"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.drawtype", "bold"),
-					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.0.yaxis_side", "right"),
-					resource.TestCheckResourceAttrPair(
-						"zabbix_proto_graph.testgraph", "item.2.itemid",
+					// `item` is a set: identify each element by its contents,
+					// never by position. Zabbix 8.0 returns gitems in a
+					// different order to 6.0/7.x, which is what the set is for.
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_proto_graph.testgraph", "item.*", map[string]string{
+						"color":      "FFFF00",
+						"function":   "max",
+						"drawtype":   "bold",
+						"yaxis_side": "right",
+						"sortorder":  "1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_proto_graph.testgraph", "item.*", map[string]string{
+						"color":     "00FF00",
+						"sortorder": "2",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_proto_graph.testgraph", "item.*", map[string]string{
+						"color":     "0000FF",
+						"sortorder": "3",
+					}),
+					resource.TestCheckTypeSetElemAttrPair(
+						"zabbix_proto_graph.testgraph", "item.*.itemid",
 						"zabbix_item_trapper.testitem", "id"),
 				),
 			},

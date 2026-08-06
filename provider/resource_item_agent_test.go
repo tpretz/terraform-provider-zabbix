@@ -141,7 +141,7 @@ resource "zabbix_host" "testhost" {
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_host.testhost.id
 	key = "testitemchanged"
-	interfaceid = zabbix_host.testhost.interface.0.id
+	interfaceid = one(zabbix_host.testhost.interface).id
 
 	name = "Test Item Changed"
 	valuetype = "float"
@@ -182,7 +182,7 @@ locals {
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_host.testhost.id
 	key = "testitemchanged"
-	interfaceid = zabbix_host.testhost.interface.0.id
+	interfaceid = one(zabbix_host.testhost.interface).id
 
 	name = "Test Item Changed"
 	valuetype = "float"
@@ -245,7 +245,7 @@ resource "zabbix_host" "testhost" {
 resource "zabbix_item_agent" "testitem" {
 	hostid = zabbix_host.testhost.id
 	key = "testitemchanged"
-	interfaceid = zabbix_host.testhost.interface.0.id
+	interfaceid = one(zabbix_host.testhost.interface).id
 
 	name = "Test Item Changed"
 	valuetype = "float"

@@ -2,7 +2,6 @@ package provider
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -90,14 +89,28 @@ var _ = func() bool {
 	return false
 }()
 
+// graphItemHash hashes a graph item over everything the user writes.
+//
+// A graph's items are an unordered collection: the drawing order is carried
+// explicitly by `sortorder`, and the order Zabbix returns gitems in is an
+// implementation detail that changed in 8.0 - hence a TypeSet rather than a
+// TypeList. Only `id`, the server-assigned gitemid, is left out; see
+// hashElementExcept for why everything else has to be in.
+func graphItemHash(v interface{}) int {
+	return hashElementExcept(v, "id")
+}
+
 var schemaGraphItem = &schema.Schema{
-	Type:     schema.TypeList,
-	Required: true,
+	Type:        schema.TypeSet,
+	Required:    true,
+	Set:         graphItemHash,
+	Description: "Items plotted on this graph. Unordered - set `sortorder` to control the drawing order.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Graph item ID (gitemid, internally generated)",
 			},
 			"color": &schema.Schema{
 				Type:         schema.TypeString,
@@ -322,6 +335,10 @@ func resourceGraph() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		// v0 -> v1: "item" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: graphStateUpgraders(),
+
 		Schema: schemaGraph,
 	}
 }
@@ -334,6 +351,10 @@ func resourceProtoGraph() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+
+		// v0 -> v1: "item" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: graphStateUpgraders(),
 
 		Schema: schemaGraph,
 	}
@@ -414,24 +435,24 @@ func buildGraphObject(d *schema.ResourceData) zabbix.Graph {
 }
 
 func buildGraphItems(d *schema.ResourceData) (els zabbix.GraphItems) {
-	count := d.Get("item.#").(int)
-	els = make(zabbix.GraphItems, count)
+	set := d.Get("item").(*schema.Set).List()
+	els = make(zabbix.GraphItems, len(set))
 
-	for i := 0; i < count; i++ {
-		prefix := fmt.Sprintf("item.%d.", i)
+	for i, raw := range set {
+		m := raw.(map[string]interface{})
 
 		els[i] = zabbix.GraphItem{
-			Color:     d.Get(prefix + "color").(string),
-			ItemID:    d.Get(prefix + "itemid").(string),
-			CalcFunc:  GRAPH_FUNC_LOOKUP[d.Get(prefix+"function").(string)],
-			DrawType:  GRAPH_DRAW_LOOKUP[d.Get(prefix+"drawtype").(string)],
-			SortOrder: d.Get(prefix + "sortorder").(string),
-			Type:      GRAPH_ITYPE_LOOKUP[d.Get(prefix+"type").(string)],
-			YAxisSide: GRAPH_SIDE_LOOKUP[d.Get(prefix+"yaxis_side").(string)],
+			Color:     m["color"].(string),
+			ItemID:    m["itemid"].(string),
+			CalcFunc:  GRAPH_FUNC_LOOKUP[m["function"].(string)],
+			DrawType:  GRAPH_DRAW_LOOKUP[m["drawtype"].(string)],
+			SortOrder: m["sortorder"].(string),
+			Type:      GRAPH_ITYPE_LOOKUP[m["type"].(string)],
+			YAxisSide: GRAPH_SIDE_LOOKUP[m["yaxis_side"].(string)],
 		}
 
 		// if we have an id (i.e an update)
-		if str := d.Get(prefix + "id").(string); str != "" {
+		if str, _ := m["id"].(string); str != "" {
 			els[i].GItemID = str
 		}
 	}

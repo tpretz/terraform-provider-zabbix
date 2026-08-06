@@ -42,6 +42,7 @@ func resourceProtoItemAgent() *schema.Resource {
 	}
 }
 func resourceLLDAgent() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc),
 		Read:   lldGetReadWrapper(lldAgentReadFunc),
@@ -51,7 +52,11 @@ func resourceLLDAgent() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent),
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

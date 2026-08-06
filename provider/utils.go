@@ -1,6 +1,10 @@
 package provider
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
@@ -71,6 +75,52 @@ func derefOr[T any](p *T, def T) T {
 		return def
 	}
 	return *p
+}
+
+// hashElementExcept builds a TypeSet hash over every attribute of a nested
+// element except the ones named.
+//
+// **A set element's hash is its entire identity to helper/schema.** `diffSet`
+// short-circuits the moment the old and new sets have the same list of hash
+// codes (schema.go, `reflect.DeepEqual(os.listCode(), ns.listCode())`) and
+// never looks at the elements themselves, so an attribute left out of the hash
+// can never be seen to change: editing it produces an empty plan and the edit
+// is silently discarded. Hashing over "just the identifying fields" is
+// therefore wrong here, however natural it reads - every user-settable
+// attribute has to be in the hash, and the price is that an edit shows up as a
+// delete plus an add rather than an update in place.
+//
+// What must be excluded is the other side of the same coin: a purely Computed
+// attribute (a server-assigned id) is empty in config and populated in state,
+// so leaving it in the hash makes every element look replaced on every plan.
+//
+// Values are rendered with %v, which also makes the hash insensitive to
+// whether a number arrived as an int or an int64 - `d.Set` hands back whatever
+// the flatten function built, and the field readers re-type it.
+func hashElementExcept(v interface{}, except ...string) int {
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		return 0
+	}
+
+	skip := make(map[string]bool, len(except))
+	for _, k := range except {
+		skip[k] = true
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		if !skip[k] {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+
+	var b strings.Builder
+	for _, k := range keys {
+		fmt.Fprintf(&b, "%s=%v;", k, m[k])
+	}
+	return schema.HashString(b.String())
 }
 
 // mergeSchemas, take a varadic list of schemas and merge, latter overwrites former

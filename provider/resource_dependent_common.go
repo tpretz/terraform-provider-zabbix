@@ -55,6 +55,7 @@ func resourceProtoItemDependent() *schema.Resource {
 	}
 }
 func resourceLLDDependent() *schema.Resource {
+	s := mergeSchemas(lldCommonSchema, lldDependentDelaySchema, schemaDependent)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldDependentModFunc, lldDependentReadFunc),
 		Read:   lldGetReadWrapper(lldDependentReadFunc),
@@ -63,7 +64,12 @@ func resourceLLDDependent() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-		Schema: mergeSchemas(lldCommonSchema, lldDependentDelaySchema, schemaDependent),
+
+		// v0 -> v1: "condition" became a TypeSet. See typeSetStateUpgradeV0.
+		SchemaVersion:  1,
+		StateUpgraders: lldStateUpgraders(s),
+
+		Schema: s,
 	}
 }
 

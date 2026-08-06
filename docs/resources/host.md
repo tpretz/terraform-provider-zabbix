@@ -19,7 +19,7 @@ description: |-
 
 - **groups** (Set of String) Hostgroup IDs to associate this host with
 - **host** (String) FQDN of host
-- **interface** (Block List, Min: 1) (see [below for nested schema](#nestedblock--interface))
+- **interface** (Block Set, Min: 1) (see [below for nested schema](#nestedblock--interface))
 
 ### Optional
 
@@ -35,6 +35,12 @@ description: |-
 
 <a id="nestedblock--interface"></a>
 ### Nested Schema for `interface`
+
+A host's interfaces are an unordered set: the order the blocks are written in
+carries no meaning, and neither does the order Zabbix returns them in. Set
+elements have no index, so `zabbix_host.example.interface[0].id` is not valid -
+use `one(zabbix_host.example.interface).id` for a host with a single interface,
+or a `for` expression with an `if` clause to pick one out by type or address.
 
 Optional:
 
