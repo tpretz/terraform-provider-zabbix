@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccResourceProtoItemTrapper(t *testing.T) {
@@ -11,8 +11,8 @@ func TestAccResourceProtoItemTrapper(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // create
 				Config: protoItemConfig(t, `

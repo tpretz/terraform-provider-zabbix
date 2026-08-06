@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // dataSourceTemplateFixtureHCL is written against zabbix_templategroup and
@@ -30,8 +30,8 @@ func TestAccDataSourceTemplate(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // lookup by technical host name
 				Config: hcl(t, dataSourceTemplateFixtureHCL+`

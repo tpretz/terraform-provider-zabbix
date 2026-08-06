@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
@@ -13,8 +13,8 @@ func TestAccResourceTemplate(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // simple create
 				Config: hcl(t, `

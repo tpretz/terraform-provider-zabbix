@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // TestAccResourceProtoItemDependent also covers the two shapes of master item a
@@ -14,8 +14,8 @@ func TestAccResourceProtoItemDependent(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // create, mastered by a plain item
 				Config: protoItemConfig(t, `

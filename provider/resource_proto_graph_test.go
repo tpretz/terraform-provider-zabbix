@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 // protoGraphFixtureHCL gives a graph prototype the two things it needs: a
@@ -55,8 +55,8 @@ func TestAccResourceProtoGraph(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // create: one item prototype, everything else defaulted
 				Config: hcl(t, protoGraphFixtureHCL+`

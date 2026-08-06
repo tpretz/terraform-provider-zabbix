@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
@@ -26,8 +26,8 @@ func TestAccResourceTemplategroup(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{ // simple create
 				Config: `
@@ -81,8 +81,8 @@ func TestAccDataSourceTemplategroup(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -115,8 +115,8 @@ func TestAccResourceTemplategroupUnsupported(t *testing.T) {
 				t.Skip("server has template groups; nothing to reject")
 			}
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -140,8 +140,8 @@ func TestAccTemplateStateUpgradeV0(t *testing.T) {
 			testAccPreCheck(t)
 			skipWithoutTemplateGroups(t)
 		},
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAllDestroyed,
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{
 				Config: `

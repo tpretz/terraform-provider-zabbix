@@ -10,13 +10,20 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
-var testAccProviders map[string]*schema.Provider
+// testAccProviderFactories is the TestCase wiring for terraform-plugin-testing.
+// The factory hands back the one shared testAccProvider instance rather than a
+// fresh one, so that checks which reach for testAccProvider.Meta() still see
+// the configured API client. This is exactly what the deprecated Providers
+// field did for us before the migration.
+var testAccProviderFactories map[string]func() (*schema.Provider, error)
 var testAccProvider *schema.Provider
 
 func init() {
 	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"zabbix": testAccProvider,
+	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+		"zabbix": func() (*schema.Provider, error) {
+			return testAccProvider, nil
+		},
 	}
 }
 
