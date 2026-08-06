@@ -327,7 +327,7 @@ necessarily fixed.
 
 ---
 
-## Phase 3 — Correct and test what already exists
+## Phase 3 — Correct and test what already exists  ✅ DONE
 
 Close the gaps in current resources before adding new ones.
 
@@ -394,10 +394,17 @@ Grouped by what's actually missing (see [API-COVERAGE.md §4](./API-COVERAGE.md)
 - [x] **Import tests** — every resource test has `ImportState`/`ImportStateVerify`.
       Only one exclusion exists suite-wide: proxy `tls_psk_identity`/`tls_psk`, which
       `proxy.get` never returns on any version.
-- [ ] **Migrate to `terraform-plugin-testing`** — `helper/resource`'s test harness is
+- [x] **Migrate to `terraform-plugin-testing`** — done at **v1.13.3**, the newest release
+      whose `go` directive (1.23.0) builds on the pinned go1.23.4 toolchain; v1.14+ needs
+      Go 1.24/1.25, the same wall the SDK bump hit. Test-only — the provider stays on
+      `terraform-plugin-sdk/v2`. Nothing the suite used was renamed or dropped.
+      `TestCase.Providers` still exists there but is deprecated, so the 48 call sites moved
+      to `ProviderFactories` rather than leaving the suite on a deprecated field. Pulls
+      `terraform-plugin-go` v0.27.0 → v0.28.0. Original note follows:
+      ~~**Migrate to `terraform-plugin-testing`** — `helper/resource`'s test harness is
       deprecated in SDKv2 in favour of the standalone
       `github.com/hashicorp/terraform-plugin-testing` module. Do this before writing
-      ~30 new test files, not after.
+      ~30 new test files, not after.~~
 
 **Exit criteria:** every registered resource and data source has an acceptance test
 including an import step; state upgraders verified against a v0.17.0 fixture; all three
@@ -405,9 +412,13 @@ supported versions green.
 
 ---
 
-## v2.0.0 — the breaking release
+## v2.0.0 — the breaking release  ⬅ **EXIT CRITERIA MET**
 
-Cut from the `v2` branch, once phases 0–3 are done and the 6.0/7.0/7.4 matrix is green.
+Phases 0–3 are complete and the matrix is green on 6.0.48, 7.0.29, 7.4.13 and
+8.0-trunk with 61 acceptance tests. The only Phase 0 item still open is the deferred
+Go 1.25 / SDK 2.40.1 toolchain bump, which is not release-blocking.
+
+Cut from the `v2` branch.
 Everything breaking lands in this one release:
 
 - Minimum Zabbix version is now 6.0
