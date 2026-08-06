@@ -222,10 +222,10 @@ The harness has no dependency on the provider code, so nothing blocks it.
 
 The current one only works inside the devcontainer and targets four EOL versions.
 
-- [ ] **Standalone `docker-compose.test.yml` at repo root**, runnable with plain
+- [x] **Standalone `docker-compose.test.yml` at repo root**, runnable with plain
       `docker compose` — not coupled to `.devcontainer`. One stack per version:
       6.0, 7.0, 7.4, **8.0**.
-- [ ] **Zabbix 8.0 stack from day one.** 8.0 LTS is due Q3 2026 and no
+- [x] **Zabbix 8.0 stack from day one.** 8.0 LTS is due Q3 2026 and no
       `zabbix/zabbix-server-pgsql:*8.0*` tag is published yet, but `ubuntu-trunk` is
       built nightly (last push 2026-07-30) and is the 8.0 pre-release line. Add the stack
       now pointing at `ubuntu-trunk`, mark it **non-blocking** in CI, and flip it to a
@@ -233,14 +233,14 @@ The current one only works inside the devcontainer and targets four EOL versions
       ships instead of after.
       Note trunk is a moving target — treat 8.0 failures as signal to investigate, never
       as a release gate, until the tag is pinned.
-- [ ] Switch to **PostgreSQL** (`zabbix-server-pgsql` / `zabbix-web-nginx-pgsql`) with one
+- [x] Switch to **PostgreSQL** (`zabbix-server-pgsql` / `zabbix-web-nginx-pgsql`) with one
       DB container per version. The current single shared MySQL 8.0 with
       `mysql_native_password` is fragile and exists mainly for the 4.0/5.0 images being
       dropped. Pin image tags to explicit patch versions for reproducibility.
-- [ ] Per-version healthchecks that wait on `api_jsonrpc.php` answering `apiinfo.version`,
+- [x] Per-version healthchecks that wait on `api_jsonrpc.php` answering `apiinfo.version`,
       not just the web root — the frontend responds before the DB schema is loaded, which
       is the classic flaky-start cause.
-- [ ] **Makefile rework:**
+- [x] **Makefile rework:**
       - `make testenv-up` / `testenv-down` / `testenv-logs` (+ `testenv-up-60` etc. to
         bring up a single stack — four full Zabbix stacks is a lot of laptop RAM)
       - `make test60 test70 test74 test80`; `make testacc` runs the three gated versions,
@@ -250,25 +250,25 @@ The current one only works inside the devcontainer and targets four EOL versions
       - `ZABBIX_URL` resolved from a per-version localhost port so the suite runs outside
         the container too
       - per-version logs (`provider/acc-<ver>.log`)
-- [ ] **Version-add must be a one-liner.** Parameterise the compose stacks (YAML anchors
+- [x] **Version-add must be a one-liner.** Parameterise the compose stacks (YAML anchors
       or a small template) so adding 8.2 later is a config entry, not a copy-pasted 40-line
       block. The current file is four hand-duplicated stacks; that is why it rotted.
-- [ ] **CI acceptance workflow:** GH Actions matrix over 6.0/7.0/7.4 as release-gating,
+- [x] **CI acceptance workflow:** GH Actions matrix over 6.0/7.0/7.4 as release-gating,
       8.0 with `continue-on-error: true`. Compose brought up as a step. Nightly schedule
       plus manual dispatch — acceptance runs are too slow for every PR.
-- [ ] **`CheckDestroy` on every resource test.** There is currently **zero** `CheckDestroy`
+- [x] **`CheckDestroy` on every resource test.** There is currently **zero** `CheckDestroy`
       in the suite. This is a correctness gap rather than hygiene: a test can pass while
       leaving its objects on the server, so a broken `Delete` path goes undetected. Every
       resource has a delete path and none is verified.
-- [ ] **Sweepers** (`resource.AddTestSweepers`) as a *recovery* path, for runs killed
+- [x] **Sweepers** (`resource.AddTestSweepers`) as a *recovery* path, for runs killed
       mid-flight where `CheckDestroy` never runs. Keyed off the consistent `test-*` prefix.
-- [ ] ~~Unique naming helper~~ — **dropped after review.** Each version has its own
+- [x] ~~Unique naming helper~~ — **dropped after review.** Each version has its own
       dedicated Postgres container and tests run sequentially (no `t.Parallel`), so
       cross-version and intra-run collisions are impossible. Consistent `test-*` names are
       better anyway, because sweepers need a predictable prefix. The random-suffix
       convention comes from cloud providers sharing one account across many CI jobs — that
       topology does not exist here.
-- [ ] Devcontainer updated to reference the new compose file rather than duplicating it.
+- [x] Devcontainer updated to reference the new compose file rather than duplicating it.
 
 **Exit criteria:** `make testenv-up` brings up all four versions from a clean checkout on
 a laptop and in CI, each answering `apiinfo.version` with the expected number, and
@@ -290,27 +290,27 @@ Two halves, done together because they touch the same files: fix what's broken a
 
 The provider cannot talk to a 7.2+ server at all today.
 
-- [ ] **Bearer auth.** In `internal/zabbix/base.go`, send `Authorization: Bearer <token>`
+- [x] **Bearer auth.** In `internal/zabbix/base.go`, send `Authorization: Bearer <token>`
       when `Config.Version >= 60400`; keep the `auth` body property below that (6.0/6.2
       still need it). Drop `auth` from the request struct on the new path entirely.
-- [ ] **`apiinfo.version` must stay unauthenticated** — verify the probe in `NewAPI`
+- [x] **`apiinfo.version` must stay unauthenticated** — verify the probe in `NewAPI`
       runs before any credential is attached.
-- [ ] **`selectGroups` removal.** Replace with `selectHostGroups` (host) /
+- [x] **`selectGroups` removal.** Replace with `selectHostGroups` (host) /
       `selectTemplateGroups` (template) on `>= 70200`; keep `selectGroups` below.
       Sites: `resource_host.go:596,625`, `resource_template.go:126,153`.
-- [ ] **Host ↔ proxy.** `proxy_hostid` → `proxyid` on `>= 70000`, and set `monitored_by`
+- [x] **Host ↔ proxy.** `proxy_hostid` → `proxyid` on `>= 70000`, and set `monitored_by`
       (0 server / 1 proxy / 2 proxy group) accordingly. `internal/zabbix/host.go:63`.
-- [ ] **LLD HTTP headers/query fields** → array-of-`{name,value}` on `>= 70000`.
-- [ ] **Preprocessing** `params` mandatory for "check for not supported value" on `>= 70000`.
+- [x] **LLD HTTP headers/query fields** → array-of-`{name,value}` on `>= 70000`.
+- [x] **Preprocessing** `params` mandatory for "check for not supported value" on `>= 70000`.
 - [x] **`ruleid` on `itemprototype.update`** — a fourth 7.2 hard-error parameter,
       alongside `auth`, `selectGroups` and `proxy_hostid`. Missed in the original audit
       because it is an object property on the update path rather than a request
       parameter; found later by the first prototype acceptance test. Fixed in
       `prepItemsUpdate`.
-- [ ] **Strict-validation audit.** Grep every `zabbix.Params{...}` literal in provider and
+- [x] **Strict-validation audit.** Grep every `zabbix.Params{...}` literal in provider and
       client and check each key against the 7.4 reference. 7.2 made unknown parameters a
       hard error rather than ignoring them, so this needs to be exhaustive, not spot-checked.
-- [ ] Add `Script` (21) and `Browser` (22) to the `ItemType` enum.
+- [x] Add `Script` (21) and `Browser` (22) to the `ItemType` enum.
 
 ### 2b — Delete pre-6.0 support  ✅ DONE
 
