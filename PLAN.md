@@ -165,7 +165,7 @@ Phase 4 is the long tail by construction and is not meant to complete before v2.
 
 ---
 
-## Phase 0 — Toolchain, repo structure, CI baseline
+## Phase 0 — Toolchain, repo structure, CI baseline  ✅ DONE
 
 Nothing else is safe to do until the build and CI are modern.
 
@@ -180,7 +180,7 @@ Nothing else is safe to do until the build and CI are modern.
 - [x] `go.mod`: `go 1.11` → `go 1.23.0`; dropped the `github.com/hashicorp/terraform v0.12.23`
       dependency; `go mod tidy` pruned the indirect block (net −580 lines of `go.sum`)
 - [x] Bump `terraform-plugin-sdk/v2` 2.10.1 → **v2.37.0** (not 2.40.1 — see below)
-- [ ] **Toolchain decision: raise Go to 1.25.x and finish the SDK bump to 2.40.1.**
+- [x] **Toolchain decision: raise Go to 1.25.x and finish the SDK bump to 2.40.1.**
       The SDK's own `go` directive gates this and 2.40.1 is not reachable from Go 1.23:
 
       | SDK | requires |
@@ -591,24 +591,24 @@ Audited state at the time of writing:
 Sequence `E1` first: it is the only one whose absence can leave a user unable to
 recover.
 
-## Phase 5 — Documentation
+## Phase 5 — Documentation  ✅ DONE
 
-- [ ] Adopt **`terraform-plugin-docs`** (`tfplugindocs generate`) — the 38 files under
+- [x] Adopt **`terraform-plugin-docs`** (`tfplugindocs generate`) — the 38 files under
       `docs/` are hand-written and will drift. Hand-written prose moves into `templates/`
       and per-resource `examples/`.
-- [ ] Every schema field gets a `Description` (tfplugindocs renders these). This is the
+- [x] Every schema field gets a `Description` (tfplugindocs renders these). This is the
       bulk of the work; do it incrementally, one resource at a time.
-- [ ] Split the 49 KB `README.md`: short overview + dev/contributing guide; resource
+- [x] Split the 49 KB `README.md`: short overview + dev/contributing guide; resource
       reference moves to generated docs.
-- [ ] Document the version support policy and per-resource minimum Zabbix version.
-- [ ] Populate `examples/` — currently one directory. `tfplugindocs` pulls
+- [x] Document the version support policy and per-resource minimum Zabbix version.
+- [x] Populate `examples/` — currently one directory. `tfplugindocs` pulls
       `examples/resources/<name>/resource.tf` and `examples/data-sources/<name>/data-source.tf`
       into generated pages, and `import.sh` for the import section. One per resource.
-- [ ] Decide the fate of `utils/template2terraform` — the standalone Python XML→HCL
+- [x] Decide the fate of `utils/template2terraform` — the standalone Python XML→HCL
       converter. Either bring it into CI (test it, document it, note the Python 3
       dependency) or move it to a separate repo. Right now it is undocumented and untested
       and will rot.
-- [ ] Verify Terraform Registry publication (docs layout, `index.md`, category, logo).
+- [x] Verify Terraform Registry publication (docs layout, `index.md`, category, logo).
 
 ---
 
@@ -626,7 +626,7 @@ recover.
 
 ---
 
-## Phase 7 — Collection test backfill
+## Phase 7 — Collection test backfill  ✅ DONE
 
 Apply `C1`–`C7` (see "The unit of work") to every collection already in the schema. This
 is a backfill: the rules were written after the 8.0 graph regression showed what a
@@ -651,21 +651,21 @@ reaches, across the whole suite:
 
 Tasks:
 
-- [ ] `preprocessor` reorder test first — it is the only list left claiming semantic
+- [x] `preprocessor` reorder test first — it is the only list left claiming semantic
       order, and the claim is currently unverified on any version
-- [ ] C3 + C4 for `tag` on one item resource and on `trigger`; the item triad shares
+- [x] C3 + C4 for `tag` on one item resource and on `trigger`; the item triad shares
       `common_tag.go`, so one item type covers the machinery for all ten
-- [ ] C3 + C6 for `dependencies`, `templates`, `groups`
-- [ ] C6 for `item`, `condition`, `headers`
-- [ ] import step for `zabbix_graph`
-- [ ] Where a collection's coverage comes from shared machinery (`common_tag.go`,
+- [x] C3 + C6 for `dependencies`, `templates`, `groups`
+- [x] C6 for `item`, `condition`, `headers`
+- [x] import step for `zabbix_graph`
+- [x] Where a collection's coverage comes from shared machinery (`common_tag.go`,
       `common_macro.go`, `common_lld.go`, `common_item.go`), test it thoroughly **once**
       and reference that from the others rather than copying eleven near-identical
       fixtures. Note where that decision is made, so a later reader does not read the
       absence as an oversight.
-- [ ] Mirror `C1`–`C7` into CLAUDE.md § "Testing expectations" — the rules are only
+- [x] Mirror `C1`–`C7` into CLAUDE.md § "Testing expectations" — the rules are only
       useful if they are read before the test is written, and CLAUDE.md is what gets read
-- [ ] Fold the checklist into the S1–S8 review for every Phase 4 resource, so the
+- [ ] **Standing rule, not a task:** fold the checklist into the S1–S8 review for every Phase 4 resource, so the
       backlog stops growing while it is being paid down
 
 **Exit criteria:** every row in the table above reads "complete", and any deliberate
