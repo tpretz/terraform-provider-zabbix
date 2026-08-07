@@ -68,24 +68,36 @@ type LLDRule struct {
 	MasterItemID string `json:"master_itemid,omitempty"`
 
 	// ssh / telnet
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Port     string `json:"port,omitempty"`
+	Username *string `json:"username,omitempty"`
+	Password *string `json:"password,omitempty"`
+	Port     string  `json:"port,omitempty"`
 
 	// HTTP Agent Fields
-	Url             string          `json:"url,omitempty"`
-	RequestMethod   string          `json:"request_method,omitempty"`
-	AllowTraps      string          `json:"allow_traps,omitempty"`
-	PostType        string          `json:"post_type,omitempty"`
-	RetrieveMode    string          `json:"retrieve_mode,omitempty"`
-	Posts           string          `json:"posts,omitempty"`
+	Url           string `json:"url,omitempty"`
+	RequestMethod string `json:"request_method,omitempty"`
+	AllowTraps    string `json:"allow_traps,omitempty"`
+	PostType      string `json:"post_type,omitempty"`
+	RetrieveMode  string `json:"retrieve_mode,omitempty"`
+	// posts, username, password and http_proxy are pointers rather than
+	// strings so that "" can be distinguished from "not set", and the
+	// distinction matters in both directions. They belong only to HTTP agent
+	// items, and item.create rejects properties that do not apply to the item
+	// type from 7.0, so they must stay omitted for every other backend --
+	// hence the omitempty. But they are also the only HTTP attributes that
+	// are optional with no default, so "" is a value a user can legitimately
+	// return to, and with a plain string omitempty swallowed that: the clear
+	// was never sent, Zabbix kept the old value, and the read wrote it back
+	// into state, leaving a diff that reapplied forever. A pointer to the
+	// empty string marshals as "" and a nil one is omitted, which is exactly
+	// the two behaviours needed. Only the HTTP mod funcs set them.
+	Posts           *string         `json:"posts,omitempty"`
 	StatusCodes     string          `json:"status_codes,omitempty"`
 	Timeout         string          `json:"timeout,omitempty"`
 	VerifyHost      string          `json:"verify_host,omitempty"`
 	VerifyPeer      string          `json:"verify_peer,omitempty"`
 	Headers         HttpHeaders     `json:"-"`
 	RawHeaders      json.RawMessage `json:"headers,omitempty"`
-	Proxy           string          `json:"http_proxy,omitempty"`
+	Proxy           *string         `json:"http_proxy,omitempty"`
 	FollowRedirects string          `json:"follow_redirects,omitempty"`
 
 	// SNMP Fields

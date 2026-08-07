@@ -123,6 +123,13 @@ func hashElementExcept(v interface{}, except ...string) int {
 	return schema.HashString(b.String())
 }
 
+// ptr returns a pointer to v. The API client uses *string for properties
+// where "" and "not set" have to be told apart on the wire -- see the note on
+// Item.Posts -- and a literal is not addressable.
+func ptr[T any](v T) *T {
+	return &v
+}
+
 // dataSourceFound turns "the lookup matched nothing" into an error, and is
 // what every data source read must end with.
 //

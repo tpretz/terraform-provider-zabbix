@@ -84,10 +84,16 @@ var schemaTrigger = map[string]*schema.Schema{
 		Description: "generate multiple events",
 	},
 	"url": &schema.Schema{
-		Type:         schema.TypeString,
-		Optional:     true,
-		Description:  "link to url relevent to trigger",
-		ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "link to url relevent to trigger",
+		// the empty string has to be allowed through, or the attribute is
+		// write-once: IsURLWithHTTPorHTTPS on its own rejects "", so a
+		// trigger that had been given a link could never have it taken away
+		ValidateFunc: validation.Any(
+			validation.StringIsEmpty,
+			validation.IsURLWithHTTPorHTTPS,
+		),
 	},
 	"recovery_none": &schema.Schema{
 		Type:        schema.TypeBool,
