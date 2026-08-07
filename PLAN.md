@@ -550,7 +550,7 @@ without a breaking change.
 
 ---
 
-## Phase 8 — Edge cases and failure modes
+## Phase 8 — Edge cases and failure modes  ✅ DONE
 
 Phases 3 and 7 answer "does the happy path work, and does it work plural?". Neither
 asks what happens when things go *wrong*, and that is where the remaining risk sits.
@@ -560,32 +560,32 @@ Audited state at the time of writing:
 |---|---|
 | every registered resource and data source appears in a test | ✅ 37/37 |
 | version gates | covered incidentally by running the four-version matrix — adequate |
-| **negative / error paths** | **4 `ExpectError` in the whole suite** (3 proxy, 1 templategroup) |
-| **drift / out-of-band deletion** | **none** |
-| **ForceNew** | 3 fields, no test proves any of them recreates |
-| **provider configuration** | `tls_insecure` 0, `serialize` 0, `token` 1 |
+| negative / error paths | ✅ closed — was 4 `ExpectError` suite-wide |
+| drift / out-of-band deletion | ✅ closed — was none; all 37 resource types now covered |
+| ForceNew | ✅ closed — all three fields assert replacement |
+| provider configuration | ✅ closed — `token`, `serialize` and `tls_insecure` all exercised |
 
-- [ ] **`E1` — drift.** For every resource: delete the object via the API behind
+- [x] **`E1` — drift.** For every resource: delete the object via the API behind
       Terraform's back, then assert the next plan is non-empty and re-applies cleanly.
       This is the highest-value gap. A `Read` that fails to `d.SetId("")` on a missing
       object leaves the user permanently stuck, needing a manual `terraform state rm`,
       and it fails *silently* — several resources do handle it, none is verified.
-- [ ] **`E2` — negative paths.** `ExpectError` on the validation that actually matters:
+- [x] **`E2` — negative paths.** `ExpectError` on the validation that actually matters:
       every `_LOOKUP_ARR` enum, `dependent` LLD rejecting a non-zero `delay`,
       `zabbix_templategroup` below 6.2, proxy active/passive mode mismatches, a
       `custom` LLD `evaltype` with a malformed formula.
-- [ ] **`E3` — ForceNew.** Change each `ForceNew` field and assert the resource is
+- [x] **`E3` — ForceNew.** Change each `ForceNew` field and assert the resource is
       *replaced*, not updated in place or silently ignored.
-- [ ] **`E4` — provider configuration.** `token` auth end to end (it sets `api.Auth`
+- [x] **`E4` — provider configuration.** `token` auth end to end (it sets `api.Auth`
       directly and skips `Login()`, so it exercises a different path from
       username/password, and Phase 2a rewrote exactly that code). Also `serialize`, and
       `tls_insecure`. Token auth was spot-checked by hand against 7.4 and works; it is
       still unexercised by the suite.
-- [ ] **`E5` — data source not-found.** Looking up something that does not exist should
+- [x] **`E5` — data source not-found.** Looking up something that does not exist should
       produce a clear error, not a panic or an empty resource. Note the `zabbix_template`
       data source panicked the provider on *every* read until Phase 3c; a not-found test
       is the cheapest guard against that class.
-- [ ] **`E6` — scalar boundaries.** Empty strings where optional, unicode in names and
+- [x] **`E6` — scalar boundaries.** Empty strings where optional, unicode in names and
       descriptions, and the macro/tag values Zabbix treats specially.
 
 Sequence `E1` first: it is the only one whose absence can leave a user unable to

@@ -20,7 +20,8 @@ Summary of the decisions recorded there:
 
 ### Current state — measured, not guessed
 
-**The matrix is green on all four versions**, verified by direct run:
+**The matrix is green on all four versions** — 106 tests, 86 of them acceptance, roughly
+205-215s per version:
 
 | Version | Result |
 |---|---|
