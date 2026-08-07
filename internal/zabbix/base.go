@@ -154,7 +154,7 @@ func NewAPI(c Config) (api *API, err error) {
 	api = &API{
 		url:       c.Url,
 		c:         http.Client{},
-		UserAgent: "github.com/tpretz/go-zabbix-api",
+		UserAgent: "github.com/tpretz/terraform-provider-zabbix",
 		Logger:    c.Log,
 		Config:    c,
 	}

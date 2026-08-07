@@ -1,44 +1,32 @@
 /*
-Package zabbix provides bindings to interoperate between programs written in Go
-language and the Zabbix monitoring API.
+Package zabbix is the Zabbix JSON-RPC API client used by terraform-provider-zabbix.
 
-Tested on Zabbix 3.2 but should work since 2.0 version.
-This package aims to support multiple zabbix resources from its API like trigger, application, host group, host, item, template..
+It began life as the standalone library github.com/tpretz/go-zabbix-api, vendored
+here as a git submodule and merged into the provider in v2. It is deliberately an
+internal package: the provider is its only consumer, and it is free to change shape
+whenever the provider needs it to.
 
-Install it: `go get github.com/tpretz/go-zabbix-api`
+# Supported versions
 
-Getting started
+Zabbix 6.0 LTS and above. Everything below that was removed in v2 — see MIGRATING.md.
+Behaviour that differs between versions is gated on Config.Version, which NewAPI fills
+in from APIInfo.version as major*10000 + minor*100 + patch (7.4.13 is 70413). Use the
+named constants V62, V64, V70, V72 and V74 rather than bare integers.
 
-	package main
+# Authentication
 
-	import (
-		"fmt"
+NewAPI probes APIInfo.version unauthenticated. After that, Login stores a session token
+in API.Auth, or the caller may set API.Auth directly to a pre-created API token. From
+6.4 the token travels in an Authorization: Bearer header; below that it is sent as the
+JSON-RPC "auth" body property, which 7.2 removed.
 
-		"github.com/tpretz/go-zabbix-api"
-	)
+# Testing
 
-	func main() {
-		user := "MyZabbixUsername"
-		pass := "MyZabbixPassword"
-		api := zabbix.NewAPI("http://localhost/api_jsonrpc.php")
-		api.Login(user, pass)
-
-		res, err := api.Version()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Connected to zabbix api v%s\n", res)
-	}
-
-Run test
-You should run tests before using this package – Zabbix API doesn't match documentation in few details, which are changing in patch releases. Tests are not expected to be destructive, but you are advised to run them against not-production instance or at least make a backup.
-
-	export TEST_ZABBIX_URL=http://localhost:8080/zabbix/api_jsonrpc.php
-	export TEST_ZABBIX_USER=Admin
-	export TEST_ZABBIX_PASSWORD=zabbix
-	export TEST_ZABBIX_VERBOSE=1
-	go test -v
-
-`TEST_ZABBIX_URL` may contain HTTP basic auth username and password: `http://username:password@host/api_jsonrpc.php`. Also, in some setups URL should be like `http://host/zabbix/api_jsonrpc.php`.
+This package has no tests of its own. It is covered end to end by the provider's
+acceptance suite, which exercises every call path against live Zabbix 6.0, 7.0, 7.4 and
+8.0 servers — see TESTING.md. The library's original TEST_ZABBIX_* test harness was
+deleted in v2: it had not compiled in years (a nested go.mod hid it from ./...), used an
+environment convention the provider suite does not share, and duplicated coverage the
+acceptance tests already provide against four real servers instead of one.
 */
 package zabbix
