@@ -300,11 +300,12 @@ func dataProxyRead(d *schema.ResourceData, m interface{}) error {
 	if err := proxyRead(d, m, params); err != nil {
 		return err
 	}
+	if err := dataSourceFound(d, "proxy", "name", "host"); err != nil {
+		return err
+	}
 
 	// keep the deprecated pre-7.0 alias in step with the canonical attribute
-	if d.Id() != "" {
-		d.Set("host", d.Get("name"))
-	}
+	d.Set("host", d.Get("name"))
 	return nil
 }
 

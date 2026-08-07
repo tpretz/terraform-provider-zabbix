@@ -251,7 +251,10 @@ func dataTemplateRead(d *schema.ResourceData, m interface{}) error {
 	}
 	log.Debug("Lookup of template with: %#v", params)
 
-	return templateRead(d, m, params)
+	if err := templateRead(d, m, params); err != nil {
+		return err
+	}
+	return dataSourceFound(d, "template", "host", "name")
 }
 
 // terraform template read handler (resource)

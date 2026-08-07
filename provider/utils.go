@@ -123,6 +123,40 @@ func hashElementExcept(v interface{}, except ...string) int {
 	return schema.HashString(b.String())
 }
 
+// dataSourceFound turns "the lookup matched nothing" into an error, and is
+// what every data source read must end with.
+//
+// The read functions are shared with the resources, and there finding nothing
+// is not an error at all: clearing the id is how drift is reported, and it is
+// what makes the next plan recreate the object (see acc_drift_test.go). A data
+// source has no such recovery, and helper/schema does not treat the empty id
+// as a failure either -- it produces a state object with the placeholder id
+// "id-attribute-not-set" and every other attribute at its zero value, and
+// Terraform reports no problem whatsoever.
+//
+// So without this the failure surfaces somewhere else entirely: whatever
+// referenced the data source is handed the literal string
+// "id-attribute-not-set" as an object id and Zabbix rejects it with
+// `Invalid parameter "/groupids/1": a number is expected` or, for hosts and
+// templates, with the entirely unhelpful "Database error occurred". Naming
+// the lookup that failed, at the point it failed, is the whole fix.
+func dataSourceFound(d *schema.ResourceData, kind string, by ...string) error {
+	if d.Id() != "" {
+		return nil
+	}
+
+	var terms []string
+	for _, k := range by {
+		if v, ok := d.GetOk(k); ok {
+			terms = append(terms, fmt.Sprintf("%s = %q", k, v))
+		}
+	}
+	if len(terms) == 0 {
+		return fmt.Errorf("no %s found", kind)
+	}
+	return fmt.Errorf("no %s found matching %s", kind, strings.Join(terms, ", "))
+}
+
 // mergeSchemas, take a varadic list of schemas and merge, latter overwrites former
 func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schema {
 	n := map[string]*schema.Schema{}

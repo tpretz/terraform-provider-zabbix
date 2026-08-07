@@ -120,11 +120,15 @@ func templategroupRead(d *schema.ResourceData, m interface{}, params zabbix.Para
 
 // dataTemplategroupRead terraform data resource read handler
 func dataTemplategroupRead(d *schema.ResourceData, m interface{}) error {
-	return templategroupRead(d, m, zabbix.Params{
+	err := templategroupRead(d, m, zabbix.Params{
 		"filter": map[string]interface{}{
 			"name": d.Get("name"),
 		},
 	})
+	if err != nil {
+		return err
+	}
+	return dataSourceFound(d, "templategroup", "name")
 }
 
 // resourceTemplategroupRead terraform resource read handler

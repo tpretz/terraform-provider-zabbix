@@ -865,7 +865,10 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	}
 	log.Debug("performing data lookup with params: %#v", params)
 
-	return hostRead(d, m, params)
+	if err := hostRead(d, m, params); err != nil {
+		return err
+	}
+	return dataSourceFound(d, "host", lookups...)
 }
 
 // resourceHostRead read handler for resource

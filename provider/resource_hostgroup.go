@@ -98,11 +98,15 @@ func hostgroupRead(d *schema.ResourceData, m interface{}, params zabbix.Params) 
 
 // dataHostgroupRead terraform data resource read handler
 func dataHostgroupRead(d *schema.ResourceData, m interface{}) error {
-	return hostgroupRead(d, m, zabbix.Params{
+	err := hostgroupRead(d, m, zabbix.Params{
 		"filter": map[string]interface{}{
 			"name": d.Get("name"),
 		},
 	})
+	if err != nil {
+		return err
+	}
+	return dataSourceFound(d, "hostgroup", "name")
 }
 
 // resourceHostgroupRead terraform resource read handler
