@@ -51,7 +51,7 @@ The provider's Zabbix API client lives at **`internal/zabbix`**. It used to be a
 
 Because it is an `internal/` package it cannot be imported outside this module, which is intended — the provider is its only consumer. Edit it directly; there is nothing to re-tag.
 
-> Two known warts, tracked as work items: the seven `internal/zabbix/*_test.go` files call `log.Fatal` in `init()` when `TEST_ZABBIX_URL` is unset, so **a bare `go test ./...` hard-fails confusingly** — use `go test ./provider/`. They also had not compiled for years before the merge (a stale `NewAPI` call signature), because the nested `go.mod` hid them from `./...`. Library cruft (`.travis.yml`, `tests.sh`, `README.md`, the stale `UserAgent` string) came across with them.
+> The package has no tests of its own. Its original `TEST_ZABBIX_*` harness was deleted in v2 — it had not compiled since 2023, hidden from `./...` by the nested `go.mod`, and duplicated coverage the acceptance suite provides against four live servers. `go test ./...` is clean; the caveat about it hard-failing no longer applies.
 
 ## Build / test commands
 
