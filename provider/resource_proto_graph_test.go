@@ -156,12 +156,88 @@ resource "zabbix_proto_graph" "testgraph" {
 					resource.TestCheckTypeSetElemAttrPair(
 						"zabbix_proto_graph.testgraph", "item.*.itemid",
 						"zabbix_item_trapper.testitem", "id"),
+					testAccCheckProtoGraphItemCount("zabbix_proto_graph.testgraph", 3),
 				),
 			},
-			{ // import
+			{ // C7: import at full size
 				ResourceName:      "zabbix_proto_graph.testgraph",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{ // C6: drop the plain item. Verified against the server rather
+				// than only against state -- graphprototype.update replaces
+				// gitems wholesale, so an omitted item is a deletion.
+				Config: hcl(t, protoGraphFixtureHCL+`
+resource "zabbix_proto_graph" "testgraph" {
+	name = "Proto Graph Renamed {#FSNAME}"
+	width = "500"
+	height = "300"
+
+	type = "stacked"
+	legend = false
+	work_period = false
+	ymin = "10"
+	ymin_type = "fixed"
+	ymax = "80"
+	ymax_type = "fixed"
+
+	item {
+		color = "FFFF00"
+		itemid = zabbix_proto_item_trapper.testproto.id
+		function = "max"
+		drawtype = "bold"
+		sortorder = "1"
+		yaxis_side = "right"
+	}
+	item {
+		color = "00FF00"
+		itemid = zabbix_proto_item_trapper.testproto2.id
+		sortorder = "2"
+	}
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.#", "2"),
+					resource.TestCheckTypeSetElemAttrPair(
+						"zabbix_proto_graph.testgraph", "item.*.itemid",
+						"zabbix_proto_item_trapper.testproto", "id"),
+					resource.TestCheckTypeSetElemAttrPair(
+						"zabbix_proto_graph.testgraph", "item.*.itemid",
+						"zabbix_proto_item_trapper.testproto2", "id"),
+					testAccCheckProtoGraphItemCount("zabbix_proto_graph.testgraph", 2),
+				),
+			},
+			{ // C6 continued: down to the one item prototype a graph
+				// prototype must keep. N -> 0 is not reachable here; the zero
+				// case is the resource's own destroy, covered by CheckDestroy.
+				Config: hcl(t, protoGraphFixtureHCL+`
+resource "zabbix_proto_graph" "testgraph" {
+	name = "Proto Graph Renamed {#FSNAME}"
+	width = "500"
+	height = "300"
+
+	type = "stacked"
+	legend = false
+	work_period = false
+	ymin = "10"
+	ymin_type = "fixed"
+	ymax = "80"
+	ymax_type = "fixed"
+
+	item {
+		color = "FFFF00"
+		itemid = zabbix_proto_item_trapper.testproto.id
+		function = "max"
+		drawtype = "bold"
+		sortorder = "1"
+		yaxis_side = "right"
+	}
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_proto_graph.testgraph", "item.#", "1"),
+					testAccCheckProtoGraphItemCount("zabbix_proto_graph.testgraph", 1),
+				),
 			},
 		},
 	})

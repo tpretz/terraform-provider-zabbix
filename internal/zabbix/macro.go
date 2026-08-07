@@ -3,7 +3,12 @@ package zabbix
 // Macro represent Zabbix User MAcro object
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/object
 type Macro struct {
-	MacroID   string `json:"hostmacroids,omitempty"`
+	// MacroID is the object's "hostmacroid" property. Note the singular: it
+	// was "hostmacroids" here, which is the *filter* name usermacro.get takes,
+	// not a property of the object -- so the id never came back from a read
+	// and the zabbix_host / zabbix_template "macro" blocks reported an empty
+	// computed `id` on every version.
+	MacroID   string `json:"hostmacroid,omitempty"`
 	HostID    string `json:"hostid,omitempty"`
 	MacroName string `json:"macro"`
 	Value     string `json:"value"`

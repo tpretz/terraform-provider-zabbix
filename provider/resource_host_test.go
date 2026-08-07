@@ -105,7 +105,13 @@ resource "zabbix_host" "testhost" {
 `),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "host", "test-host-renamed"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "macro.0.value", "fish"),
+					// `macro` is a set: by content. Plural coverage for the
+					// shared common_macro.go machinery is in
+					// TestAccResourceTemplateCollections.
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "macro.*", map[string]string{
+						"name":  "{$BOB}",
+						"value": "fish",
+					}),
 					// `interface` is a set: identify elements by content, not
 					// by position.
 					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "2"),
@@ -212,8 +218,12 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue"),
+					// `tag` is a set: identify elements by content.
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "tag.*", map[string]string{
+						"key":   "testtag",
+						"value": "testvalue",
+					}),
 				),
 			},
 			{ // change the tag values
@@ -235,11 +245,16 @@ resource "zabbix_host" "testhost" {
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "tag.*", map[string]string{
+						"key":   "testtag",
+						"value": "testvalue1",
+					}),
 				),
 			},
-			{ // add a second tag
+			{ // C3: three tags, two of them sharing a key -- Zabbix allows a
+				// repeated tag key with different values, so nothing but the
+				// whole element identifies it
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -259,16 +274,59 @@ resource "zabbix_host" "testhost" {
 		key = "testtag"
 		value = "testvalue1"
 	}
+	tag {
+		key = "testtag"
+		value = "testvalue3"
+	}
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.key", "testtag"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.0.value", "testvalue1"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.key", "testtagb"),
-					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.1.value", "testvalue2"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "tag.*", map[string]string{
+						"key":   "testtag",
+						"value": "testvalue1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "tag.*", map[string]string{
+						"key":   "testtag",
+						"value": "testvalue3",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_host.testhost", "tag.*", map[string]string{
+						"key":   "testtagb",
+						"value": "testvalue2",
+					}),
 				),
 			},
-			{ // snmp attributes, v1, also clear tags
+			{ // C4: the same three in a different order -- must plan clean
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group" 
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+	}
+	tag {
+		key = "testtag"
+		value = "testvalue3"
+	}
+	tag {
+		key = "testtagb"
+		value = "testvalue2"
+	}
+	tag {
+		key = "testtag"
+		value = "testvalue1"
+	}
+}
+`),
+				PlanOnly: true,
+			},
+			{ // snmp attributes, v1, and C6: every tag removed. Checked
+				// against the server too -- host.update replaces the tag array
+				// wholesale, so state going empty proves nothing on its own.
 				Config: hcl(t, `
 resource "zabbix_hostgroup" "testgrp" {
 	name = "test-group" 
@@ -292,6 +350,8 @@ resource "zabbix_host" "testhost" {
 						"snmp_community": "testc",
 						"snmp_bulk":      "false",
 					}),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "tag.#", "0"),
+					testAccCheckHostTagCount("zabbix_host.testhost", 0),
 				),
 			},
 			{ // snmp attributes, v2
@@ -630,6 +690,269 @@ resource "zabbix_host" "testhost" {
 				ResourceName:      "zabbix_host.testhost",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// hostCollectionsHCL wraps a zabbix_host body in three host groups and three
+// linkable templates.
+//
+// Note the two group types: below Zabbix 6.2 hcl() rewrites every
+// "zabbix_templategroup" to "zabbix_hostgroup" textually, so the template
+// group and the host groups must have distinct resource labels *and* distinct
+// names or the two collide into one resource on 6.0.
+func hostCollectionsHCL(body string) string {
+	return `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_hostgroup" "testgrp2" {
+	name = "test-group-2"
+}
+resource "zabbix_hostgroup" "testgrp3" {
+	name = "test-group-3"
+}
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testlink1" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-1"
+}
+resource "zabbix_template" "testlink2" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-2"
+}
+resource "zabbix_template" "testlink3" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-3"
+}
+resource "zabbix_host" "testhost" {
+	host = "test-host-collections"
+
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+` + body + `}
+`
+}
+
+// TestAccResourceHostCollections is C1-C7 for the two id sets a host carries:
+// `groups` and `templates`.
+//
+// `macro` and `tag` are shared machinery (common_macro.go, common_tag.go) and
+// are covered plural in TestAccResourceTemplateCollections and
+// TestAccResourceItemAgentTags respectively; a host macro block is the same
+// code as a template one. `interface` has its own multi-element test above.
+// What is unique to the host here is the update path: removing a template
+// requires templates_clear, which is not the same operation as omitting an id.
+func TestAccResourceHostCollections(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // C2 for `groups`, C1 for `templates`. `groups` is Required and
+				// Zabbix rejects a host with none, so C1 and C6-to-zero do not
+				// apply to it.
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [ zabbix_hostgroup.testgrp.id ]
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "groups.#", "1"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "0"),
+					testAccCheckHostGroupCount("zabbix_host.testhost", 1),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 0),
+				),
+			},
+			{ // C3: three groups and three linked templates
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [
+		zabbix_hostgroup.testgrp.id,
+		zabbix_hostgroup.testgrp2.id,
+		zabbix_hostgroup.testgrp3.id,
+	]
+
+	templates = [
+		zabbix_template.testlink1.id,
+		zabbix_template.testlink2.id,
+		zabbix_template.testlink3.id,
+	]
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "groups.#", "3"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "groups.*",
+						"zabbix_hostgroup.testgrp", "id"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "groups.*",
+						"zabbix_hostgroup.testgrp2", "id"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "groups.*",
+						"zabbix_hostgroup.testgrp3", "id"),
+					testAccCheckHostGroupCount("zabbix_host.testhost", 3),
+
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "3"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink1", "id"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink2", "id"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink3", "id"),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 3),
+				),
+			},
+			{ // C4: both rewritten in a different order -- sets, so this must
+				// plan clean
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [
+		zabbix_hostgroup.testgrp3.id,
+		zabbix_hostgroup.testgrp.id,
+		zabbix_hostgroup.testgrp2.id,
+	]
+
+	templates = [
+		zabbix_template.testlink3.id,
+		zabbix_template.testlink1.id,
+		zabbix_template.testlink2.id,
+	]
+`)),
+				PlanOnly: true,
+			},
+			{ // C7: import with both at full size
+				ResourceName:      "zabbix_host.testhost",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{ // C6, first half: one group and one template removed. The
+				// template removal is the interesting one -- host.update
+				// unlinks only what templates_clear names, so an id dropped
+				// from `templates` and nothing else would leave the link in
+				// place on the server while state claimed otherwise.
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [
+		zabbix_hostgroup.testgrp.id,
+		zabbix_hostgroup.testgrp3.id,
+	]
+
+	templates = [
+		zabbix_template.testlink1.id,
+		zabbix_template.testlink3.id,
+	]
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "groups.#", "2"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "2"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink1", "id"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink3", "id"),
+					testAccCheckHostGroupCount("zabbix_host.testhost", 2),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 2),
+				),
+			},
+			{ // C6, second half: every template unlinked, groups down to the
+				// one Zabbix insists on
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [ zabbix_hostgroup.testgrp.id ]
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "groups.#", "1"),
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "0"),
+					testAccCheckHostGroupCount("zabbix_host.testhost", 1),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 0),
+				),
+			},
+			{ // C1: and empty is stable
+				Config: hcl(t, hostCollectionsHCL(`
+	groups = [ zabbix_hostgroup.testgrp.id ]
+`)),
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
+// TestAccResourceHostTemplateClearDestroyed is existingTemplateIds' own case,
+// with more than one template linked: one template is removed from the host's
+// `templates` and destroyed in the same apply.
+func TestAccResourceHostTemplateClearDestroyed(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // two templates linked
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testlink1" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-1"
+}
+resource "zabbix_template" "testlink2" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-2"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host-collections"
+	groups = [ zabbix_hostgroup.testgrp.id ]
+
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+
+	templates = [
+		zabbix_template.testlink1.id,
+		zabbix_template.testlink2.id,
+	]
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "2"),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 2),
+				),
+			},
+			{ // one of them unlinked and destroyed in the same apply
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testlink1" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template-link-1"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host-collections"
+	groups = [ zabbix_hostgroup.testgrp.id ]
+
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+
+	templates = [
+		zabbix_template.testlink1.id,
+	]
+}
+`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "templates.#", "1"),
+					resource.TestCheckTypeSetElemAttrPair("zabbix_host.testhost", "templates.*",
+						"zabbix_template.testlink1", "id"),
+					testAccCheckHostTemplateCount("zabbix_host.testhost", 1),
+				),
 			},
 		},
 	})

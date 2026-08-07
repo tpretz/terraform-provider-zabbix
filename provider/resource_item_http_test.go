@@ -115,8 +115,13 @@ resource "zabbix_item_http" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "verify_peer", "false"),
 					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.Accept", "application/json"),
 					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.X-Probe", "zabbix"),
-					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "tag.0.key", "component"),
-					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "tag.0.value", "http"),
+					// `tag` is a set: by content, never by index. Plural
+					// coverage for it lives in TestAccResourceItemAgentTags,
+					// which exercises the shared common_tag.go machinery.
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_item_http.testitem", "tag.*", map[string]string{
+						"key":   "component",
+						"value": "http",
+					}),
 				),
 			},
 			{ // attached to a host interface rather than a template
@@ -155,6 +160,93 @@ resource "zabbix_item_http" "testitem" {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			{ // C3 for `headers`: three entries. A map has no order to get
+				// wrong -- Terraform keys it and the provider hands Zabbix a
+				// map -- so C4 does not apply, but C3/C5/C6 all do.
+				Config: hcl(t, itemHttpHeadersHCL(`
+	headers = {
+		"Accept"  = "application/json"
+		"X-Probe" = "zabbix"
+		"X-Env"   = "test"
+	}
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.%", "3"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.Accept", "application/json"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.X-Probe", "zabbix"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.X-Env", "test"),
+					testAccCheckItemHeaderCount("zabbix_item_http.testitem", 3),
+				),
+			},
+			{ // C7: import with the map at full size
+				ResourceName:      "zabbix_item_http.testitem",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{ // C5: change one value, leave the other two alone
+				Config: hcl(t, itemHttpHeadersHCL(`
+	headers = {
+		"Accept"  = "application/json"
+		"X-Probe" = "zabbix"
+		"X-Env"   = "production"
+	}
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.%", "3"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.X-Env", "production"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.Accept", "application/json"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.X-Probe", "zabbix"),
+					testAccCheckItemHeaderCount("zabbix_item_http.testitem", 3),
+				),
+			},
+			{ // C6: three down to one
+				Config: hcl(t, itemHttpHeadersHCL(`
+	headers = {
+		"Accept" = "application/json"
+	}
+`)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.%", "1"),
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.Accept", "application/json"),
+					testAccCheckItemHeaderCount("zabbix_item_http.testitem", 1),
+				),
+			},
+			{ // C6: and emptied. Confirmed against the server -- item.update
+				// replaces the header map wholesale, so an omitted entry is a
+				// deletion only if the property is sent at all.
+				Config: hcl(t, itemHttpHeadersHCL(``)),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_http.testitem", "headers.%", "0"),
+					testAccCheckItemHeaderCount("zabbix_item_http.testitem", 0),
+				),
+			},
+			{ // C1: and empty is stable
+				Config:   hcl(t, itemHttpHeadersHCL(``)),
+				PlanOnly: true,
+			},
 		},
 	})
+}
+
+// itemHttpHeadersHCL wraps a headers block in the rest of the fixture, so the
+// header steps differ only by the collection under test.
+func itemHttpHeadersHCL(headers string) string {
+	return `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testtmpl" {
+	groups = [ zabbix_templategroup.testtmplgrp.id ]
+	host = "test-template"
+}
+resource "zabbix_item_http" "testitem" {
+	hostid = zabbix_template.testtmpl.id
+	key = "testitem.http.headers"
+
+	name = "Test HTTP Item Headers"
+	valuetype = "text"
+
+	url = "http://localhost/probe"
+` + headers + `}
+`
 }

@@ -86,15 +86,39 @@ type Trigger struct {
 	CorrelationTag     string `json:"correlation_tag,omitempty"`
 	ManualClose        int    `json:"manual_close,string"`
 
-	Priority     SeverityType     `json:"priority,string"`
-	Status       StatusType       `json:"status,string"`
-	Dependencies TriggerIDs       `json:"dependencies,omitempty"`
+	Priority SeverityType `json:"priority,string"`
+	Status   StatusType   `json:"status,string"`
+
+	// Dependencies and Tags carry no omitempty, deliberately. Zabbix replaces
+	// both collections wholesale on update, so an *absent* property means
+	// "leave as is" while an empty array means "clear". With omitempty the two
+	// were indistinguishable: removing the last dependency or the last tag
+	// from a configuration sent nothing at all and the server kept what it
+	// had, so a trigger's dependencies could be added to but never emptied.
+	// prepTriggers normalises nil to an empty slice so that "[]" is what goes
+	// on the wire, never "null".
+	Dependencies TriggerIDs       `json:"dependencies"`
 	Functions    TriggerFunctions `json:"functions,omitempty"`
 	// Items contained by the trigger in the items property.
 	ContainedItems Items `json:"items,omitempty"`
 	// Hosts that the trigger belongs to in the hosts property.
 	ParentHosts Hosts `json:"hosts,omitempty"`
-	Tags        Tags  `json:"tags,omitempty"`
+	Tags        Tags  `json:"tags"`
+}
+
+// prepTriggers readies triggers for the write path. Dependencies and Tags have
+// no omitempty (see the note on the struct), so a nil slice would marshal as
+// "null" rather than "[]"; normalising here keeps every caller from having to
+// remember.
+func prepTriggers(triggers Triggers) {
+	for i := range triggers {
+		if triggers[i].Dependencies == nil {
+			triggers[i].Dependencies = TriggerIDs{}
+		}
+		if triggers[i].Tags == nil {
+			triggers[i].Tags = Tags{}
+		}
+	}
 }
 
 // Triggers is an array of Trigger
@@ -150,6 +174,7 @@ func (api *API) ProtoTriggerGetByID(id string) (res *Trigger, err error) {
 // TriggersCreate Wrapper for trigger.create
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/create
 func (api *API) TriggersCreate(triggers Triggers) (err error) {
+	prepTriggers(triggers)
 	response, err := api.CallWithError("trigger.create", triggers)
 	if err != nil {
 		return
@@ -163,6 +188,7 @@ func (api *API) TriggersCreate(triggers Triggers) (err error) {
 	return
 }
 func (api *API) ProtoTriggersCreate(triggers Triggers) (err error) {
+	prepTriggers(triggers)
 	response, err := api.CallWithError("triggerprototype.create", triggers)
 	if err != nil {
 		return
@@ -179,10 +205,12 @@ func (api *API) ProtoTriggersCreate(triggers Triggers) (err error) {
 // TriggersUpdate Wrapper for trigger.update
 // https://www.zabbix.com/documentation/3.2/manual/api/reference/trigger/update
 func (api *API) TriggersUpdate(triggers Triggers) (err error) {
+	prepTriggers(triggers)
 	_, err = api.CallWithError("trigger.update", triggers)
 	return
 }
 func (api *API) ProtoTriggersUpdate(triggers Triggers) (err error) {
+	prepTriggers(triggers)
 	_, err = api.CallWithError("triggerprototype.update", triggers)
 	return
 }

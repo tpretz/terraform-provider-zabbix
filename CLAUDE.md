@@ -192,3 +192,48 @@ The `_REV`/`_ARR` are populated by a package-level `var _ = func() bool { ... }(
 `testAccPreCheck` (`provider/provider_test.go`) requires `ZABBIX_URL`, `ZABBIX_USER`, `ZABBIX_PASS`.
 
 Current acceptance coverage is thinner than the file listing suggests — nine test files contain only `package provider`, no data source or item-prototype resource is tested, and although every resource declares `ImportStatePassthrough`, no test exercises import. See API-COVERAGE.md § 4 for the itemised gaps. When touching a resource, add the missing test rather than leaving the stub.
+
+### `C1`–`C7`: a collection attribute is not tested until it is tested plural
+
+This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of
+truth. It is repeated here because the rules are only useful if they are read
+*before* the test is written.
+
+Every collection bug found in this project hid behind a fixture that used exactly
+**one element**: the 8.0 graph reordering, the LLD formula ids the provider echoed
+back to a server that rejects them, `evaltype = "custom"` being unusable, and a
+family of collections that could be added to but never emptied (`preprocessing`,
+item and trigger `tags`, trigger `dependencies` — all `omitempty` on a property
+Zabbix replaces wholesale). One element cannot distinguish a set from a list,
+cannot show an ordering assumption, and cannot show an identity assumption.
+
+| | Case | What it must do |
+|---|---|---|
+| C1 | **none** | attribute omitted entirely (where it is optional) — creates, plans clean, and imports back empty |
+| C2 | **one** | the trivial case |
+| C3 | **many** | three elements where the server may reorder, two otherwise. At least two must be *of the same kind*, so element identity is proven to come from content and not from position |
+| C4 | **reordered** | the same elements in a different order, as a `PlanOnly: true` step. A **set** must plan empty; a **list** must instead produce a diff, and the new order must survive the round trip — that is what claiming `TypeList` means |
+| C5 | **edit one of many** | change one attribute of one element and assert the *others* are untouched — and, where the object has a server-assigned id, that the untouched elements kept theirs |
+| C6 | **remove one, then all** | N → N-1 → 0, and the removal must be shown **reaching the server**, not merely leaving state |
+| C7 | **import at full size** | `ImportStateVerify` with the collection at its largest. The only check that the flatten function and the set hash agree |
+
+Two rules that follow from this:
+
+- **Assert set elements by content** — `TestCheckTypeSetElemNestedAttrs`,
+  `TestCheckTypeSetElemAttrPair` — never by index. A set's indices in test state
+  are positional artefacts of the JSON-state shim and mean nothing.
+- **C6 needs a server-side check.** Zabbix's update calls replace collections
+  wholesale, so an omitted element is a deletion — but only if the provider sends
+  the property at all. A collection the provider silently drops still looks right
+  in state, because state is written by the provider's own read. The
+  `testAccCheck*Count` helpers in `provider/acc_collection_test.go` re-read the
+  object from Zabbix and count what actually came back; use them for every C6 step.
+
+**Shared machinery is tested plural once, not eleven times.** `tag`, `macro`,
+`preprocessor` and the item/LLD headers each come from one file and are merged
+into many resources, so full `C1`–`C7` coverage lives in one place per code path
+and the other resources keep a single-element smoke check. Where that decision was
+made is written next to the collection; the index is in the header comment of
+`provider/acc_collection_test.go`. Note that item and LLD preprocessing are *not*
+the same code path — `common_item.go` and `common_lld.go` each have their own — so
+each has its own test.

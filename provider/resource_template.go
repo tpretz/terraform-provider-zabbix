@@ -368,9 +368,22 @@ func resourceTemplateUpdate(d *schema.ResourceData, m interface{}) error {
 		old, new := d.GetChange("templates")
 		diff := old.(*schema.Set).Difference(new.(*schema.Set))
 
-		// removals, we need to unlink and clear
+		// removals, we need to unlink and clear.
+		//
+		// Filtered through existingTemplateIds for the same reason
+		// resourceHostUpdate does it: Terraform will happily destroy a
+		// zabbix_template in the same apply that unlinks it, and from Zabbix
+		// 7.0 an unknown object id in templates_clear is a hard error rather
+		// than a no-op. Deleting a template unlinks it anyway, so dropping the
+		// dead ids loses nothing.
 		if diff.Len() > 0 {
-			item.TemplatesClear = buildTemplateIds(diff)
+			toClear, err := existingTemplateIds(api, diff)
+			if err != nil {
+				return err
+			}
+			if len(toClear) > 0 {
+				item.TemplatesClear = toClear
+			}
 		}
 	}
 

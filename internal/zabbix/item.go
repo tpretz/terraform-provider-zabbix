@@ -226,7 +226,15 @@ type Item struct {
 	// write path, where 7.0+ rejects it as an unexpected property
 	ItemParent Hosts `json:"hosts,omitempty"`
 
-	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
+	// Preprocessors and Tags carry no omitempty, deliberately. Zabbix replaces
+	// both collections wholesale on update, so an *absent* property means
+	// "leave as is" while an empty array means "clear". With omitempty the two
+	// were indistinguishable: removing the last preprocessing step or the last
+	// tag from a configuration sent nothing at all, the server kept what it
+	// had, and the next read put it straight back -- a collection could be
+	// added to but never emptied. prepItems normalises nil to an empty slice
+	// so that "[]" is always what goes on the wire, never "null".
+	Preprocessors Preprocessors `json:"preprocessing"`
 
 	// HTTP Agent Fields
 	Url             string          `json:"url,omitempty"`
@@ -258,7 +266,8 @@ type Item struct {
 	RuleID        string   `json:"ruleid,omitempty"`
 	DiscoveryRule *LLDRule `json:"discoveryRule,omitempty"`
 
-	Tags Tags `json:"tags,omitempty"`
+	// see the note on Preprocessors: no omitempty, so that tags can be cleared
+	Tags Tags `json:"tags"`
 }
 
 type Preprocessors []Preprocessor
@@ -321,6 +330,16 @@ func (api *API) prepItems(item Items) {
 		// read-only, never valid on the write path
 		item[i].ItemParent = nil
 		item[i].DiscoveryRule = nil
+
+		// Neither of these carries omitempty, so a nil slice would go on the
+		// wire as "null" rather than "[]" and be rejected. Normalising here
+		// keeps every caller from having to remember.
+		if item[i].Preprocessors == nil {
+			item[i].Preprocessors = Preprocessors{}
+		}
+		if item[i].Tags == nil {
+			item[i].Tags = Tags{}
+		}
 
 		api.prepPreprocessors(item[i].Preprocessors)
 

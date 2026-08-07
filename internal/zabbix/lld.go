@@ -99,7 +99,11 @@ type LLDRule struct {
 	SNMPv3SecurityLevel  string `json:"snmpv3_securitylevel,omitempty"`
 	SNMPv3SecurityName   string `json:"snmpv3_securityname,omitempty"`
 
-	Preprocessors Preprocessors `json:"preprocessing,omitempty"`
+	// Preprocessors carries no omitempty for the same reason as Item's: an
+	// absent "preprocessing" means "leave as is" to discoveryrule.update, so
+	// with omitempty the last step could never be removed. prepLLDs normalises
+	// nil to an empty slice so "[]" is sent rather than "null".
+	Preprocessors Preprocessors `json:"preprocessing"`
 	Filter        LLDRuleFilter `json:"filter"`
 	MacroPaths    LLDMacroPaths `json:"lld_macro_paths,omitempty"`
 }
@@ -117,6 +121,11 @@ func (api *API) lldsHeadersUnmarshal(item LLDRules) {
 func (api *API) prepLLDs(item LLDRules) {
 	for i := 0; i < len(item); i++ {
 		h := item[i]
+
+		// no omitempty on Preprocessors: nil would marshal as "null"
+		if item[i].Preprocessors == nil {
+			item[i].Preprocessors = Preprocessors{}
+		}
 
 		api.prepPreprocessors(item[i].Preprocessors)
 

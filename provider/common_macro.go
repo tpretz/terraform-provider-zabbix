@@ -6,10 +6,23 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// macroHash hashes a user macro over everything the user writes -- name and
+// value -- and deliberately not over `id`.
+//
+// `id` is the server-assigned hostmacroid. A configuration never carries one,
+// so including it would make every state element hash differently from its
+// config counterpart and produce a diff on every plan. Everything else has to
+// be in the hash or changes to it are silently discarded; see
+// hashElementExcept.
+func macroHash(v interface{}) int {
+	return hashElementExcept(v, "id")
+}
+
 // macro list schema
 var macroSetSchema = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
+	Set:      macroHash,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
@@ -51,10 +64,9 @@ func macroGenerate(d *schema.ResourceData) (macros zabbix.Macros) {
 
 // flattenMacros convert response to terraform input
 func flattenMacros(list zabbix.Macros) *schema.Set {
-	set := schema.NewSet(func(i interface{}) int {
-		m := i.(map[string]interface{})
-		return schema.HashString(m["name"].(string))
-	}, []interface{}{})
+	// the same hash the schema uses, so the set written here indexes its
+	// elements exactly as one read back out of state does
+	set := schema.NewSet(macroHash, []interface{}{})
 
 	for i := 0; i < len(list); i++ {
 		set.Add(map[string]interface{}{
