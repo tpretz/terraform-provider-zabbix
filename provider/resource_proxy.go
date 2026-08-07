@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -43,6 +44,10 @@ var _ = func() bool {
 		PROXY_TLS_LOOKUP_REV[v] = k
 		PROXY_TLS_LOOKUP_ARR = append(PROXY_TLS_LOOKUP_ARR, k)
 	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	sort.Strings(PROXY_MODE_LOOKUP_ARR)
+	sort.Strings(PROXY_TLS_LOOKUP_ARR)
 	return true
 }()
 

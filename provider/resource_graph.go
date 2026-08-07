@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -86,6 +87,14 @@ var _ = func() bool {
 		GRAPH_SIDE_LOOKUP_REV[v] = k
 		GRAPH_SIDE_LOOKUP_ARR = append(GRAPH_SIDE_LOOKUP_ARR, k)
 	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	for _, a := range [][]string{
+		GRAPH_TYPE_LOOKUP_ARR, GRAPH_AXIS_LOOKUP_ARR, GRAPH_FUNC_LOOKUP_ARR,
+		GRAPH_DRAW_LOOKUP_ARR, GRAPH_ITYPE_LOOKUP_ARR, GRAPH_SIDE_LOOKUP_ARR,
+	} {
+		sort.Strings(a)
+	}
 	return false
 }()
 
@@ -115,48 +124,52 @@ var schemaGraphItem = &schema.Schema{
 			"color": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "color",
+				Description:  "Line colour as a six-digit hex RGB string, e.g. \"00AA00\"",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"itemid": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "itemid",
+				Description:  "ID of the item to plot",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"function": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "min",
-				Description:  "Function, one of: " + strings.Join(GRAPH_FUNC_LOOKUP_ARR, ", "),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "min",
+				Description: "Value drawn for each point when several data points fall in one pixel, one of: " +
+					strings.Join(GRAPH_FUNC_LOOKUP_ARR, ", "),
 				ValidateFunc: validation.StringInSlice(GRAPH_FUNC_LOOKUP_ARR, false),
 			},
 			"drawtype": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "line",
-				Description:  "Draw Type, one of: " + strings.Join(GRAPH_DRAW_LOOKUP_ARR, ", "),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "line",
+				Description: "How the item is drawn, one of: " + strings.Join(GRAPH_DRAW_LOOKUP_ARR, ", ") +
+					". Normal and stacked graphs only",
 				ValidateFunc: validation.StringInSlice(GRAPH_DRAW_LOOKUP_ARR, false),
 			},
 			"sortorder": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "sort order",
+				Description:  "Drawing order within the graph, lowest first. This is what carries order, not the position of the block",
 				Default:      "0",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"type": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "simple",
-				Description:  "Type, one of: " + strings.Join(GRAPH_ITYPE_LOOKUP_ARR, ", "),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "simple",
+				Description: "How this item contributes to the graph, one of: " +
+					strings.Join(GRAPH_ITYPE_LOOKUP_ARR, ", ") + ". \"sum\" applies to pie and exploded graphs only",
 				ValidateFunc: validation.StringInSlice(GRAPH_ITYPE_LOOKUP_ARR, false),
 			},
 			"yaxis_side": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "left",
-				Description:  "Y Axis Side, one of: " + strings.Join(GRAPH_SIDE_LOOKUP_ARR, ", "),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "left",
+				Description: "Which y axis the item is plotted against, one of: " +
+					strings.Join(GRAPH_SIDE_LOOKUP_ARR, ", "),
 				ValidateFunc: validation.StringInSlice(GRAPH_SIDE_LOOKUP_ARR, false),
 			},
 		},
@@ -167,32 +180,32 @@ var schemaGraph = map[string]*schema.Schema{
 	"name": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Graph Name",
+		Description:  "Name of the graph, as shown in the frontend",
 		Required:     true,
 	},
 	"height": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Height",
+		Description:  "Graph height in pixels",
 		Required:     true,
 	},
 	"width": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Width",
+		Description:  "Graph width in pixels",
 		Required:     true,
 	},
 	"type": &schema.Schema{
 		Type:         schema.TypeString,
 		Default:      "normal",
-		Description:  "Type, one of: " + strings.Join(GRAPH_TYPE_LOOKUP_ARR, ", "),
+		Description:  "Graph style, one of: " + strings.Join(GRAPH_TYPE_LOOKUP_ARR, ", "),
 		ValidateFunc: validation.StringInSlice(GRAPH_TYPE_LOOKUP_ARR, false),
 		Optional:     true,
 	},
 	"percent_left": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Left percentile",
+		Description:  "Left y-axis percentile line, 0 to disable. Normal graphs only",
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -211,7 +224,7 @@ var schemaGraph = map[string]*schema.Schema{
 	"percent_right": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Right percentile",
+		Description:  "Right y-axis percentile line, 0 to disable. Normal graphs only",
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -229,26 +242,26 @@ var schemaGraph = map[string]*schema.Schema{
 	},
 	"do3d": &schema.Schema{
 		Type:        schema.TypeBool,
-		Description: "Show 3d graph",
+		Description: "Draw pie and exploded graphs in 3D",
 		Default:     false,
 		Optional:    true,
 	},
 	"legend": &schema.Schema{
 		Type:        schema.TypeBool,
-		Description: "Show legend",
+		Description: "Show the graph legend",
 		Default:     true,
 		Optional:    true,
 	},
 	"work_period": &schema.Schema{
 		Type:        schema.TypeBool,
-		Description: "Show work period",
+		Description: "Shade non-working time, as configured in Zabbix's working-time setting",
 		Default:     true,
 		Optional:    true,
 	},
 	"ymax": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Y Axis Max",
+		Description:  "Fixed maximum value of the y axis. Applies only when ymax_type is \"fixed\"",
 		Default:      "100",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -267,7 +280,7 @@ var schemaGraph = map[string]*schema.Schema{
 	"ymax_itemid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Y Axis Max ItemId",
+		Description:  "Item whose last value sets the maximum of the y axis. Applies only when ymax_type is \"item\"",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 			if new == "" && old == "0" {
@@ -277,16 +290,17 @@ var schemaGraph = map[string]*schema.Schema{
 		},
 	},
 	"ymax_type": &schema.Schema{
-		Type:         schema.TypeString,
-		Default:      "calculated",
-		Optional:     true,
-		Description:  "Y Axis Max Type, one of: " + strings.Join(GRAPH_AXIS_LOOKUP_ARR, ", "),
+		Type:     schema.TypeString,
+		Default:  "calculated",
+		Optional: true,
+		Description: "Where the maximum of the y axis comes from, one of: " +
+			strings.Join(GRAPH_AXIS_LOOKUP_ARR, ", ") + " (see ymax and ymax_itemid)",
 		ValidateFunc: validation.StringInSlice(GRAPH_AXIS_LOOKUP_ARR, false),
 	},
 	"ymin": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Y Axis Min",
+		Description:  "Fixed minimum value of the y axis. Applies only when ymin_type is \"fixed\"",
 		Default:      "0",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -305,7 +319,7 @@ var schemaGraph = map[string]*schema.Schema{
 	"ymin_itemid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Y Axis Min ItemId",
+		Description:  "Item whose last value sets the minimum of the y axis. Applies only when ymin_type is \"item\"",
 		Optional:     true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 			if new == "" && old == "0" {
@@ -315,10 +329,11 @@ var schemaGraph = map[string]*schema.Schema{
 		},
 	},
 	"ymin_type": &schema.Schema{
-		Type:         schema.TypeString,
-		Default:      "calculated",
-		Optional:     true,
-		Description:  "Y Axis Min Type, one of: " + strings.Join(GRAPH_AXIS_LOOKUP_ARR, ", "),
+		Type:     schema.TypeString,
+		Default:  "calculated",
+		Optional: true,
+		Description: "Where the minimum of the y axis comes from, one of: " +
+			strings.Join(GRAPH_AXIS_LOOKUP_ARR, ", ") + " (see ymin and ymin_itemid)",
 		ValidateFunc: validation.StringInSlice(GRAPH_AXIS_LOOKUP_ARR, false),
 	},
 	"item": schemaGraphItem,

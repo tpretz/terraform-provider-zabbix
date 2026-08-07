@@ -99,6 +99,13 @@ var HOST_IFACE_TYPES_REV = map[zabbix.InterfaceType]string{
 	zabbix.IPMI:  "ipmi",
 	zabbix.JMX:   "jmx",
 }
+
+// HOST_IFACE_TYPES_ARR exists for the description only. Unlike every other
+// enum, interface "type" validates against an inline []string rather than
+// against this list -- see TestSchemaHostInterfaceTypeMatchesLookup, which
+// exists to catch the two drifting apart and would be trivially true if the
+// validator read from here.
+var HOST_IFACE_TYPES_ARR = []string{}
 var HOST_IFACE_PORTS = map[string]int{
 	"agent": 10050,
 	"snmp":  161,
@@ -181,6 +188,11 @@ var INVENTORY_KEYS = []string{
 
 var inventorySchema = &schema.Schema{
 	Type: schema.TypeList,
+	Description: "Host inventory fields. A single block, not a collection — the list type " +
+		"is how a lone optional nested block is expressed in SDKv2. Requires " +
+		"`inventory_mode` to be \"manual\" or \"automatic\"; under \"automatic\" Zabbix " +
+		"overwrites any field populated by an item, so managing those here will fight the " +
+		"server.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{},
 	},
@@ -216,16 +228,23 @@ var _ = func() bool {
 		HOST_IPMI_PRIVILEGE_REV[v] = k
 		HOST_IPMI_PRIVILEGE_ARR = append(HOST_IPMI_PRIVILEGE_ARR, k)
 	}
+	for k := range HOST_IFACE_TYPES {
+		HOST_IFACE_TYPES_ARR = append(HOST_IFACE_TYPES_ARR, k)
+	}
 	for _, v := range INVENTORY_KEYS {
 		inventorySchema.Elem.(*schema.Resource).Schema[v] = &schema.Schema{
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Inventory " + v,
+			Description: "Zabbix host inventory field `" + v + "`",
 		}
 	}
 	// map iteration order is random; sort so that the generated documentation
 	// and validation messages are stable between builds
-	for _, a := range [][]string{HOST_TLS_LOOKUP_ARR, HOST_IPMI_AUTHTYPE_ARR, HOST_IPMI_PRIVILEGE_ARR} {
+	for _, a := range [][]string{
+		HINV_LOOKUP_ARR, HSNMP_AUTHPROTO_ARR, HSNMP_PRIVPROTO_ARR, HSNMP_SECLEVEL_ARR,
+		HOST_TLS_LOOKUP_ARR, HOST_IPMI_AUTHTYPE_ARR, HOST_IPMI_PRIVILEGE_ARR,
+		HOST_IFACE_TYPES_ARR,
+	} {
 		sort.Strings(a)
 	}
 	return false
@@ -242,72 +261,76 @@ var hostSchemaBase = map[string]*schema.Schema{
 	},
 	"host": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "FQDN of host",
+		Description:  "Technical host name, unique across the Zabbix server. Usually the FQDN",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
 	"proxyid": &schema.Schema{
 		Type:        schema.TypeString,
-		Description: "ID of proxy to monitor this host",
+		Description: "ID of the proxy monitoring this host, or \"0\" for the Zabbix server itself. Sets `monitored_by` accordingly on Zabbix 7.0 and later",
 	},
 	"enabled": &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     true,
-		Description: "Enable host for monitoring",
+		Description: "Whether the host is monitored. A disabled host keeps its configuration but is not polled",
 	},
 	"inventory": inventorySchema,
 	"inventory_mode": &schema.Schema{
 		Type:         schema.TypeString,
 		Optional:     true,
 		Default:      "disabled",
-		Description:  "Inventory Mode, one of: " + strings.Join(HINV_LOOKUP_ARR, ", "),
+		Description:  "How the host inventory is populated, one of: " + strings.Join(HINV_LOOKUP_ARR, ", ") + ". The `inventory` block requires \"manual\" or \"automatic\"",
 		ValidateFunc: validation.StringInSlice(HINV_LOOKUP_ARR, false),
 	},
 	"interface": &schema.Schema{
 		Type:        schema.TypeSet,
 		Set:         hostInterfaceHash,
-		Description: "Host interfaces (unordered)",
+		Description: "Host interfaces (unordered). A set, not a list: `interface[0]` does not parse — use `one(...)` or a `for` expression to pick one out",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"id": &schema.Schema{
 					Type:        schema.TypeString,
 					Computed:    true,
-					Description: "Interface ID (internally generated)",
+					Description: "Interface ID, assigned by Zabbix",
 				},
 				"dns": &schema.Schema{
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "Interface DNS name",
+					Description: "DNS name Zabbix connects to. Used when `ip` is empty",
 				},
 				"ip": &schema.Schema{
 					Type:        schema.TypeString,
 					Optional:    true,
-					Description: "Interface IP address",
+					Description: "IP address Zabbix connects to. Takes precedence over `dns` when both are set",
 				},
 				"main": &schema.Schema{
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     true,
-					Description: "Primary interface of this type",
+					Description: "Whether this is the default interface for its type. Exactly one interface of each type must be the primary",
 				},
 				"port": &schema.Schema{
 					Type:         schema.TypeInt,
 					Optional:     true,
 					Computed:     true,
 					ValidateFunc: validation.IntBetween(0, 65535),
-					Description:  "Destination Port",
+					Description:  "Port Zabbix connects to. Defaults to the standard port for the interface type",
 				},
 				"type": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "agent",
+					// deliberately an inline list rather than
+					// HOST_IFACE_TYPES_ARR: see the comment on that variable
 					ValidateFunc: validation.StringInSlice([]string{
 						"agent",
 						"snmp",
 						"ipmi",
 						"jmx",
 					}, false),
-					Description: "Interface type",
+					Description: "Interface type, one of: " + strings.Join(HOST_IFACE_TYPES_ARR, ", ") +
+						". Determines the default port (agent 10050, snmp 161, ipmi 623, jmx 8686) " +
+						"and which of the snmp* attributes below apply",
 				},
 				"snmp_version": &schema.Schema{
 					Type:         schema.TypeString,
@@ -320,19 +343,19 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Type:        schema.TypeBool,
 					Optional:    true,
 					Default:     true,
-					Description: "SNMP Bulk",
+					Description: "Use SNMP bulk requests (GETBULK) where the version supports them",
 				},
 				"snmp_community": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "HSNMP Community (v1/v2 only)",
+					Description:  "SNMP community string (v1/v2 only). Usually a user macro reference such as `{$SNMP_COMMUNITY}`",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP_COMMUNITY}",
 				},
 				"snmp3_authpassphrase": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Authentication Passphrase (v3 only)",
+					Description:  "SNMPv3 authentication passphrase (v3 only)",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP3_AUTHPASSPHRASE}",
 				},
@@ -346,14 +369,14 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_contextname": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Context Name (v3 only)",
+					Description:  "SNMPv3 context name (v3 only)",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP3_CONTEXTNAME}",
 				},
 				"snmp3_privpassphrase": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Priv Passphrase (v3 only)",
+					Description:  "SNMPv3 privacy passphrase (v3 only)",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP3_PRIVPASSPHRASE}",
 				},
@@ -374,7 +397,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_securityname": &schema.Schema{
 					Type:         schema.TypeString,
 					Optional:     true,
-					Description:  "Security Name (v3 only)",
+					Description:  "SNMPv3 security name (v3 only)",
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 					Default:      "{$SNMP3_SECURITYNAME}",
 				},
@@ -383,7 +406,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 	},
 	"groups": &schema.Schema{
 		Type:        schema.TypeSet,
-		Description: "Hostgroup IDs to associate this host with",
+		Description: "Host group IDs this host belongs to. At least one is required",
 		Elem: &schema.Schema{
 			Type:         schema.TypeString,
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
@@ -391,7 +414,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 	},
 	"templates": &schema.Schema{
 		Type:        schema.TypeSet,
-		Description: "Template IDs to attach to this host",
+		Description: "Template IDs linked to this host. Removing a template here unlinks and clears it",
 		Elem: &schema.Schema{
 			Type:         schema.TypeString,
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
@@ -414,13 +437,13 @@ var hostSchemaBase = map[string]*schema.Schema{
 	"ipmi_username": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "IPMI username",
+		Description: "Username used for IPMI checks against this host",
 	},
 	"ipmi_password": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 		Sensitive:   true,
-		Description: "IPMI password",
+		Description: "Password used for IPMI checks against this host",
 	},
 	"tls_connect": &schema.Schema{
 		Type:     schema.TypeString,
@@ -544,8 +567,9 @@ func hostDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) {
 
 	// lookup vars
 	o["hostid"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Look the host up by its Zabbix ID. Give one of `hostid`, `host` or `name`",
 	}
 
 	return o

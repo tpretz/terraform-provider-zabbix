@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -60,15 +61,24 @@ var _ = func() bool {
 		HTTP_AUTHTYPE_REV[v] = k
 		HTTP_AUTHTYPE_ARR = append(HTTP_AUTHTYPE_ARR, k)
 	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	for _, a := range [][]string{
+		HTTP_METHODS_ARR, HTTP_POSTTYPE_ARR, HTTP_RETRIEVEMODE_ARR, HTTP_AUTHTYPE_ARR,
+	} {
+		sort.Strings(a)
+	}
 	return false
 }()
 
 var schemaHttpHeader = &schema.Schema{
 	Type:     schema.TypeMap,
 	Optional: true,
+	Description: "HTTP headers to send with the request, as a name-to-value map. Zabbix " +
+		"replaces the whole header collection on update, so omitting a header removes it.",
 	Elem: &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Header Value",
+		Description:  "Header value",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
 }

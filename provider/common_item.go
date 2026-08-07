@@ -40,31 +40,31 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Type:         schema.TypeString,
 		Required:     true,
 		ForceNew:     true,
-		Description:  "Host ID",
+		Description:  "ID of the host or template this item belongs to. Changing it replaces the item",
 		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 	},
 	"key": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Item KEY",
+		Description:  "Item key, unique per host, e.g. `system.cpu.load[all,avg1]`",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
 	"name": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Item Name",
+		Description:  "Item name, as shown in the frontend",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
 	"history": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Item History",
+		Description:  "How long Zabbix keeps raw history for this item, as a time suffix string, e.g. \"90d\". \"0\" disables history",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Default:      "90d",
 		Optional:     true,
 	},
 	"trends": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Item Trends",
+		Description:  "How long Zabbix keeps hourly trends for this item, e.g. \"365d\". \"0\" disables trends, and is the only valid value for text and log items. Defaults to \"365d\", or \"0\" for text and log",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		//Default:      "365d",
 		Optional: true,
@@ -73,7 +73,7 @@ var itemCommonSchema = map[string]*schema.Schema{
 	"valuetype": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringInSlice(ITEM_VALUE_TYPES_ARR, false),
-		Description:  "Item Value Type, one of: " + strings.Join(ITEM_VALUE_TYPES_ARR, ", "),
+		Description:  "Type of the value Zabbix stores, one of: " + strings.Join(ITEM_VALUE_TYPES_ARR, ", ") + ". Changing it after data has been collected leaves the old history behind",
 		Required:     true,
 	},
 	"preprocessor": itemPreprocessorSchema,
@@ -87,7 +87,7 @@ var itemDelaySchema = map[string]*schema.Schema{
 		Optional:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Default:      "1m",
-		Description:  "Item Delay period",
+		Description:  "How often the item is polled, as a time suffix string, e.g. \"1m\". Supports Zabbix's flexible and scheduling interval syntax",
 	},
 }
 
@@ -96,7 +96,7 @@ var itemInterfaceSchema = map[string]*schema.Schema{
 	"interfaceid": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "Host Interface ID",
+		Description: "ID of the host interface to poll through. \"0\", the default, lets Zabbix pick the default interface of the matching type",
 		Default:     "0",
 	},
 }
@@ -108,24 +108,26 @@ var itemPrototypeSchema = map[string]*schema.Schema{
 		Required:     true,
 		ForceNew:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "LLD Rule ID",
+		Description:  "ID of the discovery rule this prototype belongs to. Changing it replaces the prototype",
 	},
 }
 
 // Schema for preprocessor blocks
 var itemPreprocessorSchema = &schema.Schema{
-	Type:     schema.TypeList,
-	Optional: true,
+	Type:        schema.TypeList,
+	Optional:    true,
+	Description: preprocessorDescription,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Step ID, assigned by Zabbix",
 			},
 			"type": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Preprocessor type, zabbix identifier number",
+				Description:  preprocessorTypeDescription,
 				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 			},
 			"params": &schema.Schema{
@@ -135,21 +137,49 @@ var itemPreprocessorSchema = &schema.Schema{
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 				},
 				Optional:    true,
-				Description: "Preprocessor parameters",
+				Description: preprocessorParamsDescription,
 			},
 			"error_handler": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: preprocessorErrorHandlerDescription,
 			},
 			"error_handler_params": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: preprocessorErrorHandlerParamsDescription,
 			},
 		},
 	},
 }
+
+// Preprocessing step descriptions, shared verbatim between the item and LLD
+// preprocessor schemas. The two are separate code paths (common_item.go and
+// common_lld.go each build their own) but the same Zabbix object, so a reader
+// arriving at either page should be told the same thing.
+const (
+	preprocessorDescription = "Preprocessing steps, applied in the order written. This is a " +
+		"list rather than a set precisely because that order is semantic: Zabbix feeds each " +
+		"step the output of the previous one."
+
+	preprocessorTypeDescription = "Preprocessing step type, as Zabbix's numeric code — e.g. " +
+		"`5` regular expression, `11` XML XPath, `12` JSONPath, `20` discard unchanged with " +
+		"heartbeat. See the Zabbix API documentation for `preprocessing.type`; the full list " +
+		"grows with every release, so it is not enumerated or validated here."
+
+	preprocessorParamsDescription = "Parameters for the step, one element per line Zabbix " +
+		"expects. Which parameters apply, and how many, depends entirely on `type`."
+
+	preprocessorErrorHandlerDescription = "What to do when this step fails, as Zabbix's " +
+		"numeric code: `0` discard the value and report the error (the default), `1` discard " +
+		"the value silently, `2` set the value in `error_handler_params`, `3` report the " +
+		"error text in `error_handler_params`."
+
+	preprocessorErrorHandlerParamsDescription = "Value or error text used by `error_handler` " +
+		"codes `2` and `3`. Ignored otherwise."
+)
 
 // Function signature for context manipulation
 type ItemHandler func(*schema.ResourceData, interface{}, *zabbix.Item)

@@ -10,7 +10,7 @@ var schemaCalculated = map[string]*schema.Schema{
 	"formula": &schema.Schema{
 		Type:         schema.TypeString,
 		Required:     true,
-		Description:  "Formula",
+		Description:  "Calculated item formula, e.g. `last(//net.if.in)+last(//net.if.out)`",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
 }

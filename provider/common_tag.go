@@ -10,18 +10,21 @@ import (
 var tagSetSchema = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
+	Description: "Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later " +
+		"group and filter objects; they replaced applications. Zabbix replaces the whole tag " +
+		"collection on update, so omitting a tag removes it.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"key": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Tag Key",
+				Description:  "Tag name. Zabbix allows several tags to share a name with different values.",
 			},
 			"value": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Tag Value",
+				Description: "Tag value. Optional: a tag with no value is a valid tag.",
 			},
 		},
 	},

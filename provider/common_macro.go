@@ -23,23 +23,26 @@ var macroSetSchema = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	Set:      macroHash,
+	Description: "User macros defined on this object (unordered). Zabbix replaces the whole " +
+		"macro collection on update, so omitting a macro removes it.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Macro ID (hostmacroid), assigned by Zabbix",
 			},
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Macro Name (key)",
+				Description:  "Macro name, in Zabbix's `{$NAME}` form",
 			},
 			"value": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Macro Value",
+				Description:  "Macro value",
 			},
 		},
 	},

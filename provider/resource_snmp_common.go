@@ -10,7 +10,7 @@ var schemaSnmp = map[string]*schema.Schema{
 	"snmp_oid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "SNMP OID",
+		Description:  "SNMP object identifier to query, e.g. `1.3.6.1.2.1.1.3.0` or `ifHCInOctets[\"index\",\"eth0\"]`",
 		Required:     true,
 	},
 }

@@ -41,6 +41,14 @@ var _ = func() bool {
 		TRIGGER_CORRELATION_REV[v] = k
 		TRIGGER_CORRELATION_ARR = append(TRIGGER_CORRELATION_ARR, k)
 	}
+	// map iteration order is random; order deterministically so that the
+	// generated documentation and validation messages are stable between
+	// builds. Severities are ordered by their Zabbix code rather than
+	// alphabetically -- the list is a scale, and printing it as
+	// "average, disaster, high, info, ..." would hide that.
+	sort.Slice(TRIGGER_PRIORITY_ARR, func(i, j int) bool {
+		return TRIGGER_PRIORITY[TRIGGER_PRIORITY_ARR[i]] < TRIGGER_PRIORITY[TRIGGER_PRIORITY_ARR[j]]
+	})
 	sort.Strings(TRIGGER_CORRELATION_ARR)
 	return false
 }()

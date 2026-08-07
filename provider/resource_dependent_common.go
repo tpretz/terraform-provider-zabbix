@@ -10,7 +10,7 @@ var schemaDependent = map[string]*schema.Schema{
 	"master_itemid": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Master Item ID",
+		Description:  "ID of the item this one derives its value from. The master item must be on the same host",
 		Required:     true,
 	},
 }

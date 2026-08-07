@@ -286,7 +286,7 @@ func lookupTables() []lookupTable {
 		{"HOST_TLS_LOOKUP", HOST_TLS_LOOKUP, HOST_TLS_LOOKUP_REV, HOST_TLS_LOOKUP_ARR},
 		{"HOST_IPMI_AUTHTYPE", HOST_IPMI_AUTHTYPE, HOST_IPMI_AUTHTYPE_REV, HOST_IPMI_AUTHTYPE_ARR},
 		{"HOST_IPMI_PRIVILEGE", HOST_IPMI_PRIVILEGE, HOST_IPMI_PRIVILEGE_REV, HOST_IPMI_PRIVILEGE_ARR},
-		{"HOST_IFACE_TYPES", HOST_IFACE_TYPES, HOST_IFACE_TYPES_REV, nil},
+		{"HOST_IFACE_TYPES", HOST_IFACE_TYPES, HOST_IFACE_TYPES_REV, HOST_IFACE_TYPES_ARR},
 		{"HTTP_METHODS", HTTP_METHODS, HTTP_METHODS_REV, HTTP_METHODS_ARR},
 		{"HTTP_RETRIEVEMODE", HTTP_RETRIEVEMODE, HTTP_RETRIEVEMODE_REV, HTTP_RETRIEVEMODE_ARR},
 		{"HTTP_POSTTYPE", HTTP_POSTTYPE, HTTP_POSTTYPE_REV, HTTP_POSTTYPE_ARR},
@@ -354,29 +354,24 @@ func TestEnumLookupTablesInSync(t *testing.T) {
 	}
 }
 
-// enumDescriptionExempt lists the enums whose description deliberately does
-// not enumerate its values.
-//
-// zabbix_host.interface.type is not deliberate: it is the one enum written as
-// an inline []string instead of through the _LOOKUP/_ARR idiom, so there is
-// no generated list for its description to interpolate and it says only
-// "Interface type". Left as found and reported rather than fixed -- schema
-// descriptions belong to PLAN.md Phase 5 -- with
-// TestSchemaHostInterfaceTypeMatchesLookup standing in for the drift the
-// idiom would have prevented.
-var enumDescriptionExempt = map[string]bool{
-	"interface.type": true,
-}
-
 // TestEnumDescriptionsListValues keeps the generated documentation honest.
-// These descriptions are what tfplugindocs will publish, and one built from a
+// These descriptions are what tfplugindocs publishes, and one built from a
 // stale list is a lie the compiler cannot catch: the reader is told to use a
 // value the provider rejects, or not told about one it accepts.
+//
+// There are no exemptions. zabbix_host.interface.type used to be one -- the
+// single enum written as an inline []string rather than through the
+// _LOOKUP/_ARR idiom, so it had no generated list to interpolate and said only
+// "Interface type" -- and was fixed in Phase 5 by giving it a
+// HOST_IFACE_TYPES_ARR to build the description from. The validator still
+// reads an inline slice, deliberately, so that
+// TestSchemaHostInterfaceTypeMatchesLookup keeps catching drift between the
+// two rather than being trivially satisfied.
 func TestEnumDescriptionsListValues(t *testing.T) {
 	for name, res := range providerSchemas() {
 		walkSchema(res.Schema, "", func(path string, s *schema.Schema) {
 			allowed := enumValues(s, path)
-			if allowed == nil || enumDescriptionExempt[path] {
+			if allowed == nil {
 				return
 			}
 			for _, v := range allowed {
@@ -385,5 +380,68 @@ func TestEnumDescriptionsListValues(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestSchemaDescriptionsPresent requires every attribute of every resource and
+// data source to carry a Description.
+//
+// This is not a style rule. The Description is the *only* source the
+// documentation has: `tfplugindocs generate` renders the argument reference
+// straight from the schema, so an attribute without one is published as a bare
+// name with nothing beside it, and the same hole appears in
+// `terraform providers schema -json` and in editor tooling. There is no
+// separate place to write it down instead, which is why this is enforced
+// rather than reviewed.
+func TestSchemaDescriptionsPresent(t *testing.T) {
+	total := 0
+	for name, res := range providerSchemas() {
+		walkSchema(res.Schema, "", func(path string, s *schema.Schema) {
+			total++
+			if s.Description == "" {
+				t.Errorf("%s.%s: no Description; it would be published as a bare attribute name", name, path)
+			}
+		})
+	}
+	if total == 0 {
+		t.Fatal("no attributes walked at all; providerSchemas or walkSchema has stopped working")
+	}
+	t.Logf("checked %d attributes", total)
+}
+
+// TestEnumValueListsAreSorted pins the ordering of the generated _ARR value
+// lists.
+//
+// They are built by ranging over a map, and Go randomises map iteration
+// order, so without an explicit sort the same build produces a different
+// value list every run -- which means a different validation message and,
+// worse, a different generated docs page. `make docs-check` would then fail
+// at random. Each _ARR is sorted at init; this checks none loses that.
+//
+// Two lists are excluded, both because they are already deterministic by
+// construction and their order says something sorting would destroy:
+// ITEM_VALUE_TYPES_ARR is an explicit literal, not built from its map, and
+// TRIGGER_PRIORITY_ARR is ordered by Zabbix severity code rather than
+// alphabetically -- the list is a scale, and printing it as
+// "average, disaster, high, ..." would hide that.
+var unsortedByDesign = map[string]bool{
+	"ITEM_VALUE_TYPES": true,
+	"TRIGGER_PRIORITY": true,
+}
+
+func TestEnumValueListsAreSorted(t *testing.T) {
+	for _, lt := range lookupTables() {
+		if lt.arr == nil || unsortedByDesign[lt.name] {
+			continue
+		}
+		if !sort.StringsAreSorted(lt.arr) {
+			t.Errorf("%s_ARR is not sorted: %v -- map iteration order is random, so it must be sorted at init", lt.name, lt.arr)
+		}
+	}
+
+	// the severity scale: deterministic, but ordered by code
+	want := []string{"not_classified", "info", "warn", "average", "high", "disaster"}
+	if !reflect.DeepEqual(TRIGGER_PRIORITY_ARR, want) {
+		t.Errorf("TRIGGER_PRIORITY_ARR is %v, want severity order %v", TRIGGER_PRIORITY_ARR, want)
 	}
 }

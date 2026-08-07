@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,6 +28,9 @@ var _ = func() bool {
 		LLD_EVALTYPE_REV[v] = k
 		LLD_EVALTYPE_ARR = append(LLD_EVALTYPE_ARR, k)
 	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	sort.Strings(LLD_EVALTYPE_ARR)
 	return false
 }()
 
@@ -45,6 +49,7 @@ var _ = func() bool {
 		LLD_OPERATOR_REV[v] = k
 		LLD_OPERATOR_ARR = append(LLD_OPERATOR_ARR, k)
 	}
+	sort.Strings(LLD_OPERATOR_ARR)
 	return false
 }()
 
@@ -54,7 +59,7 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Type:         schema.TypeString,
 		Required:     true,
 		ForceNew:     true,
-		Description:  "Host ID",
+		Description:  "ID of the host or template this discovery rule belongs to. Changing it replaces the rule",
 		ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 	},
 	"lifetime": &schema.Schema{
@@ -62,17 +67,17 @@ var lldCommonSchema = map[string]*schema.Schema{
 		Optional:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Default:      "30d",
-		Description:  "LLD Stale Item Lifetime",
+		Description:  "How long a discovered entity is kept after it stops being discovered, e.g. \"30d\". \"0\" deletes it immediately",
 	},
 	"key": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "LLD KEY",
+		Description:  "Discovery rule key, unique per host",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
 	"name": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "LLD Name",
+		Description:  "Discovery rule name, as shown in the frontend",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
@@ -81,7 +86,7 @@ var lldCommonSchema = map[string]*schema.Schema{
 	"macro":        lldMacroPathSchema,
 	"evaltype": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "EvalType, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", "),
+		Description:  "How the filter conditions combine, one of: " + strings.Join(LLD_EVALTYPE_ARR, ", ") + ". \"custom\" evaluates the expression in `formula`",
 		ValidateFunc: validation.StringInSlice(LLD_EVALTYPE_ARR, false),
 		Default:      "andor",
 		Optional:     true,
@@ -101,25 +106,27 @@ var lldInterfaceSchema = map[string]*schema.Schema{
 	"interfaceid": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "Host Interface ID",
+		Description: "ID of the host interface to poll through. \"0\", the default, lets Zabbix pick the default interface of the matching type",
 		Default:     "0",
 	},
 }
 
 // Schema for preprocessor blocks
 var lldPreprocessorSchema = &schema.Schema{
-	Type:     schema.TypeList,
-	Optional: true,
+	Type:        schema.TypeList,
+	Optional:    true,
+	Description: preprocessorDescription,
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Step ID, assigned by Zabbix",
 			},
 			"type": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Preprocessor type, zabbix identifier number",
+				Description:  preprocessorTypeDescription,
 				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
 			},
 			"params": &schema.Schema{
@@ -129,17 +136,19 @@ var lldPreprocessorSchema = &schema.Schema{
 					ValidateFunc: validation.StringIsNotWhiteSpace,
 				},
 				Optional:    true,
-				Description: "Preprocessor parameters",
+				Description: preprocessorParamsDescription,
 			},
 			"error_handler": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: preprocessorErrorHandlerDescription,
 			},
 			"error_handler_params": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: preprocessorErrorHandlerParamsDescription,
 			},
 		},
 	},
@@ -150,18 +159,21 @@ var lldValidationMacro = validation.StringMatch(regexp.MustCompile("^\\{#[A-Z][A
 var lldMacroPathSchema = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
+	Description: "LLD macro paths (unordered): extra discovery macros extracted from the " +
+		"rule's JSON output with a JSONPath expression, on top of whatever the rule " +
+		"discovers natively.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"macro": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Macro",
+				Description:  "Discovery macro to define, e.g. `{#IFNAME}`",
 				ValidateFunc: lldValidationMacro,
 			},
 			"path": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Macro Path",
+				Description:  "JSONPath the macro's value is read from, e.g. `$.name`",
 				ValidateFunc: validation.StringMatch(regexp.MustCompile("^\\$"), "must be a json path"),
 			},
 		},
@@ -207,20 +219,20 @@ var lldFilterConditionSchema = &schema.Schema{
 			"macro": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Filter Macro",
+				Description:  "Discovery macro this condition tests, e.g. `{#IFNAME}`",
 				ValidateFunc: lldValidationMacro,
 			},
 			"value": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Filter Value",
+				Description:  "Regular expression the macro is matched against",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"operator": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "match",
-				Description:  "Operator, one of: " + strings.Join(LLD_OPERATOR_ARR, ", "),
+				Description:  "How `value` is applied, one of: " + strings.Join(LLD_OPERATOR_ARR, ", "),
 				ValidateFunc: validation.StringInSlice(LLD_OPERATOR_ARR, false),
 			},
 		},
@@ -362,7 +374,7 @@ var lldZeroDelaySchema = map[string]*schema.Schema{
 		Optional:     true,
 		Default:      "0",
 		ValidateFunc: validation.StringInSlice([]string{"0"}, false),
-		Description:  "LLD Delay period, must be 0 for this discovery rule type",
+		Description:  "How often the discovery rule runs. Must be \"0\" for this rule type: Zabbix does not poll it, so there is no interval to set",
 	},
 }
 
@@ -376,7 +388,7 @@ var lldDelaySchema = map[string]*schema.Schema{
 		Optional:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Default:      "3600",
-		Description:  "LLD Delay period",
+		Description:  "How often the discovery rule runs, as a time suffix string, e.g. \"1h\"",
 	},
 }
 
