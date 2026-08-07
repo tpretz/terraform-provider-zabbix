@@ -16,13 +16,17 @@ Credentials for every stack: `Admin` / `zabbix`.
 ## Prerequisites
 
 - Docker with Compose v2 (`docker compose`, not `docker-compose`)
-- Go
-- **A `terraform` binary on `PATH`.** The SDK's acceptance-test driver shells out
-  to it. If it is missing — or is an inactive version-manager shim, e.g. `asdf`
-  with no version selected — every acceptance test fails immediately with
-  `Error setting test config: exit status 126` before any Zabbix call is made.
-  That error means your local toolchain, not the provider. Check with
-  `terraform version`.
+- Go — `.tool-versions` pins **golang 1.25.12**
+- **A `terraform` binary.** The acceptance-test driver shells out to it.
+  `.tool-versions` pins **terraform 1.8.5**, and the `Makefile` resolves the
+  absolute path itself (`asdf which terraform`, falling back to `command -v
+  terraform`) and hands it over as `TF_ACC_TERRAFORM_PATH`. That is deliberate:
+  the harness runs from a temp directory under `$TMPDIR`, so a version manager
+  that resolves by walking up from `$PWD` never sees this repo's
+  `.tool-versions` and falls back to a global config that may not pin
+  terraform at all — which fails with `exit status 126` before any Zabbix call
+  is made and looks exactly like a provider bug. No `PATH` juggling is needed;
+  if you are not using a version manager, any `terraform` on `PATH` is used.
 
 ## Quick start
 
@@ -155,29 +159,26 @@ stacks by compose service name (`http://zabbix-web-74:8080/api_jsonrpc.php`)
 instead of via published localhost ports. All the `make` targets above behave
 identically.
 
-## Current status — baseline
+## Current status
 
-The acceptance suite does **not** pass yet. That is expected: the harness landed
-before the provider fixes it exists to verify. Baseline from the first full run
-(2026-08-03, provider at `4eb71cf`+):
+**Green on all four versions.** 106 tests in `./provider`, 86 of them
+acceptance, roughly 205-215s per version:
 
-| Version | Result | Cause |
+| Version | Result | Skips |
 |---|---|---|
-| 6.0 | 12 fail / 3 acc pass | `DBEXECUTE_ERROR`, plus `Host group "test-group" already exists` — fixture collisions from aborted runs |
-| 7.0 | 11 fail / 4 acc pass | same profile as 6.0 |
-| 7.4 | 13 fail / 2 acc pass | **all** fail on `Invalid parameter "/": unexpected parameter "auth"` |
-| 8.0 | fails | same `auth` error as 7.4 |
+| 6.0.48 | pass | 3 — the `zabbix_templategroup` tests, gated to 6.2+ |
+| 7.0.29 | pass | 1 |
+| 7.4.13 | pass | 1 |
+| 8.0-trunk | pass | 1 |
 
-Two distinct root causes, matching PLAN.md:
+The remaining skip on every version is version-bound behaviour guarded by a
+`SkipFunc`, not a failure.
 
-1. **7.2+ auth.** The client sends the token as a JSON-RPC `auth` body property,
-   which 7.2 removed in favour of an `Authorization: Bearer` header. Since 7.2
-   also made unknown request parameters a hard error, *every* call fails. This is
-   a single fix that should clear the whole 7.4 and 8.0 columns at once
-   (PLAN.md Phase 2a).
-2. **Fixtures.** 6.0/7.0 failures are pre-6.0 test fixtures plus fixed fixture
-   names with no sweepers, so an aborted run poisons the next one — the
-   `AddTestSweepers` and unique-naming items still open in PLAN.md Phase 1.
+Getting here was PLAN.md phases 0-3 plus phase 8. The baseline this file used to
+record — 7.4 and 8.0 failing wholesale on `Invalid parameter "/": unexpected
+parameter "auth"`, 6.0/7.0 failing on pre-6.0 fixtures and un-swept objects — is
+history: bearer auth landed in Phase 2a, the pre-6.0 code paths and fixtures were
+deleted in Phase 2b, and every resource now has a `CheckDestroy` and a sweeper.
 
-Note the harness itself is not implicated in any of these: all four stacks come
-up healthy and answer `apiinfo.version` correctly.
+8.0 passing is welcome but is **not** a guarantee: `ubuntu-trunk` moves under you
+(see below), so treat a green 8.0 as a snapshot rather than a commitment.
