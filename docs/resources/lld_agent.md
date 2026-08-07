@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_agent Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule backed by a Zabbix agent item. Item, trigger and graph prototypes attached to it are instantiated for every entity it discovers.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proxy Resource - Zabbix"
-subcategory: ""
+subcategory: "Proxies"
 description: |-
   Manages a Zabbix proxy: a collector that monitors hosts on the server's behalf. Exposes one set of attribute names across every supported Zabbix version.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_agent Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix agent item prototype. One agent item is created from it for each entity its discovery rule finds.
 ---

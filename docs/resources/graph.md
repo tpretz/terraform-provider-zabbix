@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_graph Resource - Zabbix"
-subcategory: ""
+subcategory: "Graphs"
 description: |-
   Manages a Zabbix graph: a named plot of one or more items on a host or template.
 ---

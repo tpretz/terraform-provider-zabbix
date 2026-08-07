@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_snmp Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix SNMP item: a value read from an SNMP OID over the host's SNMP interface.
 ---

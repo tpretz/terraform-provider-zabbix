@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_templategroup Resource - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Manages a Zabbix template group. Requires Zabbix 6.2 or later, where template groups were split out of host groups.
 ---

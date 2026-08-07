@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_dependent Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule driven by a master item rather than polled. Zabbix requires delay to be "0" for this rule type.
 ---

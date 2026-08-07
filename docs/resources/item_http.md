@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_http Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix HTTP agent item: a value collected by making an HTTP request from the server or proxy.
 ---

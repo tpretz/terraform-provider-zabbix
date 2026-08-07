@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_graph Resource - Zabbix"
-subcategory: ""
+subcategory: "Graphs"
 description: |-
   Manages a Zabbix graph prototype. One graph is created from it for each entity its discovery rule finds; at least one plotted item must be an item prototype.
 ---

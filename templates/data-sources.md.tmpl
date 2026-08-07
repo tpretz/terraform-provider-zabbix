@@ -1,3 +1,10 @@
+{{/* Fallback template, used for any resource that has no page of its own
+     under templates/resources/ or templates/data-sources/. Every currently
+     registered object does have one, because the Registry groups the left
+     nav by `subcategory` and that has to be a literal -- tfplugindocs
+     provides no string-prefix function to derive it from .Name. A new
+     resource renders through here until someone gives it a page; it will
+     be correct, just uncategorised. */}}
 ---
 page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
 subcategory: ""

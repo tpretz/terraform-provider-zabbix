@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_agent Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix agent item: a value collected by polling the Zabbix agent running on the host.
 ---

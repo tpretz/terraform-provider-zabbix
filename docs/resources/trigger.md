@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_trigger Resource - Zabbix"
-subcategory: ""
+subcategory: "Triggers"
 description: |-
   Manages a Zabbix trigger: a named expression over item values that defines a problem state.
 ---

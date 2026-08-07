@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_snmp Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix SNMP item prototype. One SNMP item is created from it for each entity its discovery rule finds.
 ---

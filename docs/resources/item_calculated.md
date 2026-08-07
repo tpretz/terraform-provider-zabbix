@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_calculated Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix calculated item: a value computed from other items by a formula, rather than collected from the host.
 ---

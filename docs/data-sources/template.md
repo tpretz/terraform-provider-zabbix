@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_template Data Source - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Looks up an existing Zabbix template by technical name or display name.
 ---

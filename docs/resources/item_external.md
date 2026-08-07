@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_external Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix external check item: a value produced by a script the server or proxy executes from its ExternalScripts directory.
 ---

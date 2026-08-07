@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_templategroup Data Source - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Looks up an existing Zabbix template group by name. Requires Zabbix 6.2 or later.
 ---

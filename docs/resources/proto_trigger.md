@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_trigger Resource - Zabbix"
-subcategory: ""
+subcategory: "Triggers"
 description: |-
   Manages a Zabbix trigger prototype. One trigger is created from it for each entity its discovery rule finds; its expression must reference at least one item prototype.
 ---

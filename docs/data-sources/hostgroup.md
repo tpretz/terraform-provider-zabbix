@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_hostgroup Data Source - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Looks up an existing Zabbix host group by name.
 ---

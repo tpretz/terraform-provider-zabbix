@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_host Resource - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group and at least one interface.
 ---

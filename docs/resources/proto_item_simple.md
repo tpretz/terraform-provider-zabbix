@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_simple Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix simple check item prototype. One simple check is created from it for each entity its discovery rule finds.
 ---

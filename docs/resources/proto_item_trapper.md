@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_trapper Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix trapper item prototype. One trapper item is created from it for each entity its discovery rule finds.
 ---

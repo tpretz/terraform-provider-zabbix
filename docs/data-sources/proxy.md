@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proxy Data Source - Zabbix"
-subcategory: ""
+subcategory: "Proxies"
 description: |-
   Looks up an existing Zabbix proxy by its technical name.
 ---

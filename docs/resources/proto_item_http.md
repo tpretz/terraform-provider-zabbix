@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_http Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix HTTP agent item prototype. One HTTP item is created from it for each entity its discovery rule finds.
 ---

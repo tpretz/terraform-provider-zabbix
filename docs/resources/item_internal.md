@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_internal Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix internal item: a value about Zabbix itself -- queue length, cache usage, process busy time -- rather than about the monitored host.
 ---

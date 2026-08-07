@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_snmp Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule backed by an SNMP item, typically walking a table such as ifTable. Prototypes attached to it are instantiated for every entity it discovers.
 ---

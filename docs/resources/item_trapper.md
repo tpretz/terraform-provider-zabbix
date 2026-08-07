@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_trapper Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix trapper item: a value pushed to the server by zabbix_sender or the API rather than polled.
 ---

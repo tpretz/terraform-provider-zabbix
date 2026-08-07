@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_dependent Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix dependent item: a value derived from a master item's raw value by preprocessing, so one collection feeds many items.
 ---

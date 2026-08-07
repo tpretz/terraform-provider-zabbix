@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_simple Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule backed by a simple check. Prototypes attached to it are instantiated for every entity it discovers.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_snmptrap Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix SNMP trap item: a value taken from SNMP traps received for the host, rather than polled.
 ---

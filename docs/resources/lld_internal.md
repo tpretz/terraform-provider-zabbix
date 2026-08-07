@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_internal Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule backed by an internal item. Prototypes attached to it are instantiated for every entity it discovers.
 ---

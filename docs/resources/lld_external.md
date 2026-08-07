@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_external Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule backed by an external script. Prototypes attached to it are instantiated for every entity it discovers.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_external Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix external check item prototype. One external check is created from it for each entity its discovery rule finds.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_calculated Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix calculated item prototype. One calculated item is created from it for each entity its discovery rule finds.
 ---

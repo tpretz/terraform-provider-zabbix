@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_item_simple Resource - Zabbix"
-subcategory: ""
+subcategory: "Items"
 description: |-
   Manages a Zabbix simple check item: an agentless check such as icmpping or net.tcp.service, performed by the server or proxy.
 ---

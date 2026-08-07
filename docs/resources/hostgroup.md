@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_hostgroup Resource - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Manages a Zabbix host group. Hosts must belong to at least one, and permissions are granted per group.
 ---

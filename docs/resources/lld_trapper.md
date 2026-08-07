@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_lld_trapper Resource - Zabbix"
-subcategory: ""
+subcategory: "Discovery Rules"
 description: |-
   Manages a Zabbix low-level discovery rule fed by pushed data rather than polling. Zabbix requires delay to be "0" for this rule type.
 ---

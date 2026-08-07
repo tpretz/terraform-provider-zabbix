@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_internal Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix internal item prototype. One internal item is created from it for each entity its discovery rule finds.
 ---

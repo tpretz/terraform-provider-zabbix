@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_template Resource - Zabbix"
-subcategory: ""
+subcategory: "Hosts and Templates"
 description: |-
   Manages a Zabbix template: a reusable collection of items, triggers, graphs and discovery rules that can be linked to many hosts.
 ---

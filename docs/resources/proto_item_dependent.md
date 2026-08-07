@@ -1,6 +1,6 @@
 ---
 page_title: "zabbix_proto_item_dependent Resource - Zabbix"
-subcategory: ""
+subcategory: "Item Prototypes"
 description: |-
   Manages a Zabbix dependent item prototype. One dependent item is created from it for each entity its discovery rule finds.
 ---
