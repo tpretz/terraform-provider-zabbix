@@ -105,7 +105,20 @@ type LLDRule struct {
 	// nil to an empty slice so "[]" is sent rather than "null".
 	Preprocessors Preprocessors `json:"preprocessing"`
 	Filter        LLDRuleFilter `json:"filter"`
-	MacroPaths    LLDMacroPaths `json:"lld_macro_paths,omitempty"`
+	// Zabbix replaces lld_macro_paths wholesale: an absent property means "leave
+	// as is", an empty array means "clear". With a plain slice plus omitempty the
+	// last macro path could never be removed, and without omitempty create breaks
+	// on 6.0. Measured on live servers:
+	//
+	//	           create []      create null    create absent   update []
+	//	6.0        rejected       rejected       ok              ok
+	//	7.0/7.4/8  ok             rejected       ok              ok
+	//
+	// So the key must be genuinely absent on create-with-none but present as []
+	// on update-to-none, which a plain slice cannot express and a pointer can:
+	// nil omits the key, &LLDMacroPaths{} sends []. prepLLDsUpdate sets the empty
+	// pointer; the create path leaves it nil.
+	MacroPaths *LLDMacroPaths `json:"lld_macro_paths,omitempty"`
 }
 
 // Items is an array of Item
@@ -140,6 +153,14 @@ func (api *API) prepLLDs(item LLDRules) {
 // not on update.
 func (api *API) prepLLDsUpdate(item LLDRules) {
 	api.prepLLDs(item)
+
+	// on update an empty set has to reach the server as [] to clear what is
+	// there; on create there is nothing to clear and 6.0 rejects [] outright.
+	for i := range item {
+		if item[i].MacroPaths == nil {
+			item[i].MacroPaths = &LLDMacroPaths{}
+		}
+	}
 	if api.Config.Version < V70 {
 		return
 	}

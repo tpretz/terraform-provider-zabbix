@@ -33,7 +33,9 @@ func resourceProtoItemTrapper() *schema.Resource {
 	}
 }
 func resourceLLDTrapper() *schema.Resource {
-	s := mergeSchemas(lldCommonSchema, lldDelaySchema)
+	// trapper rules receive pushed data and are not polled: Zabbix requires
+	// delay == 0, so the shared 3600 default would fail on create.
+	s := mergeSchemas(lldCommonSchema, lldZeroDelaySchema)
 	return &schema.Resource{
 		Create: lldGetCreateWrapper(lldTrapperModFunc, lldTrapperReadFunc),
 		Read:   lldGetReadWrapper(lldTrapperReadFunc),

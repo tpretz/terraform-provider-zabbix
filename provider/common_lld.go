@@ -346,6 +346,26 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	return nil
 }
 
+// lldZeroDelaySchema replaces lldDelaySchema for discovery-rule types that are
+// not polled: dependent rules are driven by their master item, and trapper rules
+// receive pushed data. Zabbix requires delay == 0 for both and rejects anything
+// else, so inheriting lldDelaySchema's 3600 default made those resources fail on
+// create unless the user knew to write delay = "0" - which is not discoverable.
+//
+// delay stays in the schema rather than being omitted, because the shared LLD
+// read path calls d.Set("delay", ...) unconditionally and helper/schema panics
+// on a key the schema does not declare. Pinning the value is what makes that
+// safe while still rejecting what Zabbix would reject.
+var lldZeroDelaySchema = map[string]*schema.Schema{
+	"delay": &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "0",
+		ValidateFunc: validation.StringInSlice([]string{"0"}, false),
+		Description:  "LLD Delay period, must be 0 for this discovery rule type",
+	},
+}
+
 // lldDelaySchema is separate from lldCommonSchema because dependent LLD rules
 // are driven by their master item rather than polled: Zabbix requires delay == 0
 // for them and rejects any other value. This mirrors how itemDelaySchema is kept
@@ -371,7 +391,9 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 	}
 
 	lld.Preprocessors = lldGeneratePreprocessors(d)
-	lld.MacroPaths = lldGenerateMacroPaths(d)
+	if paths := lldGenerateMacroPaths(d); len(paths) > 0 {
+		lld.MacroPaths = &paths
+	}
 
 	lld.Filter.EvalType = LLD_EVALTYPE[d.Get("evaltype").(string)]
 	lld.Filter.Formula = d.Get("formula").(string)
@@ -469,10 +491,13 @@ func flattenlldMacroPaths(lld zabbix.LLDRule) *schema.Set {
 		m := i.(map[string]interface{})
 		return schema.HashString(m["macro"].(string) + "P" + m["path"].(string))
 	}, []interface{}{})
-	for i := 0; i < len(lld.MacroPaths); i++ {
+	if lld.MacroPaths == nil {
+		return set
+	}
+	for _, p := range *lld.MacroPaths {
 		set.Add(map[string]interface{}{
-			"macro": lld.MacroPaths[i].Macro,
-			"path":  lld.MacroPaths[i].Path,
+			"macro": p.Macro,
+			"path":  p.Path,
 		})
 	}
 	return set

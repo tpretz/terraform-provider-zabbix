@@ -145,6 +145,22 @@ func testAccCheckLLDConditionCount(addr string, want int) resource.TestCheckFunc
 	})
 }
 
+func testAccCheckLLDMacroPathCount(addr string, want int) resource.TestCheckFunc {
+	return testAccCheckServerCount(addr, "LLD macro paths", want, func(api *zabbix.API, id string) (int, error) {
+		res, err := api.LLDsGet(zabbix.Params{"itemids": []string{id}, "selectLLDMacroPaths": "extend"})
+		if err != nil {
+			return 0, err
+		}
+		if len(res) != 1 {
+			return 0, fmt.Errorf("discoveryrule.get returned %d rules", len(res))
+		}
+		if res[0].MacroPaths == nil {
+			return 0, nil
+		}
+		return len(*res[0].MacroPaths), nil
+	})
+}
+
 func testAccCheckLLDPreprocessorCount(addr string, want int) resource.TestCheckFunc {
 	return testAccCheckServerCount(addr, "preprocessing steps", want, func(api *zabbix.API, id string) (int, error) {
 		res, err := api.LLDsGet(zabbix.Params{"itemids": []string{id}, "selectPreprocessing": "extend"})

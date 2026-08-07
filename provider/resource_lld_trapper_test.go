@@ -451,3 +451,91 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 		},
 	})
 }
+
+// TestAccResourceLLDMacroPaths is C1/C3/C6 for the `macro` block, which maps to
+// the LLD rule's lld_macro_paths. It had no plural or removal coverage anywhere,
+// and that gap hid a real bug: LLDRule.MacroPaths carried `omitempty`, so
+// dropping the last macro path sent no property at all. Zabbix reads an absent
+// property as "leave as is" and an empty array as "clear", meaning macro paths
+// could be added but never removed. Verified against 7.4 before the fix -
+// omitting the key left both paths in place, sending [] cleared them. The
+// server-side count is what matters here; state alone reported success while
+// the server still held them.
+func TestAccResourceLLDMacroPaths(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // C3: three macro paths
+				Config: hcl(t, lldMacroPathConfig(`
+	macro {
+		macro = "{#A}"
+		path = "$.a"
+	}
+	macro {
+		macro = "{#B}"
+		path = "$.b"
+	}
+	macro {
+		macro = "{#C}"
+		path = "$.c"
+	}
+`)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testmp", "macro.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_lld_trapper.testmp", "macro.*",
+						map[string]string{"macro": "{#B}", "path": "$.b"}),
+					testAccCheckLLDMacroPathCount("zabbix_lld_trapper.testmp", 3),
+				),
+			},
+			{ // C6: down to one
+				Config: hcl(t, lldMacroPathConfig(`
+	macro {
+		macro = "{#B}"
+		path = "$.b"
+	}
+`)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testmp", "macro.#", "1"),
+					testAccCheckLLDMacroPathCount("zabbix_lld_trapper.testmp", 1),
+				),
+			},
+			{ // C6: and all the way to zero - this is the step that failed before
+				Config: hcl(t, lldMacroPathConfig("")),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testmp", "macro.#", "0"),
+					testAccCheckLLDMacroPathCount("zabbix_lld_trapper.testmp", 0),
+				),
+			},
+			{ // C7
+				ResourceName:      "zabbix_lld_trapper.testmp",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func lldMacroPathConfig(macros string) string {
+	return `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+}
+resource "zabbix_lld_trapper" "testmp" {
+	hostid = zabbix_host.testhost.id
+	key    = "lld.macropaths"
+	name   = "LLD Macro Paths"
+	// no delay here on purpose: lldZeroDelaySchema must default it to 0, or
+	// zabbix_lld_trapper is unusable without the user knowing to write it.
+` + macros + `}
+`
+}
