@@ -184,9 +184,32 @@ The `_REV`/`_ARR` are populated by a package-level `var _ = func() bool { ... }(
 
 `provider/provider.go` is the single registry of all data sources and resources. Logging goes through the package-level `log` (`provider/log.go`), emitting `[TRACE]`/`[DEBUG]`/… lines; enable with `TF_LOG=TRACE`.
 
-### utils/template2terraform
+### Documentation is generated — never hand-edit `docs/`
 
-`utils/template2terraform` is a standalone **Python 3** script that converts a Zabbix template XML export into equivalent Terraform configuration — a code-generation helper, not part of the Go build. It is currently undocumented and untested; PLAN.md Phase 5 forces a keep-or-move decision on it.
+`docs/` is produced by [`terraform-plugin-docs`](https://github.com/hashicorp/terraform-plugin-docs), pinned at **v0.25.0** in the `Makefile` and run through `go run <module>@<version>` (so it is not in `go.mod`). An edit made directly to a file under `docs/` is thrown away by the next generation.
+
+```bash
+make docs           # regenerate docs/
+make docs-check     # regenerate and fail if docs/ moved -- the CI gate
+make docs-validate  # check docs/ against the Terraform Registry's layout rules
+```
+
+Three inputs feed a page, and which one to reach for is the thing to get right:
+
+| Input | Becomes |
+|---|---|
+| the schema `Description` on every attribute, and on the `schema.Resource` itself | the page intro and the argument reference |
+| `templates/resources/<name>.md.tmpl` (no `zabbix_` prefix) | hand-written prose around it; falls back to `templates/resources.md.tmpl` |
+| `examples/resources/<full_name>/resource.tf` (with the prefix) | the "Example Usage" section |
+| `examples/resources/<full_name>/import.sh` | the "Import" section |
+
+Data sources use `templates/data-sources/` and `examples/data-sources/<full_name>/data-source.tf`.
+
+**A weak generated page almost always means a weak schema `Description`, not a generation problem.** Fix it in the schema, where it also reaches `terraform providers schema -json` and editor tooling, rather than by writing the page by hand. Two tests hold the line: `TestSchemaDescriptionsPresent` requires a `Description` on every attribute, and `TestEnumDescriptionsListValues` requires an enum's description to list every value its validator accepts — build that list from the `_LOOKUP_ARR` so it cannot drift.
+
+Every `_ARR` is sorted at init (`TestEnumValueListsAreSorted`). This is not cosmetic: they are built by ranging over a map, Go randomises map iteration order, and an unsorted list makes `make docs-check` fail at random. `TRIGGER_PRIORITY_ARR` is ordered by severity code instead, deliberately.
+
+> `utils/template2terraform`, the standalone Python XML→HCL converter, was **deleted** in Phase 5. It emitted `zabbix_application` and `zabbix_item_aggregate`, so its output no longer parses against this provider. It is in history if anyone wants to revive it — in its own repository.
 
 ## Testing expectations
 
