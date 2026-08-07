@@ -45,6 +45,24 @@ TESTARGS     ?=
 
 export TF_ACC := 1
 export TF_ACC_STATE_LINEAGE := 1
+
+# --- locating the terraform binary ------------------------------------------
+#
+# terraform-plugin-testing shells out to terraform from a temp working
+# directory under $TMPDIR, not from the repo. Version managers that resolve by
+# walking up from $PWD (asdf, mise) therefore never see this repo's
+# .tool-versions and fall back to the global config — which, if it does not pin
+# terraform, fails with
+#
+#   cannot run Terraform provider tests: error calling terraform version
+#   command: exit status 126 / No version is set for command terraform
+#
+# That looks exactly like a provider bug and is not one. Resolving the absolute
+# path here and handing it over via TF_ACC_TERRAFORM_PATH sidesteps the problem
+# entirely: the harness runs that binary directly, wherever it is invoked from.
+# Falls back to whatever is on PATH when asdf is not in use.
+TERRAFORM_BIN ?= $(shell asdf which terraform 2>/dev/null || command -v terraform)
+export TF_ACC_TERRAFORM_PATH := $(TERRAFORM_BIN)
 export ZABBIX_USER
 export ZABBIX_PASS
 
