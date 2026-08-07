@@ -92,6 +92,48 @@ vet: ## go vet
 test: ## Unit tests only (no Zabbix server needed)
 	TF_ACC= go test ./provider/
 
+# --- documentation ----------------------------------------------------------
+#
+# docs/ is generated from three inputs: the Description on every schema
+# attribute, the prose templates in templates/, and the runnable HCL in
+# examples/. Never hand-edit a file under docs/ -- the next `make docs` will
+# throw the edit away. If a generated page reads badly, the fix is almost
+# always a better schema Description, which reaches `terraform providers
+# schema -json` and editor tooling too.
+#
+# Pinned rather than floating: tfplugindocs output changes between releases,
+# so an unpinned version would make `docs-check` fail on somebody else's
+# machine for no reason. v0.25.0 needs go >= 1.25.8, which .tool-versions
+# satisfies (1.25.12); v0.24.0 and below are the fallback for an older
+# toolchain, at the cost of a slightly different rendering.
+TFPLUGINDOCS_VERSION ?= v0.25.0
+TFPLUGINDOCS         := go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@$(TFPLUGINDOCS_VERSION)
+
+# tfplugindocs runs `terraform init` from a temp directory, so it hits exactly
+# the version-manager shim problem TF_ACC_TERRAFORM_PATH solves for the test
+# harness -- but it has no equivalent flag, so the resolved binary's directory
+# goes on PATH ahead of the shim instead.
+DOCS_PATH := $(dir $(TERRAFORM_BIN)):$(PATH)
+
+.PHONY: docs
+docs: ## Regenerate docs/ from the provider schema, templates/ and examples/
+	PATH="$(DOCS_PATH)" $(TFPLUGINDOCS) generate --provider-name zabbix --rendered-provider-name Zabbix
+
+.PHONY: docs-check
+docs-check: ## Fail if docs/ is out of date with the schema (CI gate)
+	@$(MAKE) docs
+	@git diff --quiet --exit-code -- docs/ || { \
+		echo; \
+		echo ">>> docs/ is out of date. Run 'make docs' and commit the result."; \
+		git --no-pager diff --stat -- docs/; \
+		exit 1; \
+	}
+	@echo "docs/ is up to date"
+
+.PHONY: docs-validate
+docs-validate: ## Check docs/ against the Terraform Registry's layout rules
+	PATH="$(DOCS_PATH)" $(TFPLUGINDOCS) validate --provider-name zabbix
+
 # --- test environment -------------------------------------------------------
 
 .PHONY: testenv-up

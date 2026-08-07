@@ -1,31 +1,96 @@
 ---
-page_title: "zabbix Provider"
-subcategory: ""
+page_title: "Zabbix Provider"
 description: |-
-  The Zabbix provider provides resources to interact with a Zabbix Monitoring Server.  
+  Manage a Zabbix monitoring server as code: hosts, templates, proxies, items, discovery rules, triggers and graphs over the Zabbix JSON-RPC API.
 ---
 
-# zabbix Provider
+# Zabbix Provider
 
-The Zabbix provider provides resources to interact with a Zabbix Monitoring Server.  
+Manage a Zabbix monitoring server as code — hosts, host groups, templates,
+template groups, proxies, items, item prototypes, low-level discovery rules,
+triggers and graphs — over the Zabbix JSON-RPC API.
+
+~> **Upgrading from `v0.17.0`?** `v2.0.0` is deliberately a breaking release:
+the minimum Zabbix version moved to 6.0, `zabbix_application` and
+`zabbix_item_aggregate` were removed, and three collections became sets. Read
+the [upgrade guide](https://github.com/tpretz/terraform-provider-zabbix/blob/v2/MIGRATING.md)
+before you plan.
+
+## Zabbix version support
+
+| Tier | Versions | Commitment |
+|---|---|---|
+| Supported — CI-gated | 6.0 LTS, 7.0 LTS, 7.4 | the full acceptance suite must pass before a release |
+| Early warning — non-blocking | 8.0 (`ubuntu-trunk` nightly) | in the test matrix, reported but never gating |
+| Dropped | 4.0, 5.0, 5.4 | code paths deleted, not merely untested |
+
+The floor tracks Zabbix's own limited-support window: 6.0 leaves limited
+support on **2027-02-28**, at which point the floor moves to 7.0.
+
+The provider probes `apiinfo.version` when it configures, before authenticating,
+and adapts to the server it finds: bearer-token auth on 6.4+, the rewritten
+proxy model on 7.0+, `selectHostGroups` / `selectTemplateGroups` on 7.2+. There
+is nothing to configure. An attribute that does not exist on your server is
+refused rather than silently dropped — from Zabbix 7.0 an unknown property is a
+hard API error, and a value quietly discarded is worse than one rejected.
+
+Everything is available on Zabbix 6.0 except:
+
+| Resource / attribute | Minimum |
+|---|---|
+| `zabbix_templategroup`, `data.zabbix_templategroup` | 6.2 |
+| `zabbix_template.groups` means *template* group ids | 6.2 (host group ids below) |
+| `zabbix_template.vendor_name`, `.vendor_version` | 6.4 |
+| `zabbix_template.readme`, `.wizard_ready` | 7.4 |
+
+## Authentication
+
+Give either `username` + `password`, or a `token`. With a token the provider
+sets the auth header directly and skips the login call. Configuring neither is
+an error.
+
+Every argument has an environment-variable fallback, so credentials need not be
+written into configuration: `ZABBIX_URL` (or `ZABBIX_SERVER_URL`),
+`ZABBIX_USER` (or `ZABBIX_USERNAME`), `ZABBIX_PASS` (or `ZABBIX_PASSWORD`) and
+`ZABBIX_TOKEN`.
 
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    zabbix = {
+      source  = "tpretz/zabbix"
+      version = "~> 2.0"
+    }
+  }
+}
+
 provider "zabbix" {
-  # Required
-  username = "<api_user>"
-  password = "<api_password>"
-  url = "http://example.com/api_jsonrpc.php"
-  
-  # Optional
+  url = "https://zabbix.example.com/api_jsonrpc.php"
 
-  # Disable TLS verfication (false by default)
-  tls_insecure = true
+  # Authenticate with a username and password ...
+  username = "Admin"
+  password = "zabbix"
 
-  # Serialize Zabbix API calls (false by default)
-  # Note: race conditions have been observed, enable this if required
-  serialize = true
+  # ... or with an API token, in which case username and password are unused.
+  # token = "..."
+
+  # Every argument above has an environment fallback, so credentials need not
+  # be written into configuration at all:
+  #
+  #   ZABBIX_URL   (or ZABBIX_SERVER_URL)
+  #   ZABBIX_USER  (or ZABBIX_USERNAME)
+  #   ZABBIX_PASS  (or ZABBIX_PASSWORD)
+  #   ZABBIX_TOKEN
+
+  # Skip TLS certificate verification. Testing only.
+  tls_insecure = false
+
+  # Serialise API calls. Zabbix has known races on concurrent writes to the
+  # same object; enable this if you see intermittent API errors under
+  # parallelism.
+  serialize = false
 }
 ```
 
@@ -34,11 +99,26 @@ provider "zabbix" {
 
 ### Required
 
-- **password** (String) Zabbix API password
-- **url** (String) Zabbix API url
-- **username** (String) Zabbix API username
+- `url` (String) Full URL of the Zabbix API endpoint, e.g. https://zabbix.example.com/api_jsonrpc.php. Falls back to $ZABBIX_URL or $ZABBIX_SERVER_URL
 
 ### Optional
 
-- **serialize** (Boolean) Serialize API requests, if required due to API race conditions
-- **tls_insecure** (Boolean) Disable TLS certificate checking (for testing use only)
+- `password` (String) Zabbix API password. Falls back to $ZABBIX_PASS or $ZABBIX_PASSWORD
+- `serialize` (Boolean) Send API requests one at a time. Zabbix has races on concurrent writes to the same object; enable this if applies fail intermittently under parallelism
+- `tls_insecure` (Boolean) Skip TLS certificate verification when talking to the API. For testing only
+- `token` (String) Zabbix API token (Zabbix 5.4 and later). Used instead of username and password: the provider sends it directly and skips the login call. Falls back to $ZABBIX_TOKEN
+- `username` (String) Zabbix API username. Give either username and password, or token. Falls back to $ZABBIX_USER or $ZABBIX_USERNAME
+
+## Importing
+
+Every resource supports `terraform import` using the Zabbix numeric id, which
+the frontend shows in the URL of the object's configuration form:
+
+```shell
+terraform import zabbix_host.example 10634
+```
+
+Two attribute pairs cannot be imported, because the Zabbix API accepts them but
+never returns them: `tls_psk_identity` / `tls_psk` on both `zabbix_host` and
+`zabbix_proxy`. They import as empty; re-add them to the configuration and the
+next apply sends them again.

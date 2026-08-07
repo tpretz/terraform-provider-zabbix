@@ -1,0 +1,47 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Interfaces are a set
+
+A host's interfaces are an unordered collection: the order the blocks are
+written in carries no meaning, and neither does the order Zabbix returns them
+in. They are therefore a `TypeSet`, and **set elements cannot be indexed** —
+`zabbix_host.example.interface[0].id` does not parse. Use `one(...)` for a host
+with a single interface, or a `for` expression with an `if` clause to pick one
+out by type or address. See
+[MIGRATING.md](https://github.com/tpretz/terraform-provider-zabbix/blob/v2/MIGRATING.md#6-sets-not-lists--and-sets-cannot-be-indexed)
+if you are upgrading from `v0.17.0`.
+
+Zabbix will not delete an interface that items are bound to. When an interface
+block is edited, the provider reassigns the existing `interfaceid` of the same
+type rather than asking for a delete-and-recreate.
+
+## Proxy assignment
+
+`proxyid` is the id of the proxy monitoring this host, or `"0"` for the Zabbix
+server itself. On Zabbix 7.0 and later the provider also sets `monitored_by`
+to match; below 7.0 it writes the old `proxy_hostid` property. The
+configuration is the same either way.
+
+## Write-only attributes
+
+`tls_psk_identity` and `tls_psk` are accepted by the API but never returned by
+it, so they cannot be read back, cannot be imported, and are not refreshed.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}

@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Items are a set
+
+A graph's items are an unordered collection — the drawing order is carried by
+`sortorder`, not by the order the blocks appear in — so `item` is a `TypeSet`
+and cannot be indexed. Zabbix's return order for graph items changed in 8.0,
+which is exactly why the provider does not model it as a list.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}

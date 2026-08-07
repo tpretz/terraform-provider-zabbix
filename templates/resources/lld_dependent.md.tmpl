@@ -1,0 +1,34 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Filter conditions are a set
+
+Filter conditions are unordered. Zabbix does not preserve the order they are
+submitted in, and does not return them consistently across versions: 6.0
+returns them in submission order, 7.2 and later sorted by formula id. `condition`
+is therefore a `TypeSet` and cannot be indexed.
+
+Under every `evaltype` but `"custom"`, Zabbix assigns the formula ids itself
+and 7.2+ rejects a request that supplies them — so `condition.id` stays empty
+and must not be set. With `evaltype = "custom"` you set `id` on each condition
+and reference those ids from `formula`; Zabbix renumbers them into the order
+they first appear in the formula, so write the formula in that order or it will
+be read back rewritten.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}

@@ -8,7 +8,7 @@ import (
 var schemaAgent = map[string]*schema.Schema{
 	"active": &schema.Schema{
 		Type:        schema.TypeBool,
-		Description: "Active zabbix agent Item",
+		Description: "Use an active agent check: the agent connects to the server and asks for its checks, rather than the server polling the agent. Active checks need no inbound connectivity to the host",
 		Optional:    true,
 		Default:     false,
 	},

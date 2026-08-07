@@ -1,0 +1,59 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## One set of attribute names, every version
+
+Zabbix 7.0 rewrote the proxy object: every mode-dependent property was renamed,
+and the separate proxy interface was folded into the proxy itself. This
+resource exposes one set of attribute names on every supported version and
+translates underneath, so the same configuration applies unchanged to a 6.0
+server and to a 7.4 one:
+
+| Attribute | Zabbix 6.0 / 6.4 | Zabbix 7.0 and later |
+|---|---|---|
+| `name` | `host` | `name` |
+| `operating_mode` | `status` (`5` active, `6` passive) | `operating_mode` (`0` active, `1` passive) |
+| `address`, `port` | nested `interface` object (`useip`/`ip`/`dns`/`port`) | `address`, `port` |
+| `allowed_addresses` | `proxy_address` | `allowed_addresses` |
+| `description`, `tls_*` | unchanged | unchanged |
+
+`address` accepts either an IP address or a DNS name; below 7.0 the provider
+sets the interface's `useip`, `ip` and `dns` from the shape of the value.
+
+## Attributes and operating mode
+
+Zabbix validates a proxy strictly by mode, and so does this resource:
+
+- `address` and `port` describe where the server connects and apply to
+  **passive** proxies only. An active proxy connects outward, so it has no
+  endpoint of its own; both attributes report the Zabbix defaults
+  (`127.0.0.1` / `10051`) and setting anything else is an error.
+- `allowed_addresses` applies to **active** proxies only.
+- `tls_connect` governs the connection *to* a passive proxy, `tls_accept`
+  the connection *from* an active one. Setting the one that does not apply to
+  anything but `unencrypted` is rejected by the server.
+
+## Proxy groups
+
+Proxy groups are Zabbix 7.0's other proxy-related addition and are **not**
+handled here: the `proxy_groupid`, `local_address` and `local_port` properties
+are not exposed, pending a `zabbix_proxygroup` resource to give them something
+to point at.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}

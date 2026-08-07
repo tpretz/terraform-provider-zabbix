@@ -57,7 +57,7 @@ var _ = func() bool {
 var proxySchemaBase = map[string]*schema.Schema{
 	"name": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Technical name of the proxy",
+		Description:  "Technical name of the proxy, unique across the Zabbix server",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 	},
 	"operating_mode": &schema.Schema{
@@ -172,7 +172,7 @@ func proxyDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) 
 	// existing configurations do not break.
 	o["host"] = &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "Technical name of the proxy",
+		Description:  "Technical name of the proxy. Deprecated: this is the pre-7.0 property name, use `name` instead. Exactly one of `host` or `name` must be given",
 		Optional:     true,
 		Computed:     true,
 		Deprecated:   "use name instead, matching Zabbix 7.0 and later",
@@ -180,6 +180,7 @@ func proxyDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) 
 		ExactlyOneOf: []string{"host", "name"},
 	}
 	o["name"].ExactlyOneOf = []string{"host", "name"}
+	o["name"].Description = "Technical name of the proxy. Exactly one of `host` or `name` must be given"
 
 	return o
 }

@@ -1,0 +1,22 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Give exactly one of `hostid`, `host` or `name`. The lookup fails with a clear
+error if nothing matches, rather than returning an empty resource.
+
+`interface`, `macro` and `tag` are sets and cannot be indexed; use `one(...)`
+or a `for` expression.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}

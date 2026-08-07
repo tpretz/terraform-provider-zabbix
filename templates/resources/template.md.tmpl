@@ -1,0 +1,40 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## `groups` means different things on different servers
+
+On Zabbix 6.2 and later, `groups` holds **template** group ids
+([`zabbix_templategroup`](templategroup)). On 6.0 and 6.1, template groups do
+not exist and it holds host group ids ([`zabbix_hostgroup`](hostgroup)). The id
+spaces are disjoint, so a configuration written for one will not apply to the
+other — see
+[MIGRATING.md § 5](https://github.com/tpretz/terraform-provider-zabbix/blob/v2/MIGRATING.md#5-zabbix_templategroups-now-means-template-groups).
+
+## Version-gated attributes
+
+| Attribute | Requires |
+|---|---|
+| `vendor_name`, `vendor_version` | Zabbix 6.4 — and must be set together |
+| `readme`, `wizard_ready` | Zabbix 7.4 |
+
+These are refused rather than silently dropped on an older server: from Zabbix
+7.0 an unknown object property is a hard API error, and a value quietly
+discarded is worse than one rejected.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}
