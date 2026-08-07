@@ -245,9 +245,9 @@ resource "zabbix_lld_trapper" "testlldb" {
 }
 resource "zabbix_proto_item_trapper" "testproto" {
 	hostid    = zabbix_template.testtmpl.id
-	ruleid    = ` + rule + `.id
+	ruleid    = `+rule+`.id
 	key       = "forcenew.proto[{#FSNAME}]"
-	name      = "` + name + `"
+	name      = "`+name+`"
 	valuetype = "unsigned"
 }
 `)
