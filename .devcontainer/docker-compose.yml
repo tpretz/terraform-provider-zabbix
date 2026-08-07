@@ -17,7 +17,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VARIANT: 1-bullseye
+        VARIANT: 1.25-bookworm
         NODE_VERSION: lts/*
     volumes:
       - ..:/workspace:cached
