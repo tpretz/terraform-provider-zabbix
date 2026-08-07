@@ -181,10 +181,11 @@ var schemaHttp = map[string]*schema.Schema{
 // resourceItemHttp Http item resource handler
 func resourceItemHttp() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Read:   itemGetReadWrapper(itemHttpReadFunc),
-		Update: itemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix HTTP agent item: a value collected by making an HTTP request from the server or proxy.",
+		Create:      itemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Read:        itemGetReadWrapper(itemHttpReadFunc),
+		Update:      itemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -194,10 +195,11 @@ func resourceItemHttp() *schema.Resource {
 }
 func resourceProtoItemHttp() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Read:   protoItemGetReadWrapper(itemHttpReadFunc),
-		Update: protoItemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix HTTP agent item prototype. One HTTP item is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Read:        protoItemGetReadWrapper(itemHttpReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -208,10 +210,11 @@ func resourceProtoItemHttp() *schema.Resource {
 func resourceLLDHttp() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema, schemaHttp)
 	return &schema.Resource{
-		Create: lldGetCreateWrapper(lldHttpModFunc, lldHttpReadFunc),
-		Read:   lldGetReadWrapper(lldHttpReadFunc),
-		Update: lldGetUpdateWrapper(lldHttpModFunc, lldHttpReadFunc),
-		Delete: resourceLLDDelete,
+		Description: "Manages a Zabbix low-level discovery rule backed by an HTTP agent item, discovering entities from a JSON endpoint. Prototypes attached to it are instantiated for every entity it discovers.",
+		Create:      lldGetCreateWrapper(lldHttpModFunc, lldHttpReadFunc),
+		Read:        lldGetReadWrapper(lldHttpReadFunc),
+		Update:      lldGetUpdateWrapper(lldHttpModFunc, lldHttpReadFunc),
+		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

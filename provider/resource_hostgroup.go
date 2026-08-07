@@ -11,10 +11,11 @@ import (
 // resourceHostgroup terraform resource handler
 func resourceHostgroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceHostgroupCreate,
-		Read:   resourceHostgroupRead,
-		Update: resourceHostgroupUpdate,
-		Delete: resourceHostgroupDelete,
+		Description: "Manages a Zabbix host group. Hosts must belong to at least one, and permissions are granted per group.",
+		Create:      resourceHostgroupCreate,
+		Read:        resourceHostgroupRead,
+		Update:      resourceHostgroupUpdate,
+		Delete:      resourceHostgroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -23,7 +24,7 @@ func resourceHostgroup() *schema.Resource {
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Hostgroup Name",
+				Description:  "Host group name. Zabbix treats \"/\" as a nesting separator, e.g. \"Linux servers/production\"",
 				Required:     true,
 			},
 		},
@@ -33,13 +34,14 @@ func resourceHostgroup() *schema.Resource {
 // dataHostgroup terraform data handler
 func dataHostgroup() *schema.Resource {
 	return &schema.Resource{
-		Read: dataHostgroupRead,
+		Description: "Looks up an existing Zabbix host group by name.",
+		Read:        dataHostgroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Hostgroup Name",
+				Description:  "Host group name. Zabbix treats \"/\" as a nesting separator, e.g. \"Linux servers/production\"",
 				Required:     true,
 			},
 		},

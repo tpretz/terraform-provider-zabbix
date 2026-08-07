@@ -18,10 +18,11 @@ var schemaSnmp = map[string]*schema.Schema{
 // terraform resource handler for item type
 func resourceItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:   itemGetReadWrapper(itemSnmpReadFunc),
-		Update: itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix SNMP item: a value read from an SNMP OID over the host's SNMP interface.",
+		Create:      itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:        itemGetReadWrapper(itemSnmpReadFunc),
+		Update:      itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -30,10 +31,11 @@ func resourceItemSnmp() *schema.Resource {
 }
 func resourceProtoItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:   protoItemGetReadWrapper(itemSnmpReadFunc),
-		Update: protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix SNMP item prototype. One SNMP item is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:        protoItemGetReadWrapper(itemSnmpReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -44,10 +46,11 @@ func resourceProtoItemSnmp() *schema.Resource {
 func resourceLLDSnmp() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp)
 	return &schema.Resource{
-		Create: lldGetCreateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
-		Read:   lldGetReadWrapper(lldSnmpReadFunc),
-		Update: lldGetUpdateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
-		Delete: resourceLLDDelete,
+		Description: "Manages a Zabbix low-level discovery rule backed by an SNMP item, typically walking a table such as ifTable. Prototypes attached to it are instantiated for every entity it discovers.",
+		Create:      lldGetCreateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
+		Read:        lldGetReadWrapper(lldSnmpReadFunc),
+		Update:      lldGetUpdateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
+		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

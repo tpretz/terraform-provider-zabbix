@@ -59,23 +59,23 @@ var schemaTrigger = map[string]*schema.Schema{
 		Type:         schema.TypeString,
 		Required:     true,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Trigger name",
+		Description:  "Trigger name, as shown in the frontend. Zabbix calls this \"description\" in the API",
 	},
 	"expression": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Trigger Expression",
+		Description:  "Problem expression, e.g. `last(/host/key)>10`. Zabbix 5.4 and later use the `/host/key` syntax",
 		Required:     true,
 	},
 	"comments": &schema.Schema{
 		Type:        schema.TypeString,
-		Description: "Trigger comments",
+		Description: "Free-text description of the trigger, shown with the problem",
 		Optional:    true,
 	},
 	"priority": &schema.Schema{
 		Type:         schema.TypeString,
 		Optional:     true,
-		Description:  "Trigger Priority level, one of: " + strings.Join(TRIGGER_PRIORITY_ARR, ", "),
+		Description:  "Severity of problems this trigger raises, one of: " + strings.Join(TRIGGER_PRIORITY_ARR, ", ") + " (listed lowest first)",
 		ValidateFunc: validation.StringInSlice(TRIGGER_PRIORITY_ARR, false),
 		Default:      "not_classified",
 	},
@@ -83,18 +83,18 @@ var schemaTrigger = map[string]*schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     true,
-		Description: "Enable this trigger",
+		Description: "Whether the trigger is evaluated. A disabled trigger keeps its configuration but raises nothing",
 	},
 	"multiple": &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     false,
-		Description: "generate multiple events",
+		Description: "Raise a new problem event every time the expression evaluates true, instead of only on the transition into the problem state",
 	},
 	"url": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "link to url relevent to trigger",
+		Description: "URL shown with the problem, e.g. a runbook. Must be http or https, or empty",
 		// the empty string has to be allowed through, or the attribute is
 		// write-once: IsURLWithHTTPorHTTPS on its own rejects "", so a
 		// trigger that had been given a link could never have it taken away
@@ -107,12 +107,12 @@ var schemaTrigger = map[string]*schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     false,
-		Description: "set recovery mode to none",
+		Description: "Never close the problem automatically. Mutually exclusive with recovery_expression",
 	},
 	"recovery_expression": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "use recovery expression (recovery_none must not be true)",
+		Description: "Separate expression that closes the problem. Leave empty to close when the problem expression stops being true; requires recovery_none to be false",
 	},
 	"event_name": &schema.Schema{
 		Type:        schema.TypeString,
@@ -144,7 +144,7 @@ var schemaTrigger = map[string]*schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     false,
-		Description: "Manual resolution",
+		Description: "Allow the problem to be closed by hand from the frontend",
 	},
 	"dependencies": &schema.Schema{
 		Type:     schema.TypeSet,
@@ -153,7 +153,7 @@ var schemaTrigger = map[string]*schema.Schema{
 			Type:         schema.TypeString,
 			ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 		},
-		Description: "Trigger Dependencies",
+		Description: "IDs of triggers this one depends on (unordered). While any of them is in a problem state, this trigger raises nothing",
 	},
 	"tag": tagSetSchema,
 }
@@ -161,10 +161,11 @@ var schemaTrigger = map[string]*schema.Schema{
 // terraform resource handler for triggers
 func resourceTrigger() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTriggerCreate(false),
-		Read:   resourceTriggerRead(false),
-		Update: resourceTriggerUpdate(false),
-		Delete: resourceTriggerDelete(false),
+		Description: "Manages a Zabbix trigger: a named expression over item values that defines a problem state.",
+		Create:      resourceTriggerCreate(false),
+		Read:        resourceTriggerRead(false),
+		Update:      resourceTriggerUpdate(false),
+		Delete:      resourceTriggerDelete(false),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -174,10 +175,11 @@ func resourceTrigger() *schema.Resource {
 }
 func resourceProtoTrigger() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTriggerCreate(true),
-		Read:   resourceTriggerRead(true),
-		Update: resourceTriggerUpdate(true),
-		Delete: resourceTriggerDelete(true),
+		Description: "Manages a Zabbix trigger prototype. One trigger is created from it for each entity its discovery rule finds; its expression must reference at least one item prototype.",
+		Create:      resourceTriggerCreate(true),
+		Read:        resourceTriggerRead(true),
+		Update:      resourceTriggerUpdate(true),
+		Delete:      resourceTriggerDelete(true),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

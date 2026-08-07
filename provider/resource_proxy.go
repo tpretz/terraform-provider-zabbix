@@ -187,10 +187,11 @@ func proxyDataSchema(m map[string]*schema.Schema) (o map[string]*schema.Schema) 
 // resourceProxy terraform proxy resource entrypoint
 func resourceProxy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceProxyCreate,
-		Read:   resourceProxyRead,
-		Update: resourceProxyUpdate,
-		Delete: resourceProxyDelete,
+		Description: "Manages a Zabbix proxy: a collector that monitors hosts on the server's behalf. Exposes one set of attribute names across every supported Zabbix version.",
+		Create:      resourceProxyCreate,
+		Read:        resourceProxyRead,
+		Update:      resourceProxyUpdate,
+		Delete:      resourceProxyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -202,8 +203,9 @@ func resourceProxy() *schema.Resource {
 // dataProxy terraform proxy data source entrypoint
 func dataProxy() *schema.Resource {
 	return &schema.Resource{
-		Read:   dataProxyRead,
-		Schema: proxyDataSchema(proxySchemaBase),
+		Description: "Looks up an existing Zabbix proxy by its technical name.",
+		Read:        dataProxyRead,
+		Schema:      proxyDataSchema(proxySchemaBase),
 	}
 }
 

@@ -18,10 +18,11 @@ var schemaCalculated = map[string]*schema.Schema{
 // terraform resource handler for item type
 func resourceItemCalculated() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
-		Read:   itemGetReadWrapper(itemCalculatedReadFunc),
-		Update: itemGetUpdateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix calculated item: a value computed from other items by a formula, rather than collected from the host.",
+		Create:      itemGetCreateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
+		Read:        itemGetReadWrapper(itemCalculatedReadFunc),
+		Update:      itemGetUpdateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -31,10 +32,11 @@ func resourceItemCalculated() *schema.Resource {
 }
 func resourceProtoItemCalculated() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
-		Read:   protoItemGetReadWrapper(itemCalculatedReadFunc),
-		Update: protoItemGetUpdateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix calculated item prototype. One calculated item is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
+		Read:        protoItemGetReadWrapper(itemCalculatedReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemCalculatedModFunc, itemCalculatedReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

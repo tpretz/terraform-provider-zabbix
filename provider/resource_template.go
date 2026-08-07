@@ -34,10 +34,11 @@ const (
 // template resource function
 func resourceTemplate() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTemplateCreate,
-		Read:   resourceTemplateRead,
-		Update: resourceTemplateUpdate,
-		Delete: resourceTemplateDelete,
+		Description: "Manages a Zabbix template: a reusable collection of items, triggers, graphs and discovery rules that can be linked to many hosts.",
+		Create:      resourceTemplateCreate,
+		Read:        resourceTemplateRead,
+		Update:      resourceTemplateUpdate,
+		Delete:      resourceTemplateDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -66,7 +67,7 @@ func resourceTemplate() *schema.Resource {
 			"host": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "Template hostname (internal name)",
+				Description:  "Technical template name, unique across the Zabbix server",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 			"description": &schema.Schema{
@@ -78,7 +79,7 @@ func resourceTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Template Display Name (defaults to host)",
+				Description: "Template display name. Defaults to the value of `host`",
 			},
 			"templates": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -87,7 +88,7 @@ func resourceTemplate() *schema.Resource {
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 				},
-				Description: "linked templates",
+				Description: "IDs of templates linked into this one, so their items and triggers are inherited",
 			},
 			"macro": macroSetSchema,
 			"uuid": &schema.Schema{
@@ -124,7 +125,8 @@ func resourceTemplate() *schema.Resource {
 
 func dataTemplate() *schema.Resource {
 	return &schema.Resource{
-		Read: dataTemplateRead,
+		Description: "Looks up an existing Zabbix template by technical name or display name.",
+		Read:        dataTemplateRead,
 
 		Schema: map[string]*schema.Schema{
 			"groups": &schema.Schema{
@@ -139,7 +141,7 @@ func dataTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Template hostname (internal name)",
+				Description: "Technical template name. Give one of `host` or `name`",
 			},
 			"description": &schema.Schema{
 				Type:        schema.TypeString,
@@ -150,7 +152,7 @@ func dataTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Template Display Name (defaults to host)",
+				Description: "Template display name. Give one of `host` or `name`",
 			},
 			// templateRead is shared with the resource and unconditionally sets
 			// "templates"; without a matching attribute here helper/schema
@@ -162,7 +164,7 @@ func dataTemplate() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Computed:    true,
-				Description: "Linked template IDs",
+				Description: "IDs of templates linked into this one",
 			},
 			"macro": macroSetSchema,
 			"uuid": &schema.Schema{

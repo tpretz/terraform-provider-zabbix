@@ -342,10 +342,11 @@ var schemaGraph = map[string]*schema.Schema{
 // resourceGraph terraform resource handler
 func resourceGraph() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGraphCreate(false),
-		Read:   resourceGraphRead(false),
-		Update: resourceGraphUpdate(false),
-		Delete: resourceGraphDelete(false),
+		Description: "Manages a Zabbix graph: a named plot of one or more items on a host or template.",
+		Create:      resourceGraphCreate(false),
+		Read:        resourceGraphRead(false),
+		Update:      resourceGraphUpdate(false),
+		Delete:      resourceGraphDelete(false),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -359,10 +360,11 @@ func resourceGraph() *schema.Resource {
 }
 func resourceProtoGraph() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGraphCreate(true),
-		Read:   resourceGraphRead(true),
-		Update: resourceGraphUpdate(true),
-		Delete: resourceGraphDelete(true),
+		Description: "Manages a Zabbix graph prototype. One graph is created from it for each entity its discovery rule finds; at least one plotted item must be an item prototype.",
+		Create:      resourceGraphCreate(true),
+		Read:        resourceGraphRead(true),
+		Update:      resourceGraphUpdate(true),
+		Delete:      resourceGraphDelete(true),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

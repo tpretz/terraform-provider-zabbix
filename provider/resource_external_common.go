@@ -8,10 +8,11 @@ import (
 // terraform resource handler for item type
 func resourceItemExternal() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Read:   itemGetReadWrapper(itemExternalReadFunc),
-		Update: itemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix external check item: a value produced by a script the server or proxy executes from its ExternalScripts directory.",
+		Create:      itemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Read:        itemGetReadWrapper(itemExternalReadFunc),
+		Update:      itemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -21,10 +22,11 @@ func resourceItemExternal() *schema.Resource {
 }
 func resourceProtoItemExternal() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Read:   protoItemGetReadWrapper(itemExternalReadFunc),
-		Update: protoItemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix external check item prototype. One external check is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Read:        protoItemGetReadWrapper(itemExternalReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -35,10 +37,11 @@ func resourceProtoItemExternal() *schema.Resource {
 func resourceLLDExternal() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema)
 	return &schema.Resource{
-		Create: lldGetCreateWrapper(lldExternalModFunc, lldExternalReadFunc),
-		Read:   lldGetReadWrapper(lldExternalReadFunc),
-		Update: lldGetUpdateWrapper(lldExternalModFunc, lldExternalReadFunc),
-		Delete: resourceLLDDelete,
+		Description: "Manages a Zabbix low-level discovery rule backed by an external script. Prototypes attached to it are instantiated for every entity it discovers.",
+		Create:      lldGetCreateWrapper(lldExternalModFunc, lldExternalReadFunc),
+		Read:        lldGetReadWrapper(lldExternalReadFunc),
+		Update:      lldGetUpdateWrapper(lldExternalModFunc, lldExternalReadFunc),
+		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

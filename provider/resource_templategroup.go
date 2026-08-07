@@ -29,10 +29,11 @@ func errTemplateGroupUnsupported(m interface{}) error {
 // resourceTemplategroup terraform resource handler
 func resourceTemplategroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTemplategroupCreate,
-		Read:   resourceTemplategroupRead,
-		Update: resourceTemplategroupUpdate,
-		Delete: resourceTemplategroupDelete,
+		Description: "Manages a Zabbix template group. Requires Zabbix 6.2 or later, where template groups were split out of host groups.",
+		Create:      resourceTemplategroupCreate,
+		Read:        resourceTemplategroupRead,
+		Update:      resourceTemplategroupUpdate,
+		Delete:      resourceTemplategroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -51,7 +52,8 @@ func resourceTemplategroup() *schema.Resource {
 // dataTemplategroup terraform data handler
 func dataTemplategroup() *schema.Resource {
 	return &schema.Resource{
-		Read: dataTemplategroupRead,
+		Description: "Looks up an existing Zabbix template group by name. Requires Zabbix 6.2 or later.",
+		Read:        dataTemplategroupRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{

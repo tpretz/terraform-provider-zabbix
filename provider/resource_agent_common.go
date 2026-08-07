@@ -17,10 +17,11 @@ var schemaAgent = map[string]*schema.Schema{
 // resourceItemAgent terraform resource for agent items
 func resourceItemAgent() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:   itemGetReadWrapper(itemAgentReadFunc),
-		Update: itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix agent item: a value collected by polling the Zabbix agent running on the host.",
+		Create:      itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Read:        itemGetReadWrapper(itemAgentReadFunc),
+		Update:      itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -30,10 +31,11 @@ func resourceItemAgent() *schema.Resource {
 }
 func resourceProtoItemAgent() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:   protoItemGetReadWrapper(itemAgentReadFunc),
-		Update: protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix agent item prototype. One agent item is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Read:        protoItemGetReadWrapper(itemAgentReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -44,10 +46,11 @@ func resourceProtoItemAgent() *schema.Resource {
 func resourceLLDAgent() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent)
 	return &schema.Resource{
-		Create: lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc),
-		Read:   lldGetReadWrapper(lldAgentReadFunc),
-		Update: lldGetUpdateWrapper(lldAgentModFunc, lldAgentReadFunc),
-		Delete: resourceLLDDelete,
+		Description: "Manages a Zabbix low-level discovery rule backed by a Zabbix agent item. Item, trigger and graph prototypes attached to it are instantiated for every entity it discovers.",
+		Create:      lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc),
+		Read:        lldGetReadWrapper(lldAgentReadFunc),
+		Update:      lldGetUpdateWrapper(lldAgentModFunc, lldAgentReadFunc),
+		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

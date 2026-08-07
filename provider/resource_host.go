@@ -491,11 +491,12 @@ var hostSchemaBase = map[string]*schema.Schema{
 // resourceHost terraform host resource entrypoint
 func resourceHost() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceHostCreate,
-		Read:   resourceHostRead,
-		Update: resourceHostUpdate,
-		Delete: resourceHostDelete,
-		Schema: hostResourceSchema(hostSchemaBase),
+		Description: "Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group and at least one interface.",
+		Create:      resourceHostCreate,
+		Read:        resourceHostRead,
+		Update:      resourceHostUpdate,
+		Delete:      resourceHostDelete,
+		Schema:      hostResourceSchema(hostSchemaBase),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -509,8 +510,9 @@ func resourceHost() *schema.Resource {
 // dataHost terraform host resource entrypoint
 func dataHost() *schema.Resource {
 	return &schema.Resource{
-		Read:   dataHostRead,
-		Schema: hostDataSchema(hostSchemaBase),
+		Description: "Looks up an existing Zabbix host by id, technical name or display name.",
+		Read:        dataHostRead,
+		Schema:      hostDataSchema(hostSchemaBase),
 	}
 }
 

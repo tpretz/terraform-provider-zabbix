@@ -8,10 +8,11 @@ import (
 // terraform resource handler for item type
 func resourceItemInternal() *schema.Resource {
 	return &schema.Resource{
-		Create: itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:   itemGetReadWrapper(itemInternalReadFunc),
-		Update: itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Delete: resourceItemDelete,
+		Description: "Manages a Zabbix internal item: a value about Zabbix itself -- queue length, cache usage, process busy time -- rather than about the monitored host.",
+		Create:      itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Read:        itemGetReadWrapper(itemInternalReadFunc),
+		Update:      itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Delete:      resourceItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -21,10 +22,11 @@ func resourceItemInternal() *schema.Resource {
 }
 func resourceProtoItemInternal() *schema.Resource {
 	return &schema.Resource{
-		Create: protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:   protoItemGetReadWrapper(itemInternalReadFunc),
-		Update: protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Delete: resourceProtoItemDelete,
+		Description: "Manages a Zabbix internal item prototype. One internal item is created from it for each entity its discovery rule finds.",
+		Create:      protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Read:        protoItemGetReadWrapper(itemInternalReadFunc),
+		Update:      protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Delete:      resourceProtoItemDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -35,10 +37,11 @@ func resourceProtoItemInternal() *schema.Resource {
 func resourceLLDInternal() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema)
 	return &schema.Resource{
-		Create: lldGetCreateWrapper(lldInternalModFunc, lldInternalReadFunc),
-		Read:   lldGetReadWrapper(lldInternalReadFunc),
-		Update: lldGetUpdateWrapper(lldInternalModFunc, lldInternalReadFunc),
-		Delete: resourceLLDDelete,
+		Description: "Manages a Zabbix low-level discovery rule backed by an internal item. Prototypes attached to it are instantiated for every entity it discovers.",
+		Create:      lldGetCreateWrapper(lldInternalModFunc, lldInternalReadFunc),
+		Read:        lldGetReadWrapper(lldInternalReadFunc),
+		Update:      lldGetUpdateWrapper(lldInternalModFunc, lldInternalReadFunc),
+		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
