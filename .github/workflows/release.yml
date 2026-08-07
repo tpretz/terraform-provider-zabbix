@@ -67,13 +67,19 @@ jobs:
         with:
           go-version-file: go.mod
       -
+        # hashicorp/ghaction-import-gpg was archived and its last release is a
+        # Node 12 action, which GitHub no longer executes at all — it would fail
+        # immediately, not deprecate gracefully. crazy-max/ghaction-import-gpg is
+        # the maintained successor; note it takes the key and passphrase as
+        # `with:` inputs rather than `env:`, and still exports the `fingerprint`
+        # output that the GoReleaser step below consumes.
         name: Import GPG key
         id: import_gpg
-        uses: hashicorp/ghaction-import-gpg@v2.1.0
-        env:
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
           # These secrets will need to be configured for the repository:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
