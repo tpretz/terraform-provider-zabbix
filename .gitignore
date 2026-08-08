@@ -6,4 +6,6 @@ provider/acc.log
 provider/acc-*.log
 terraform.tfstate
 terraform.tfstate.backup
+# goreleaser output (`goreleaser build --snapshot --clean`, see RELEASING.md)
+dist/
 docker/zbx_env
