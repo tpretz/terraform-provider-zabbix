@@ -36,8 +36,9 @@ Two mechanical notes:
   libraries; a provider is a binary and is not imported. Upstream providers
   (`terraform-provider-aws` is at v6) keep an unsuffixed path — do the same.
 - **CI and release workflows must be branch-scoped** so a push to `v2` cannot publish
-  over the `v0.x` line. Tag-triggered release stays `v*`, but gate the job on the tag
-  being `v2.*` and the commit being an ancestor of `v2`.
+  over the `v0.x` line. `RELEASING.md` tightens this further than originally planned: the
+  trigger itself becomes `tags: ['v2.*']` **and** the job keeps a guard. Belt and braces,
+  because the trigger pattern is the half that gets widened by accident.
 
 ### Version support policy
 
@@ -612,17 +613,26 @@ recover.
 
 ---
 
-## Phase 6 — Routine maintenance posture
+## Phase 6 — Routine maintenance posture  ✅ DONE
 
-- [ ] `CHANGELOG.md` (keep-a-changelog) + `.changie.yaml` or equivalent
-- [ ] Renovate/Dependabot for Go modules and GitHub Actions
-- [ ] Nightly acceptance run against supported versions; issue opened automatically on failure
-- [ ] A **new-Zabbix-release runbook**: add compose stack → run matrix → read the upstream
+- [x] `CHANGELOG.md` (keep-a-changelog) + `.changie.yaml` or equivalent
+- [x] Renovate/Dependabot for Go modules and GitHub Actions
+- [x] Nightly acceptance run against supported versions; issue opened automatically on failure
+- [x] A **new-Zabbix-release runbook**: add compose stack → run matrix → read the upstream
       `manual/api/changes` page → gate deltas → update support table → drop the version
       that fell out of limited support. For 8.0 the first two steps are already done in
       Phase 1 — the runbook's first real exercise is promoting the trunk stack to a pinned
       `ubuntu-8.0-*` tag and making it release-blocking on GA.
-- [ ] `CONTRIBUTING.md` documenting the item triad pattern and the version-gate idiom
+- [x] `CONTRIBUTING.md` documenting the item triad pattern and the version-gate idiom
+- [x] **`RELEASING.md`** — not called for by this phase, and the real gap. Nothing
+      described how to cut v2.0.0 itself: push `v2`, enable Actions, remove the
+      `refs/heads/v2` guards, scope `release.yml` to `v2.*` tags, tag, make `v2` the
+      default branch. Note Dependabot also only activates once `v2` is default, since it
+      reads its config from the default branch.
+- [x] `goreleaser build --snapshot` — Phase 0's last exit criterion, finally run. Eight
+      targets, config validates, binaries named `terraform-provider-zabbix_v<version>` as
+      the Registry requires, and the `go mod tidy` before-hook leaves `go.mod`/`go.sum`
+      byte-identical.
 
 ---
 

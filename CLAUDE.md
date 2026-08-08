@@ -63,24 +63,39 @@ go test ./provider/         # unit tests (schema validation) — no server neede
 
 ### Acceptance tests need live Zabbix (multi-version)
 
-> **Being replaced.** The harness described below targets 4.0/5.0/5.4/6.0 — every one EOL but 6.0, and neither current Zabbix release is covered. PLAN.md Phase 1 replaces it with a standalone root-level `docker-compose.test.yml` for 6.0/7.0/7.4/8.0 that runs without the devcontainer. This is the *first* thing being built, so that everything after it is validated as it lands. Expect the commands below to change.
-
-Acceptance tests talk to real Zabbix servers and mutate them. The `Makefile` drives the standard Terraform `TF_ACC` flow against four versions at once and is meant to run **inside the dev container** (`.devcontainer/`), which brings up `zabbix-web-40/50/54/60` alongside it:
+`docker-compose.test.yml` in the repo root brings up four independent stacks — **6.0, 7.0,
+7.4 and 8.0** — each with its own PostgreSQL, on localhost ports 8060/8070/8074/8080. Plain
+`docker compose`; no devcontainer needed. Full bringup is about 12 seconds.
 
 ```bash
-make testacc                # runs test40 test50 test54 test60 (Zabbix 4.0 / 5.0 / 5.4 / 6.0)
-make test40                 # single version; each sets ZABBIX_URL to the matching web container
+make testenv-up            # all four; testenv-up-74 for one
+make testacc               # 6.0, 7.0, 7.4 - the release-gating set
+make testall               # adds 8.0, which is non-blocking
+make test-one TEST=TestAccResourceHost VER=74
+make testenv-down
 ```
 
-The Makefile exports `TF_ACC=1`, `ZABBIX_USER=Admin`, `ZABBIX_PASS=zabbix` and points `ZABBIX_URL` at `http://zabbix-web-<ver>:8080/api_jsonrpc.php`; acc logs go to `provider/acc.log`. To run a single test against one server:
+8.0 tracks the `ubuntu-trunk` nightly, so it is a moving target and never gates a release.
+Adding a version is a `VERSIONS` entry in the `Makefile` plus a three-line compose block.
+
+Health checks poll `apiinfo.version` rather than the web root: the frontend answers HTTP
+before the database schema is loaded, which is the classic flaky-start cause.
+
+**If many tests fail in under a second with `already exists`,** that is leftover state from
+an aborted run, not your code. Clear it:
 
 ```bash
 TF_ACC=1 ZABBIX_USER=Admin ZABBIX_PASS=zabbix \
-  ZABBIX_URL=http://zabbix-web-40:8080/api_jsonrpc.php \
-  go test -v -run TestAccResourceHost ./provider
+  ZABBIX_URL=http://localhost:8074/api_jsonrpc.php \
+  go test ./provider/ -sweep=all
 ```
 
-Releases were cut by goreleaser on pushing a `v*` tag. **That trigger is removed on this branch** — see "GitHub Actions is disabled" above.
+The suite assumes **exclusive use of a stack**. Two processes against the same version —
+two agents, or a stray `make test-one` during a full run — collide on fixtures, because
+fixture names are deliberately stable (`test-group`, `testhost`, …) so the sweepers can
+find them.
+
+Full details, including the current results table, are in [TESTING.md](./TESTING.md).
 
 ## Architecture
 
@@ -215,7 +230,15 @@ Every `_ARR` is sorted at init (`TestEnumValueListsAreSorted`). This is not cosm
 
 `testAccPreCheck` (`provider/provider_test.go`) requires `ZABBIX_URL`, `ZABBIX_USER`, `ZABBIX_PASS`.
 
-Current acceptance coverage is thinner than the file listing suggests — nine test files contain only `package provider`, no data source or item-prototype resource is tested, and although every resource declares `ImportStatePassthrough`, no test exercises import. See API-COVERAGE.md § 4 for the itemised gaps. When touching a resource, add the missing test rather than leaving the stub.
+Coverage is now **106 tests, 86 of them acceptance**, green on all four versions at roughly
+205–215s each. Every registered resource and data source has a test with an import step and
+a `CheckDestroy`; there is one `ImportStateVerifyIgnore` suite-wide (proxy PSK, which
+`proxy.get` never returns). Drift, negative paths, `ForceNew`, provider configuration and
+scalar boundaries are covered — see PLAN.md § Phase 8.
+
+**Do not treat that as licence to add a resource without tests.** Of the 24 defects fixed in
+v2, most were found by a test written where coverage was absent, and every one had been
+invisible for years. `S1`–`S8` and `C1`–`C7` below are the bar.
 
 ### `C1`–`C7`: a collection attribute is not tested until it is tested plural
 

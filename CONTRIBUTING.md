@@ -14,7 +14,7 @@ For build, test and documentation mechanics, read
 
 - **All work happens on `v2`.** `master` and `testenv` are frozen: no commits,
   no backports, no re-tagging. The published `v0.x` releases stay as they are.
-- **One reviewed change per commit.** Nineteen bugs were found during the v2
+- **One reviewed change per commit.** Twenty-four defects are listed in the v2.0.0 changelog, and they were found during the v2
   revival and each landed on its own. A commit that fixes two things is two
   commits.
 - **Say what you measured.** This project's commit messages record what was run
