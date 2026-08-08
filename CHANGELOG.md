@@ -1,0 +1,240 @@
+# Changelog
+
+All notable changes to this provider are documented in this file.
+
+The format is [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+This file is maintained by hand: add your entry to `## [Unreleased]` in the same
+commit as the change. There is deliberately no changelog-fragment tool — see
+[CONTRIBUTING.md § Changelog entries](./CONTRIBUTING.md#changelog-entries) for why,
+and for the one condition that should change that decision.
+
+Releases before `2.0.0` predate this file. Their history is the git log and the
+[GitHub releases](https://github.com/tpretz/terraform-provider-zabbix/releases)
+page. There is no `1.x`: the major version was skipped so that the branch name,
+the module major and the Registry version all read the same.
+
+## [Unreleased]
+
+Nothing yet.
+
+## [2.0.0] — UNRELEASED
+
+The first release since `v0.17.0` (2021), and deliberately a breaking one. Every
+breaking change in the v2 line is batched here.
+
+**Read [MIGRATING.md](./MIGRATING.md) before upgrading.** It is a section-by-section
+`v0.17.0 → v2.0.0` guide with before/after HCL for each of the seven breaking
+changes, and it ends in a checklist. No Zabbix object has to be recreated: every
+change is either an edit to your `.tf` files or a `terraform state` operation.
+
+Headline: **the provider could not talk to a Zabbix 7.2 or newer server at all**
+before this release — the auth token was sent as a JSON-RPC `auth` body property,
+which 7.2 removed and now rejects, so every single API call failed. That, and the
+rest of the two dozen defects fixed along the way, are listed under
+[Fixed](#fixed) below.
+
+Supported Zabbix versions: **6.0 LTS, 7.0 LTS and 7.4** are release-gating; 8.0 is
+watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
+
+### Added
+
+- `zabbix_templategroup` resource and data source. Zabbix 6.2 split template
+  groups out of host groups; below 6.2 both refuse with an actionable error
+  pointing at `zabbix_hostgroup`.
+- `zabbix_proxy` **resource**. The provider could previously look a proxy up but
+  not manage one. It exposes one set of attribute names on every version and
+  translates internally across Zabbix 7.0's rewrite of the object
+  (`host`→`name`, `status`→`operating_mode`, nested interface→`address`/`port`,
+  `proxy_address`→`allowed_addresses`).
+- `token` provider argument (`$ZABBIX_TOKEN`), as an alternative to
+  `username`/`password`. With a token the provider skips the login call. From
+  Zabbix 6.4 the token is sent as an `Authorization: Bearer` header; below that,
+  as the JSON-RPC body property.
+- `username` and `password` are now optional, with `$ZABBIX_USER`/`$ZABBIX_USERNAME`
+  and `$ZABBIX_PASS`/`$ZABBIX_PASSWORD` fallbacks. One of the two credential paths
+  is still required, and the provider says so rather than failing at the first call.
+- `zabbix_host`: `ipmi_authtype`, `ipmi_privilege`, `ipmi_username`,
+  `ipmi_password`, and `tls_connect`, `tls_accept`, `tls_issuer`, `tls_subject`,
+  `tls_psk_identity`, `tls_psk`. Password and PSK attributes are marked sensitive.
+- `zabbix_template`: `uuid` (computed), `vendor_name`/`vendor_version` (Zabbix 6.4+),
+  `readme`/`wizard_ready` (7.4+). Below their gate the attributes are absent rather
+  than erroring.
+- `zabbix_trigger`: `event_name`, `opdata`, `manual_close`, `correlation_mode`,
+  `correlation_tag` and `dependencies`.
+- Generated Registry documentation. `docs/` is now produced by `terraform-plugin-docs`
+  from the schema, `templates/` and `examples/` — 42 pages, each with a runnable
+  example and an import script, grouped into Registry subcategories. Every one of
+  the 928 schema attributes now carries a description, enforced by a unit test.
+- [MIGRATING.md](./MIGRATING.md), [TESTING.md](./TESTING.md),
+  [DEVELOPMENT.md](./DEVELOPMENT.md), [CONTRIBUTING.md](./CONTRIBUTING.md),
+  [RELEASING.md](./RELEASING.md) and [MAINTAINING.md](./MAINTAINING.md).
+
+### Changed
+
+- **Minimum Zabbix version is 6.0.** 4.0, 5.0 and 5.4 support was deleted, not
+  merely left untested. See [MIGRATING.md §1](./MIGRATING.md#1-zabbix-60-is-now-the-minimum).
+- **`graph.item`, `zabbix_host.interface` and the LLD filter `condition` block are
+  sets, not lists.** The server's return order for all three is an implementation
+  detail that changed between Zabbix versions. Sets cannot be indexed from HCL:
+  `zabbix_host.x.interface[0].id` no longer parses — use `one(...)`. This is the
+  change most likely to break a configuration that otherwise looks fine. See
+  [MIGRATING.md §6](./MIGRATING.md#6-sets-not-lists--and-sets-cannot-be-indexed).
+  State upgraders are provided on all eleven affected resources; item and LLD
+  `preprocessing` deliberately stay lists, because their order is semantic.
+- **`zabbix_template.groups` means *template* groups on Zabbix 6.2+.** A state
+  upgrader verifies the ids rather than rewriting them: a host group id cannot be
+  mechanically turned into a template group id, so anything that is not already a
+  template group fails naming the offending ids and the fix. See
+  [MIGRATING.md §5](./MIGRATING.md#5-zabbix_templategroups-now-means-template-groups).
+- `zabbix_host` macros are a set rather than a list.
+- The Zabbix API client is no longer the `github.com/tpretz/go-zabbix-api` git
+  submodule; it lives in this repository as `internal/zabbix`, with its history
+  preserved. Nothing about this is visible in a configuration.
+- Toolchain: Go directive `1.25.8`, `terraform-plugin-sdk/v2` v2.40.1,
+  `terraform-plugin-go` v0.31.0. The acceptance suite moved to
+  `terraform-plugin-testing` v1.16.0. `.tool-versions` pins the versions actually
+  built and tested with (Go 1.25.12, Terraform 1.8.5).
+- The acceptance harness is a root-level `docker-compose.test.yml` running plain
+  `docker compose` — one isolated PostgreSQL-backed stack per Zabbix version, with
+  healthchecks that wait on `apiinfo.version` rather than on the web root. The old
+  devcontainer-only 4.0/5.0/5.4/6.0 MySQL harness is gone.
+- Release plumbing: `.goreleaser.yml` migrated to the v2 schema, builds narrowed to
+  amd64/arm64 across freebsd/windows/linux/darwin, and the archived
+  `hashicorp/ghaction-import-gpg` (a Node 12 action GitHub no longer executes at
+  all) replaced with `crazy-max/ghaction-import-gpg@v6`.
+
+### Deprecated
+
+- `data.zabbix_proxy`'s `host` argument. Use `name`, which is what the object has
+  been called since Zabbix 7.0. Both are still accepted and both are reported.
+
+### Fixed
+
+Every defect below landed as its own reviewed change. Almost all were found by
+tests written during the v2 work rather than reported, and several made a
+resource completely unusable on a current Zabbix server.
+
+Zabbix 7.x / 8.0 compatibility:
+
+1. **Every API call failed on Zabbix 7.2 and later.** The auth token was sent as a
+   JSON-RPC `auth` body property; 7.2 removed it and rejects unknown parameters.
+   The provider now sends `Authorization: Bearer` from 6.4 and the body property
+   below that — exactly one of the two, never both.
+2. **Hosts and templates read back with no groups at all on Zabbix 7.2+.**
+   `selectGroups` was replaced by `selectHostGroups`/`selectTemplateGroups`. `.get`
+   methods ignore unknown parameters on *every* version, so this was a silent wrong
+   answer rather than an error — the more dangerous of the two failure modes.
+3. **Host proxy assignment was wrong on Zabbix 7.0+**: `proxy_hostid` became
+   `proxyid` alongside a new `monitored_by`. Both models are handled; the resource
+   attribute is unchanged.
+4. **Every item update failed on Zabbix 7.x**: `hostid` became create-only at 7.0
+   and `item.update` / `itemprototype.update` / `discoveryrule.update` reject it.
+5. **HTTP `headers` and query fields on items, item prototypes and discovery rules**
+   became an array of `{name, value}` at 7.0. Writes now match the server version;
+   reads accept either shape.
+6. **Preprocessing step 26 ("check for not supported value")** takes mandatory
+   parameters from 7.0. An empty `params` is sent as `-1` (any error) and mapped
+   back on read, so a config that omits it round-trips.
+7. **Removed and read-only properties were sent on the item write path** and are
+   hard errors from 7.0: `data_type` and `delta` (gone since Zabbix 3.4), plus the
+   read-only `hosts` and `discoveryRule`. `discoveryRule` carried a `omitEmpty`
+   struct tag, which `encoding/json` ignores, so it was serialised as `null` on
+   every single call.
+8. **The proxy data source was wrong on Zabbix 7.0+**: `proxy.get` dropped
+   `selectInterface` and filtering on `host`.
+9. **Templates could not be created on Zabbix 6.2+**: `template.create` was handed
+   a host group id. This single mismatch accounted for every remaining acceptance
+   failure on 7.0, 7.4 and 8.0.
+
+Correctness:
+
+10. **`zabbix_lld_dependent` could never be created.** The shared LLD schema
+    defaulted `delay` to 3600; a dependent rule is driven by its master item and
+    Zabbix requires 0.
+11. **`zabbix_lld_trapper` failed on create** unless the user knew to write
+    `delay = "0"`, for the same reason. `delay` is now pinned to `"0"` on both.
+12. **No `zabbix_proto_item_*` resource could be updated on Zabbix 7.2+.**
+    `itemprototype.update` was sent the create-only `ruleid`. Item prototypes were
+    effectively write-once on both current Zabbix releases.
+13. **Every HTTP item had a permanent, unappliable diff.** `post_type` defaulted to
+    `"body"`, which is not one of its values (`raw`/`json`/`xml`) — it was copied
+    from `retrieve_mode`, where `"body"` is valid. The default is now `"raw"`.
+14. **The `zabbix_template` data source crashed the provider on every read.** The
+    shared read path sets `templates`, which the data source schema did not declare,
+    and `helper/schema` panics on an unknown address.
+15. **`zabbix_graph` and `zabbix_proto_graph` never reached an empty plan on Zabbix
+    8.0**, which returns a graph's items in a different order. Fixed by the
+    `TypeList`→`TypeSet` conversion above, not by sorting the read result: a list
+    must match the *config's* order, which need not agree with any field the server
+    sorts by.
+16. **Updating an LLD rule that already had a filter failed on Zabbix 7.2+.** The
+    provider echoed back the formula ids the server had assigned, which 7.2+ rejects
+    outright. They are now sent only for `evaltype = "custom"`, where the server
+    requires them.
+17. **`evaltype = "custom"` was unusable** — the condition `id` was not writable, so
+    the call failed with "the parameter formulaid is missing".
+18. **The computed `id` on every `macro` block was permanently empty.**
+    `Macro.MacroID` was tagged `hostmacroids`, the `usermacro.get` *filter* name,
+    rather than the object property `hostmacroid`.
+19. **`templates_clear` could name an already-deleted template.** Terraform destroys
+    a template in the same apply that removes it from a host or template, without
+    ordering the unlink first; Zabbix 6.0 tolerated the stale id, 7.0+ makes it a
+    hard error. Both the host and the template update paths now filter it against
+    the ids the server still knows.
+20. **Six collections could be added to but never emptied.** `omitempty` on a
+    property Zabbix replaces wholesale means removing the last element sends no
+    property at all, the server keeps what it had, and the next read puts it back:
+    item `preprocessing` and `tag`, LLD `preprocessing`, trigger `dependencies` and
+    `tag` on both triggers and trigger prototypes, and LLD `macro_path`. Zabbix
+    6.0 additionally rejects `[]` on create where 7.0+ accepts it, so `macro_path`
+    distinguishes "absent" from "empty" with a pointer.
+21. **HTTP item `posts` and `proxy` could not be cleared**, for the same reason.
+    They cannot simply lose `omitempty` — one `Item` struct serves all ten backend
+    types and 7.0+ rejects properties that do not apply — so the four HTTP-only
+    fields became pointers, where a pointer to `""` marshals and a nil one is
+    omitted.
+22. **A trigger `url` could not be removed once set**, for two stacked reasons: the
+    validator rejected `""`, and the property was `omitempty`.
+23. **All five data sources silently succeeded when their lookup matched nothing.**
+    They ended in a read shared with the corresponding resource, where "found
+    nothing" clears the id to report drift. Terraform accepted the placeholder
+    `id-attribute-not-set` and the failure surfaced later and elsewhere as
+    `Invalid parameter "/groupids/1": a number is expected` or, worse, "Database
+    error occurred". Each data source now fails naming the lookup that missed.
+24. Host macros and host/item tags could not be removed, and `zabbix_host` deletion
+    sent properties the API rejects. (Fixed on the development branch after
+    `v0.17.0` and unreleased until now.)
+
+Items 20 and 24 each group several instances of one root cause fixed together;
+counted individually the total is higher. One root cause dominates — `omitempty`
+on a property Zabbix reads as "leave as is" — which produced six separate bugs
+(20, 21, 22 and the `discoveryRule` tag in 7) and is written up in
+[CONTRIBUTING.md](./CONTRIBUTING.md#the-omitempty-trap).
+
+### Removed
+
+- **`zabbix_application` and `data.zabbix_application`**, and the `applications`
+  attribute on every item, item prototype and discovery rule. Applications were
+  removed from Zabbix at 5.4; item tags replace them. See
+  [MIGRATING.md §2](./MIGRATING.md#2-zabbix_application-is-gone--use-item-tags) and
+  [§3](./MIGRATING.md#3-applications-is-gone-from-every-item).
+- **`zabbix_item_aggregate` and `zabbix_proto_item_aggregate`.** Aggregate items
+  were removed from Zabbix at 6.0; calculated items with aggregate functions replace
+  them, with a translation table in
+  [MIGRATING.md §4](./MIGRATING.md#4-aggregate-items-are-gone--use-calculated-items).
+- **Legacy SNMP item attributes** — `snmp_version`, `snmp_community`,
+  `snmp3_authpassphrase`, `snmp3_authprotocol`, `snmp3_contextname`,
+  `snmp3_privpassphrase`, `snmp3_privprotocol`, `snmp3_securitylevel`,
+  `snmp3_securityname`. Zabbix 5.0 collapsed the three SNMP item types into one and
+  moved the credentials onto the host interface. Only `snmp_oid` remains on the item.
+  See [MIGRATING.md §7](./MIGRATING.md#7-legacy-snmp-item-attributes-are-gone).
+- All pre-6.0 code paths, including every version gate below 6.0 (net −1396 lines).
+- `utils/template2terraform`, the standalone Python XML→HCL converter. It emitted
+  `zabbix_application` and `zabbix_item_aggregate`, so its output no longer parses
+  against this provider. It remains in history and on the frozen `master` branch.
+- The root `example.tf` scratch file, superseded by `examples/`.
+
+[Unreleased]: https://github.com/tpretz/terraform-provider-zabbix/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/tpretz/terraform-provider-zabbix/compare/v0.17.0...v2.0.0
