@@ -24,9 +24,12 @@ the Terraform Registry. It is generated from the provider schema by
 | [`docs/index.md`](./docs/index.md) | provider configuration |
 | [`docs/resources/`](./docs/resources) | one page per resource |
 | [`docs/data-sources/`](./docs/data-sources) | one page per data source |
+| [CHANGELOG.md](./CHANGELOG.md) | what changed in each release |
 | [MIGRATING.md](./MIGRATING.md) | `v0.17.0` → `v2.0.0` upgrade guide |
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | building, contributing, the patterns to follow |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | the patterns to follow, and the traps |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | building, testing, generating the docs |
 | [TESTING.md](./TESTING.md) | the live multi-version acceptance harness |
+| [MAINTAINING.md](./MAINTAINING.md) · [RELEASING.md](./RELEASING.md) | new-Zabbix-version runbook, and cutting a release |
 | [PLAN.md](./PLAN.md) · [API-COVERAGE.md](./API-COVERAGE.md) | roadmap and the API gap checklist |
 
 ## Zabbix version support
@@ -120,9 +123,12 @@ and [API-COVERAGE.md](./API-COVERAGE.md).
 
 ## Contributing
 
-See [DEVELOPMENT.md](./DEVELOPMENT.md). In short: `make build`, `make test` for
-unit tests, and `make testenv-up && make testacc` for the live acceptance suite
-across every supported Zabbix version.
+Start with [CONTRIBUTING.md](./CONTRIBUTING.md) — the item/prototype/LLD triad,
+version gating, the collection rules and the traps that have actually bitten —
+and [DEVELOPMENT.md](./DEVELOPMENT.md) for build and documentation mechanics. In
+short: `make build`, `make test` for unit tests, and
+`make testenv-up && make testacc` for the live acceptance suite across every
+supported Zabbix version.
 
 ## License
 

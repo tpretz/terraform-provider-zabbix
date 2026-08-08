@@ -2,8 +2,11 @@
 
 Everything you need to build, test, document and extend the provider.
 
-Companion documents: [TESTING.md](./TESTING.md) for the live multi-version
-acceptance harness, [PLAN.md](./PLAN.md) for what the project is doing and why,
+Companion documents: [CONTRIBUTING.md](./CONTRIBUTING.md) for the patterns and
+traps a change has to respect, [TESTING.md](./TESTING.md) for the live
+multi-version acceptance harness, [MAINTAINING.md](./MAINTAINING.md) and
+[RELEASING.md](./RELEASING.md) for the maintenance and release runbooks,
+[PLAN.md](./PLAN.md) for what the project is doing and why,
 [API-COVERAGE.md](./API-COVERAGE.md) for the gap checklist.
 
 ## Requirements
@@ -216,6 +219,12 @@ Logging goes through the package-level `log` in `provider/log.go`, emitting
 
 ## Releasing
 
+**[RELEASING.md](./RELEASING.md) is the runbook** — the one-time sequence that
+turns the v2 line live (Actions, the three workflows, the tag scoping, the
+signing secrets, the Registry) and the short checklist for every release after
+it. [MAINTAINING.md](./MAINTAINING.md) covers the calendar-driven half: the
+nightly, dependency updates and adding a new Zabbix version.
+
 Releases are cut by [goreleaser](https://goreleaser.com) from a `v2.*` tag.
 `.goreleaser.yml` builds `{{ .ProjectName }}_v{{ .Version }}` — the binary name
 the Terraform Registry requires — for freebsd/windows/linux/darwin on amd64 and
@@ -231,9 +240,14 @@ release line.
 
 ## Commit and PR conventions
 
+Fuller version, with the reasoning, in
+[CONTRIBUTING.md](./CONTRIBUTING.md#ground-rules).
+
 - `master` and `testenv` are **frozen**. All work happens on `v2`.
 - `gofmt -l .` must print nothing before every commit.
 - `go build ./...`, `go vet ./...` and `go test ./provider/` must pass; the
   acceptance matrix must be green on 6.0, 7.0 and 7.4 before a release.
 - One reviewed change per fix. Nineteen bugs were found during the v2 revival
   and each landed on its own.
+- User-visible changes get a [CHANGELOG.md](./CHANGELOG.md) entry under
+  `## [Unreleased]`, in the same commit.
