@@ -1,0 +1,196 @@
+# ============================================================================
+# DISABLED ON THE v2 BRANCH — see PLAN.md (Phase 6) and RELEASING.md
+#
+# Nightly acceptance run against every supported Zabbix version. Created
+# disabled, in the same pattern as ci.yml and release.yml: GitHub Actions is
+# off repository-wide, and this file carries its own guards so it stays inert
+# even after Actions is re-enabled.
+#
+# Two independent guards, either of which is sufficient:
+#
+#   1. No automatic trigger. There is no `schedule` trigger — only manual
+#      `workflow_dispatch`. Nothing starts this workflow by itself.
+#   2. A job-level branch guard. The jobs refuse to run when dispatched from
+#      `refs/heads/v2`.
+#
+# TO ENABLE (a step in RELEASING.md, after v2 becomes the default branch):
+# restore the `schedule` trigger below and drop the two `if:` guards.
+#
+# ----------------------------------------------------------------------------
+# Intended trigger, for restoration:
+#
+#   on:
+#     schedule:
+#       # 03:17 UTC daily. Off the hour on purpose — Actions queues are
+#       # heaviest exactly on it, and a nightly has no reason to compete.
+#       - cron: '17 3 * * *'
+#     workflow_dispatch:
+#
+# Cost: the four versions run as parallel matrix jobs, each roughly 4-6
+# minutes — about 215s of acceptance tests plus stack boot and build. Wall
+# clock is therefore one job, not four; the ~15 minutes a serial run would
+# take is what the matrix buys back. Keep it a matrix rather than a loop for
+# that reason, and because a failure names its version in the job list.
+#
+# BEFORE THE FIRST REAL RUN: the report job needs a `nightly-failure` label.
+# It creates one if it is missing, which needs `issues: write` — already
+# granted below.
+# ============================================================================
+name: nightly acceptance (disabled on v2)
+on:
+  # Guard 1: manual only. No schedule trigger exists on this branch.
+  workflow_dispatch:
+
+# One nightly at a time. A run that overlaps its predecessor would fight it
+# for the published ports on a shared runner and produce a false failure.
+concurrency:
+  group: nightly-acceptance
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  acceptance:
+    name: zabbix ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    # Guard 2: never from the v2 branch.
+    if: github.ref != 'refs/heads/v2'
+    timeout-minutes: 45
+    strategy:
+      # Every version reports. Stopping at the first failure would hide
+      # whether a break is version-specific, which is the whole point of
+      # running a matrix.
+      fail-fast: false
+      matrix:
+        include:
+          - version: "60"
+            label: "6.0 LTS (floor)"
+            gating: true
+          - version: "70"
+            label: "7.0 LTS"
+            gating: true
+          - version: "74"
+            label: "7.4"
+            gating: true
+          # 8.0 tracks the `ubuntu-trunk` nightly image: it moves under us
+          # between runs and can break upstream for reasons that have nothing
+          # to do with this provider. Early warning, never a gate — the same
+          # policy `make testacc` implements by excluding it.
+          - version: "80"
+            label: "8.0 (ubuntu-trunk, non-blocking)"
+            gating: false
+    continue-on-error: ${{ !matrix.gating }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Toolchain pins
+        run: make check-toolchain
+      -
+        name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # go.mod is the single source of the Go version in CI — see
+          # .github/dependabot.yml. Never a literal here.
+          go-version-file: go.mod
+      -
+        # The acceptance harness shells out to a real terraform binary. Take
+        # the version from .tool-versions so this is not a fourth pin, and
+        # disable the wrapper: terraform-plugin-testing needs the actual
+        # executable, not setup-terraform's wrapper script.
+        name: Read the pinned Terraform version
+        id: tfver
+        run: echo "version=$(awk '$1=="terraform" {print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+      -
+        name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.tfver.outputs.version }}
+          terraform_wrapper: false
+      -
+        # Only this version's stack: one PostgreSQL, one server, one frontend.
+        # `--wait` returns when the healthcheck answers apiinfo.version, not
+        # when the web root serves HTTP — the frontend is up well before the
+        # schema finishes loading, which is the classic flaky-first-run cause.
+        name: Bring up the Zabbix ${{ matrix.label }} stack
+        run: make testenv-up-${{ matrix.version }}
+      -
+        name: Acceptance tests
+        run: make test${{ matrix.version }}
+      -
+        name: Stack diagnostics
+        if: failure()
+        run: |
+          docker compose -f docker-compose.test.yml ps
+          docker compose -f docker-compose.test.yml logs --no-color --tail=300 \
+            zabbix-db-${{ matrix.version }} \
+            zabbix-server-${{ matrix.version }} \
+            zabbix-web-${{ matrix.version }}
+      -
+        name: Upload the acceptance log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acc-${{ matrix.version }}
+          path: provider/acc-${{ matrix.version }}.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  report:
+    name: report failures
+    runs-on: ubuntu-latest
+    needs: acceptance
+    # Guard 2 again, plus: only when a *gating* version failed. A matrix job
+    # with continue-on-error that fails does not fail its dependents, so 8.0
+    # breaking on trunk deliberately opens nothing.
+    if: always() && github.ref != 'refs/heads/v2' && needs.acceptance.result == 'failure'
+    steps:
+      -
+        name: Open or update the failure issue
+        env:
+          # This job does no checkout, so gh has no repository to infer from —
+          # GH_REPO supplies it to every gh call below.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh label create nightly-failure \
+            --color B60205 \
+            --description "Opened automatically by the nightly acceptance run" \
+            2>/dev/null || true
+
+          body=$(cat <<EOF
+          The nightly acceptance run failed on at least one release-gating Zabbix
+          version (6.0, 7.0, 7.4).
+
+          Run: $RUN_URL
+          Commit: \`${{ github.sha }}\`
+
+          Per-version results are in the run's job list, and each job uploads its
+          \`provider/acc-<ver>.log\` as an artifact. A failure on 8.0 alone does not
+          reach this issue — 8.0 tracks \`ubuntu-trunk\` and is non-blocking by
+          policy.
+
+          To reproduce locally:
+
+          \`\`\`
+          make testenv-up-74 && make test74
+          \`\`\`
+          EOF
+          )
+
+          existing=$(gh issue list --state open --label nightly-failure \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create \
+              --title "Nightly acceptance run failing" \
+              --label nightly-failure \
+              --body "$body"
+          fi
