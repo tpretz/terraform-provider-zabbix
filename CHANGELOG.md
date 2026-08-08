@@ -208,9 +208,9 @@ Correctness:
     `v0.17.0` and unreleased until now.)
 
 Items 20 and 24 each group several instances of one root cause fixed together;
-counted individually the total is higher. One root cause dominates — `omitempty`
-on a property Zabbix reads as "leave as is" — which produced six separate bugs
-(20, 21, 22 and the `discoveryRule` tag in 7) and is written up in
+counted individually the total is higher. One root cause dominates: `omitempty`
+on a property Zabbix reads as "leave as is" produced six separate bugs (the four
+collections in 20, plus 21 and 22), and is written up in
 [CONTRIBUTING.md](./CONTRIBUTING.md#the-omitempty-trap).
 
 ### Removed
