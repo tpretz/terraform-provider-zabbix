@@ -92,6 +92,42 @@ vet: ## go vet
 test: ## Unit tests only (no Zabbix server needed)
 	TF_ACC= go test ./provider/
 
+# --- toolchain pin consistency ----------------------------------------------
+#
+# The Go version is pinned in three places and they have to stay consistent:
+#
+#   go.mod `go 1.25.8`          the floor we advertise -- the minimum the SDK
+#                               needs, and what a consumer building from source
+#                               must have
+#   .tool-versions `golang`     what we actually build, test and generate docs
+#                               with, and so >= the directive
+#   ci.yml/nightly.yml          `go-version-file: go.mod`, so CI follows the
+#                               directive automatically and is never a third
+#                               number to edit
+#
+# A dependency bot can move the first without the other two: raising the go
+# directive is a routine side effect of a terraform-plugin-sdk bump. With
+# GOTOOLCHAIN=auto that does not fail loudly -- Go silently downloads a newer
+# toolchain and the .tool-versions pin quietly stops being what anything runs.
+# This target makes it fail loudly instead, and CI runs it.
+.PHONY: check-toolchain
+check-toolchain: ## Fail if .tool-versions' Go pin is older than go.mod's directive
+	@modgo=$$(awk '$$1=="go" && $$2 ~ /^[0-9]/ {print $$2; exit}' go.mod); \
+	pingo=$$(awk '$$1=="golang" {print $$2; exit}' .tool-versions); \
+	test -n "$$modgo" || { echo "no go directive found in go.mod"; exit 1; }; \
+	test -n "$$pingo" || { echo "no golang pin found in .tool-versions"; exit 1; }; \
+	awk -v a="$$modgo" -v b="$$pingo" 'BEGIN { \
+		na = split(a, A, "."); nb = split(b, B, "."); \
+		for (i = 1; i <= 3; i++) { \
+			x = (i <= na ? A[i] + 0 : 0); y = (i <= nb ? B[i] + 0 : 0); \
+			if (x > y) exit 1; if (x < y) exit 0 } exit 0 }' || { \
+		echo; \
+		echo ">>> go.mod requires go $$modgo but .tool-versions pins golang $$pingo."; \
+		echo ">>> Raise the .tool-versions pin to at least $$modgo and commit both."; \
+		exit 1; \
+	}; \
+	echo "toolchain pins consistent: go.mod $$modgo <= .tool-versions $$pingo"
+
 # --- documentation ----------------------------------------------------------
 #
 # docs/ is generated from three inputs: the Description on every schema

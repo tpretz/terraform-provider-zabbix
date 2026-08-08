@@ -1,0 +1,84 @@
+# ============================================================================
+# Dependency automation.
+#
+# Dependabot rather than Renovate: it is native to GitHub, needs no app
+# installation or shared config repository, and this repository's dependency
+# surface is small (one Go module, a handful of actions). Renovate's advantages
+# — cross-ecosystem grouping, automerge policy, a dependency dashboard — are
+# not worth a second moving part for a single-maintainer project. Revisit if
+# the Docker image tags in docker-compose.test.yml ever want automating, which
+# Dependabot cannot do for a plain compose file used as a test fixture.
+#
+# INERT ON ARRIVAL. Dependabot reads this file from the repository's *default*
+# branch, which is still `master`; on `v2` it does nothing. It starts opening
+# pull requests the moment `v2` becomes the default branch — that is a step in
+# RELEASING.md, and it is deliberate that it happens at the release rather than
+# before it.
+#
+# THE TOOLCHAIN PINS. The Go version lives in three places:
+#
+#   go.mod `go 1.25.8`        the floor we advertise
+#   .tool-versions `golang`   what we build and test with (>= the directive)
+#   ci.yml / nightly.yml      `go-version-file: go.mod` — derived, never edited
+#
+# A `terraform-plugin-sdk` bump routinely raises the go.mod directive, and with
+# GOTOOLCHAIN=auto that does not fail: Go downloads a newer toolchain and the
+# .tool-versions pin silently stops being what anything runs. `make
+# check-toolchain` compares the two and fails when the directive overtakes the
+# pin; CI runs it on every build, so such a pull request goes red and the fix
+# is to raise `.tool-versions` in the same merge. Never edit a Go version into
+# a workflow file — that would be a fourth pin with nothing checking it.
+# ============================================================================
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - go
+    groups:
+      # The plugin SDK, the acceptance-test harness and terraform-plugin-go move
+      # together — plugin-testing and the SDK share a plugin-go requirement, so
+      # bumping one alone usually just pulls the other in via MVS anyway, and a
+      # single pull request is one CI run instead of three.
+      terraform-plugin:
+        patterns:
+          - "github.com/hashicorp/terraform-plugin-*"
+          - "github.com/hashicorp/go-cty"
+      # Everything else, batched: these are transitive-ish libraries where an
+      # individual pull request per patch release is pure noise.
+      go-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "github.com/hashicorp/terraform-plugin-*"
+          - "github.com/hashicorp/go-cty"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        patterns:
+          - "*"

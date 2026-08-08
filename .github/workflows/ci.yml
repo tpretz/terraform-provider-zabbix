@@ -43,6 +43,16 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
       -
+        # Runs before Go is installed on purpose: it needs no toolchain, and a
+        # dependency bump that raises go.mod's directive past the .tool-versions
+        # pin should fail here rather than after a green build on a toolchain
+        # nobody pinned. See .github/dependabot.yml.
+        name: Toolchain pins
+        run: make check-toolchain
+      -
+        # go-version-file, never a literal: go.mod is the single source of the
+        # Go version in CI. A literal here would be a fourth pin with nothing
+        # checking it, and a dependency bot would never keep it in step.
         name: Set up Go
         uses: actions/setup-go@v5
         with:
