@@ -285,9 +285,11 @@ type Item struct {
 type Preprocessors []Preprocessor
 
 type Preprocessor struct {
-	Type               string `json:"type,omitempty"`
-	Params             string `json:"params"`
-	ErrorHandler       string `json:"error_handler,omitempty"`
+	Type   string `json:"type,omitempty"`
+	Params string `json:"params"`
+	// no omitempty: Zabbix requires error_handler on every preprocessing step,
+	// so dropping it when empty is never right. The schema defaults it to "0".
+	ErrorHandler       string `json:"error_handler"`
 	ErrorHandlerParams string `json:"error_handler_params"`
 }
 

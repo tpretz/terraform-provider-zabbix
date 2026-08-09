@@ -140,9 +140,14 @@ var itemPreprocessorSchema = &schema.Schema{
 				Description: preprocessorParamsDescription,
 			},
 			"error_handler": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
+				Type:     schema.TypeString,
+				Optional: true,
+				// "0" (report the error), not "": Zabbix requires this property on
+				// every preprocessing step and rejects an empty string outright --
+				// 6.0 with "missing parameters: error_handler_params", 7.4 with
+				// "an integer is expected". Defaulting to "" made a preprocessor
+				// block that omitted error_handler fail on create, on every version.
+				Default:     "0",
 				Description: preprocessorErrorHandlerDescription,
 			},
 			"error_handler_params": &schema.Schema{

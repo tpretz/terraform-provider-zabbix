@@ -619,3 +619,65 @@ func TestAccResourceItemAgentTags(t *testing.T) {
 		},
 	})
 }
+
+// TestAccResourceItemPreprocessorDefaults pins the defaults of a preprocessor
+// block, which is the one thing every other preprocessing test cannot see:
+// they all write error_handler explicitly, so nothing exercised what happens
+// when a user leaves it out. It failed on create on every supported version.
+//
+// Zabbix requires error_handler on every step and rejects an empty string --
+// 6.0 with "Item pre-processing is missing parameters: error_handler_params",
+// 7.4 with `Invalid parameter ".../error_handler": an integer is expected`.
+// The schema default was "", so the block below was unusable as written.
+func TestAccResourceItemPreprocessorDefaults(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+}
+resource "zabbix_item_agent" "testitem" {
+	hostid      = zabbix_host.testhost.id
+	interfaceid = one(zabbix_host.testhost.interface).id
+	key         = "testitem.preproc.defaults"
+	name        = "Preprocessor Defaults"
+	valuetype   = "float"
+
+	// no error_handler, no error_handler_params: the whole point
+	preprocessor {
+		type   = "1"
+		params = ["10"]
+	}
+
+	preprocessor {
+		type = "10"
+	}
+}
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.#", "2"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.error_handler", "0"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.error_handler", "0"),
+					testAccCheckItemPreprocessorCount("zabbix_item_agent.testitem", 2),
+				),
+			},
+			{ // and the defaulted state is stable
+				ResourceName:      "zabbix_item_agent.testitem",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
