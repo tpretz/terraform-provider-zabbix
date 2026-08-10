@@ -208,9 +208,19 @@ var lldPreprocessorSchema = &schema.Schema{
 			},
 			"params": &schema.Schema{
 				Type: schema.TypeList,
+				// deliberately unvalidated. A preprocessing step's parameters
+				// are positional slots in one newline-separated string, and an
+				// empty slot is a real value: `prometheus_pattern` with output
+				// "value" is stored by every supported version as
+				// "<pattern>\nvalue\n" and read back as three parameters, the
+				// third empty. StringIsNotWhiteSpace here refused to let that
+				// be written, so the attribute could not be made to match what
+				// the server was always going to return and the resource sat in
+				// a diff no apply could clear. Zabbix validates these itself,
+				// per type, and says something far more useful than "must not
+				// be empty" when they are wrong.
 				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringIsNotWhiteSpace,
+					Type: schema.TypeString,
 				},
 				Optional:    true,
 				Description: preprocessorParamsDescription,
@@ -512,7 +522,14 @@ func lldGeneratePreprocessors(d *schema.ResourceData, api *zabbix.API) (zabbix.P
 		params := d.Get(prefix + "params").([]interface{})
 		pstrarr := make([]string, len(params))
 		for i := 0; i < len(params); i++ {
-			pstrarr[i] = params[i].(string)
+			// not params[i].(string): an empty parameter -- a real, meaningful
+			// positional slot, see the schema comment -- comes back from the
+			// field reader as a nil interface rather than as "", and the
+			// unchecked assertion panicked the plugin outright. It was
+			// unreachable only for as long as the params validator refused to
+			// let an empty one be written.
+			s, _ := params[i].(string)
+			pstrarr[i] = s
 		}
 
 		code, err := resolvePreprocessorType(

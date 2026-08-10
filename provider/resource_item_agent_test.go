@@ -657,7 +657,7 @@ resource "zabbix_item_agent" "testitem" {
 
 	// no error_handler, no error_handler_params: the whole point
 	preprocessor {
-		type   = "1"
+		type   = "multiplier"
 		params = ["10"]
 	}
 
@@ -674,6 +674,77 @@ resource "zabbix_item_agent" "testitem" {
 				),
 			},
 			{ // and the defaulted state is stable
+				ResourceName:      "zabbix_item_agent.testitem",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccResourceItemPreprocessorEmptyParam is the regression test for an
+// over-strict validator on `preprocessor.params`.
+//
+// A step's parameters are positional slots in one newline-separated string,
+// and an empty slot is a value like any other. `prometheus_pattern` with
+// output "value" is the everyday case: every supported version stores it as
+// "<pattern>\nvalue\n" and hands it back as three parameters with the third
+// empty, whatever was sent -- verified on 6.0.48, 7.0.29, 7.4.13 and 8.0,
+// sending both two parameters and three.
+//
+// The params element carried validation.StringIsNotWhiteSpace, so the only
+// configuration matching what the server returns was rejected at plan time,
+// while the two-parameter configuration the user was left with read back three
+// and planned a diff for ever. The most common Prometheus preprocessing step
+// in Zabbix was unusable through this provider on every version.
+func TestAccResourceItemPreprocessorEmptyParam(t *testing.T) {
+	const cfg = `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+}
+resource "zabbix_item_agent" "testitem" {
+	hostid      = zabbix_host.testhost.id
+	interfaceid = one(zabbix_host.testhost.interface).id
+	key         = "testitem.preproc.emptyparam"
+	name        = "Preprocessor Empty Param"
+	valuetype   = "float"
+
+	preprocessor {
+		type   = "prometheus_pattern"
+		params = ["cpu_usage_system", "value", ""]
+	}
+}
+`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: hcl(t, cfg),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.#", "1"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.#", "3"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.1", "value"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.2", ""),
+					testAccCheckItemPreprocessorCount("zabbix_item_agent.testitem", 1),
+				),
+			},
+			{ // the empty third slot is what the server returns, so this has to
+				// plan clean -- the whole bug was that it could not
+				Config:   hcl(t, cfg),
+				PlanOnly: true,
+			},
+			{
 				ResourceName:      "zabbix_item_agent.testitem",
 				ImportState:       true,
 				ImportStateVerify: true,
