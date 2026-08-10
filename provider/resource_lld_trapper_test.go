@@ -452,6 +452,55 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 	})
 }
 
+// TestAccResourceLLDPreprocessorNoParams is the regression test for a
+// discovery-rule preprocessing step that takes no parameters.
+//
+// flattenlldPreprocessors split the parameter string unconditionally, and
+// strings.Split("", "\n") is [""] rather than []. A parameterless step --
+// `prometheus_to_json`, `xml_to_json` -- therefore read back as one empty
+// parameter against a configuration that had none, and the resource sat in a
+// permanent one-line diff that applying could not clear.
+// flattenItemPreprocessors had always guarded this; the discovery-rule copy is
+// separate code and did not, and every fixture in the suite happened to use a
+// step type that takes parameters.
+func TestAccResourceLLDPreprocessorNoParams(t *testing.T) {
+	cfg := lldTrapperPreprocessorHCL(`
+	preprocessor {
+		type = "xml_to_json"
+	}
+	preprocessor {
+		type   = "jsonpath"
+		params = [ "$.data" ]
+	}
+`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: hcl(t, cfg),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.#", "2"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.params.#", "0"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.1.params.#", "1"),
+					testAccCheckLLDPreprocessorCount("zabbix_lld_trapper.testlld", 2),
+				),
+			},
+			{ // the diff this bug produced showed up here
+				Config:   hcl(t, cfg),
+				PlanOnly: true,
+			},
+			{
+				ResourceName:      "zabbix_lld_trapper.testlld",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 // TestAccResourceLLDMacroPaths is C1/C3/C6 for the `macro` block, which maps to
 // the LLD rule's lld_macro_paths. It had no plural or removal coverage anywhere,
 // and that gap hid a real bug: LLDRule.MacroPaths carried `omitempty`, so

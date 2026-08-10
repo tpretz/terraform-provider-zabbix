@@ -598,13 +598,19 @@ func lldGenerateConditions(d *schema.ResourceData) (conditions zabbix.LLDRuleFil
 func flattenlldPreprocessors(lld zabbix.LLDRule) []interface{} {
 	val := make([]interface{}, len(lld.Preprocessors))
 	for i := 0; i < len(lld.Preprocessors); i++ {
-		parr := strings.Split(lld.Preprocessors[i].Params, "\n")
 		val[i] = map[string]interface{}{
 			//"id": host.Interfaces[i].InterfaceID,
 			"type":                 flattenPreprocessorType(lld.Preprocessors[i].Type, LLD_PREPROC_LOOKUP_REV),
-			"params":               parr,
 			"error_handler":        lld.Preprocessors[i].ErrorHandler,
 			"error_handler_params": lld.Preprocessors[i].ErrorHandlerParams,
+		}
+		// strings.Split("", "\n") is [""], not [], so a step that takes no
+		// parameters -- prometheus_to_json, xml_to_json -- read back as one
+		// empty parameter and sat in a diff that could never be applied away.
+		// flattenItemPreprocessors has always guarded this; the discovery-rule
+		// copy did not, and no fixture used a parameterless step to notice.
+		if lld.Preprocessors[i].Params != "" {
+			val[i].(map[string]interface{})["params"] = strings.Split(lld.Preprocessors[i].Params, "\n")
 		}
 	}
 	return val
