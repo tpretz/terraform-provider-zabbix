@@ -33,13 +33,6 @@ import (
 type preprocCase struct {
 	// params sent on every version.
 	params []string
-	// paramsPre70, when non-nil, replaces params below Zabbix 7.0. Only
-	// check_unsupported needs it: 7.0 made the scope parameter mandatory
-	// where 6.0 rejects any parameter at all with `should be empty`.
-	paramsPre70 []string
-	// pre70Empty forces an empty params list below 7.0, which paramsPre70
-	// cannot express (nil means "no override").
-	pre70Empty bool
 	// errorHandler overrides the "0" default. check_unsupported is the only
 	// step type Zabbix refuses to pair with error handler 0, on every version.
 	errorHandler string
@@ -80,11 +73,18 @@ var preprocCases = map[string]preprocCase{
 	"prometheus_to_json": {},
 	"csv_to_json":        {params: []string{",", "\"", "1"}},
 	"replace":            {params: []string{"a", "b"}},
-	// "-1" is "match any error". 6.0 has no scope parameter at all and
-	// rejects one; 7.0 requires it. Error handler 0 -- report the error -- is
-	// meaningless for a step whose whole job is to handle an error, and every
-	// version says so.
-	"check_unsupported": {params: []string{"-1"}, pre70Empty: true, errorHandler: "1"},
+	// deliberately no params, on every version. 6.0 rejects any parameter
+	// here with `should be empty` and 7.0 requires one, and the client
+	// papers over the difference itself: prepPreprocessors injects "-1"
+	// ("match any error") on 7.0+ and readPreprocessors strips it back off,
+	// so the version-independent configuration is the empty one. Writing
+	// "-1" out in full is the one thing that does not round-trip -- the read
+	// path removes it and the plan never empties -- which is what this
+	// fixture asserted until a 7.0 run said otherwise.
+	//
+	// Error handler 0, "report the error", is meaningless for a step whose
+	// whole job is to handle an error, and every version rejects it.
+	"check_unsupported": {errorHandler: "1"},
 	"xml_to_json":       {},
 	"snmp_walk_value":   {params: []string{"1.3.6.1.2.1.1.1", "0"}},
 	"snmp_walk_to_json": {params: []string{"{#IFNAME}", "1.3.6.1.2.1.2.2.1.2", "0"}},
@@ -93,16 +93,9 @@ var preprocCases = map[string]preprocCase{
 	"snmp_get_value": {params: []string{"1"}},
 }
 
-// hclParams renders a case's params for the server under test.
-func (c preprocCase) hcl(version int) string {
+// hcl renders a case's params and error handler as configuration.
+func (c preprocCase) hcl() string {
 	params := c.params
-	if version < zabbix.V70 {
-		if c.pre70Empty {
-			params = nil
-		} else if c.paramsPre70 != nil {
-			params = c.paramsPre70
-		}
-	}
 
 	var b strings.Builder
 	if len(params) > 0 {
@@ -203,7 +196,7 @@ func TestAccPreprocessorTypeEveryItemType(t *testing.T) {
 		}
 		c := preprocCases[name]
 		steps = append(steps, resource.TestStep{
-			Config: hcl(t, preprocItemHCL(fmt.Sprintf("\t\ttype = %q\n", name)+c.hcl(version))),
+			Config: hcl(t, preprocItemHCL(fmt.Sprintf("\t\ttype = %q\n", name)+c.hcl())),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttr("zabbix_item_trapper.testitem", "preprocessor.#", "1"),
 				resource.TestCheckResourceAttr("zabbix_item_trapper.testitem", "preprocessor.0.type", name),
@@ -247,7 +240,7 @@ func TestAccPreprocessorTypeEveryLLDType(t *testing.T) {
 		}
 		c := preprocCases[name]
 		steps = append(steps, resource.TestStep{
-			Config: hcl(t, preprocLLDHCL(fmt.Sprintf("\t\ttype = %q\n", name)+c.hcl(version))),
+			Config: hcl(t, preprocLLDHCL(fmt.Sprintf("\t\ttype = %q\n", name)+c.hcl())),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.#", "1"),
 				resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", name),
