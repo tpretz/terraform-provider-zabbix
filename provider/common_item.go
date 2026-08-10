@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -32,6 +34,215 @@ var ITEM_VALUE_TYPES_ARR = []string{
 	"log",
 	"unsigned",
 	"text",
+}
+
+// Preprocessing step types.
+//
+// Zabbix numbers these internally and the numbers are what the API wants, but
+// a number is not an interface: `type = "12"` says nothing, `type =
+// "jsonpath"` says what the step does. Every other enum in the provider maps a
+// name to Zabbix's code through the _LOOKUP/_REV/_ARR idiom (CLAUDE.md
+// § "Shared schema helpers & the lookup-table idiom") and this is now no
+// exception.
+//
+// The list was taken from the item object documentation for each supported
+// version and then confirmed against live 6.0.48, 7.0.29, 7.4.13 and 8.0
+// servers by attempting an item.create with every code from 1 to 35 and
+// reading which ones came back rejected on the `type` property specifically:
+//
+//	6.0        1-27
+//	7.0/7.4/8.0  1-30
+//
+// 28 and 29 arrived in 6.4 and 30 in 7.0, so the three of them are gated --
+// see PREPROC_MIN_VERSION. The discovery-rule list is a *different, smaller*
+// list and lives in common_lld.go; do not assume the two track each other.
+var PREPROC_LOOKUP = map[string]string{
+	"multiplier":                  "1",
+	"rtrim":                       "2",
+	"ltrim":                       "3",
+	"trim":                        "4",
+	"regex":                       "5",
+	"bool_to_decimal":             "6",
+	"octal_to_decimal":            "7",
+	"hex_to_decimal":              "8",
+	"simple_change":               "9",
+	"change_per_second":           "10",
+	"xml_xpath":                   "11",
+	"jsonpath":                    "12",
+	"in_range":                    "13",
+	"matches_regex":               "14",
+	"not_matches_regex":           "15",
+	"check_json_error":            "16",
+	"check_xml_error":             "17",
+	"check_regex_error":           "18",
+	"discard_unchanged":           "19",
+	"discard_unchanged_heartbeat": "20",
+	"javascript":                  "21",
+	"prometheus_pattern":          "22",
+	"prometheus_to_json":          "23",
+	"csv_to_json":                 "24",
+	"replace":                     "25",
+	"check_unsupported":           "26",
+	"xml_to_json":                 "27",
+	"snmp_walk_value":             "28",
+	"snmp_walk_to_json":           "29",
+	"snmp_get_value":              "30",
+}
+var PREPROC_LOOKUP_REV = map[string]string{}
+var PREPROC_LOOKUP_ARR = []string{}
+
+// PREPROC_MIN_VERSION is the first Zabbix version that has each step type, for
+// the types that are not in 6.0. A type missing from this map exists on every
+// server the provider supports.
+//
+// This cannot be enforced in the schema -- a ValidateFunc runs before the
+// provider has spoken to anything and has no idea what it is talking to -- so
+// the check lives in the create/update path, where the version is known.
+// Leaving it to the server is not good enough either: below 7.2 an unknown
+// preprocessing type is reported as `unexpected value "30"`, a number the user
+// never wrote.
+var PREPROC_MIN_VERSION = map[string]preprocGate{
+	"snmp_walk_value":   {zabbix.V64, "6.4"},
+	"snmp_walk_to_json": {zabbix.V64, "6.4"},
+	"snmp_get_value":    {zabbix.V70, "7.0"},
+}
+
+// preprocGate is a minimum version with the human form of it to put in the
+// error message; Config.Version is an encoded integer and "60400" is not a
+// version number anybody recognises.
+type preprocGate struct {
+	version int
+	name    string
+}
+
+// generate the above structures
+var _ = func() bool {
+	for k, v := range PREPROC_LOOKUP {
+		PREPROC_LOOKUP_REV[v] = k
+		PREPROC_LOOKUP_ARR = append(PREPROC_LOOKUP_ARR, k)
+	}
+	// map iteration order is random; sort so that the generated documentation
+	// and validation messages are stable between builds
+	sort.Strings(PREPROC_LOOKUP_ARR)
+	return false
+}()
+
+// preprocTypeList renders a preprocessing lookup for a schema Description,
+// ordered by Zabbix's code rather than by name because that is the order the
+// upstream documentation uses and the order a reader comparing the two will
+// expect. Gated types carry the version they arrived in.
+func preprocTypeList(lookup map[string]string, gates map[string]preprocGate) string {
+	names := make([]string, 0, len(lookup))
+	for name := range lookup {
+		names = append(names, name)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		a, _ := strconv.Atoi(lookup[names[i]])
+		b, _ := strconv.Atoi(lookup[names[j]])
+		return a < b
+	})
+
+	parts := make([]string, len(names))
+	for i, name := range names {
+		if g, ok := gates[name]; ok {
+			parts[i] = fmt.Sprintf("`%s` (%s, Zabbix %s and later)", name, lookup[name], g.name)
+			continue
+		}
+		parts[i] = fmt.Sprintf("`%s` (%s)", name, lookup[name])
+	}
+	return strings.Join(parts, ", ")
+}
+
+// preprocessorTypeValidator accepts a step-type name, or -- deprecated -- the
+// numeric code it stands for.
+//
+// The numeric form is here for one release only. Every v0.x configuration in
+// existence writes `type = "12"`, and v2.0.0 already asks enough of them; the
+// name is canonical and the read path always writes it back, so a numeric
+// configuration is rewritten to the name on the first apply and the user is
+// warned once per step in the meantime.
+//
+// The rejection message is built by hand rather than by calling
+// validation.StringInSlice, and its wording is deliberately identical:
+// schema_enum_test.go discovers the provider's enums by feeding every
+// validator a value nothing accepts and parsing the permitted set back out of
+// "to be one of [...]", and acc_negative_test.go matches the same phrase. An
+// enum that words its rejection differently drops silently out of both.
+func preprocessorTypeValidator(lookup, rev map[string]string, arr []string) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		v, ok := i.(string)
+		if !ok {
+			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+		}
+		if _, ok := lookup[v]; ok {
+			return nil, nil
+		}
+		if name, ok := rev[v]; ok {
+			return []string{fmt.Sprintf(
+				"%s: %q is Zabbix's internal code for the %q preprocessing step. The "+
+					"numeric form is deprecated and will be removed in the next major "+
+					"release of this provider; write %q instead. It will be rewritten to "+
+					"%q in state on the next apply.", k, v, name, name, name)}, nil
+		}
+		return nil, []error{fmt.Errorf("expected %s to be one of %q, got %s", k, arr, v)}
+	}
+}
+
+// preprocessorTypeStateFunc normalises the deprecated numeric form to the name
+// before it reaches state, which is what makes a v0.x configuration converge:
+// the diff is computed against the normalised value, so `type = "12"` against
+// a state holding "jsonpath" plans empty rather than for ever.
+func preprocessorTypeStateFunc(rev map[string]string) schema.SchemaStateFunc {
+	return func(i interface{}) string {
+		v, ok := i.(string)
+		if !ok {
+			return ""
+		}
+		if name, ok := rev[v]; ok {
+			return name
+		}
+		return v
+	}
+}
+
+// resolvePreprocessorType turns a configured step type into the numeric code
+// Zabbix wants, refusing the types this server does not have.
+func resolvePreprocessorType(v string, lookup, rev map[string]string, gates map[string]preprocGate, version int) (string, error) {
+	name := v
+	if n, ok := rev[v]; ok {
+		name = n // deprecated numeric form
+	}
+
+	code, ok := lookup[name]
+	if !ok {
+		return "", fmt.Errorf("unknown preprocessing step type %q", v)
+	}
+	if g, ok := gates[name]; ok && version < g.version {
+		return "", fmt.Errorf(
+			"preprocessing step type %q (Zabbix code %s) requires Zabbix %s or later; this server is %s",
+			name, code, g.name, zabbixVersionString(version))
+	}
+	return code, nil
+}
+
+// flattenPreprocessorType is the read half: Zabbix's code back to the name.
+// An unrecognised code is passed through as-is rather than read back as the
+// empty string, so that a server newer than this provider produces a diff a
+// human can understand instead of an attribute that has silently vanished.
+func flattenPreprocessorType(code string, rev map[string]string) string {
+	if name, ok := rev[code]; ok {
+		return name
+	}
+	return code
+}
+
+// zabbixVersionString undoes the encoding parseVersionString applies, for
+// error messages. 60048 is not something to show a user.
+func zabbixVersionString(v int) string {
+	if v == 0 {
+		return "of an unknown version"
+	}
+	return fmt.Sprintf("%d.%d.%d", v/10000, (v/100)%100, v%100)
 }
 
 // common schema elements for all item types
@@ -128,7 +339,8 @@ var itemPreprocessorSchema = &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  preprocessorTypeDescription,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
+				ValidateFunc: preprocessorTypeValidator(PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_LOOKUP_ARR),
+				StateFunc:    preprocessorTypeStateFunc(PREPROC_LOOKUP_REV),
 			},
 			"params": &schema.Schema{
 				Type: schema.TypeList,
@@ -169,11 +381,6 @@ const (
 		"list rather than a set precisely because that order is semantic: Zabbix feeds each " +
 		"step the output of the previous one."
 
-	preprocessorTypeDescription = "Preprocessing step type, as Zabbix's numeric code — e.g. " +
-		"`5` regular expression, `11` XML XPath, `12` JSONPath, `20` discard unchanged with " +
-		"heartbeat. See the Zabbix API documentation for `preprocessing.type`; the full list " +
-		"grows with every release, so it is not enumerated or validated here."
-
 	preprocessorParamsDescription = "Parameters for the step, one element per line Zabbix " +
 		"expects. Which parameters apply, and how many, depends entirely on `type`."
 
@@ -184,7 +391,21 @@ const (
 
 	preprocessorErrorHandlerParamsDescription = "Value or error text used by `error_handler` " +
 		"codes `2` and `3`. Ignored otherwise."
+
+	// the numeric-compatibility paragraph, worded once and appended to both
+	// the item and the discovery-rule description
+	preprocessorTypeCompatNote = " Zabbix's numeric code is accepted too, for compatibility " +
+		"with provider v0.x configurations — `\"12\"` means `jsonpath` — but it is " +
+		"deprecated, warns on every plan, and will be removed in the next major release. " +
+		"The name is canonical: a numeric configuration is rewritten to the name in state " +
+		"on the first apply, so the plan after that is empty."
 )
+
+// preprocessorTypeDescription is built from PREPROC_LOOKUP rather than written
+// out, so that adding a type cannot leave the published documentation behind.
+// TestEnumDescriptionsListValues enforces the same thing from the other side.
+var preprocessorTypeDescription = "Preprocessing step type, one of: " +
+	preprocTypeList(PREPROC_LOOKUP, PREPROC_MIN_VERSION) + "." + preprocessorTypeCompatNote
 
 // Function signature for context manipulation
 type ItemHandler func(*schema.ResourceData, interface{}, *zabbix.Item)
@@ -229,7 +450,10 @@ func protoItemGetReadWrapper(r ItemHandler) schema.ReadFunc {
 func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d, api, prototype)
+	item, err := buildItemObject(d, api, prototype)
+	if err != nil {
+		return err
+	}
 
 	// run custom function
 	c(d, m, item)
@@ -237,8 +461,6 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	log.Trace("preparing item object for create/update: %#v", item)
 
 	items := []zabbix.Item{*item}
-
-	var err error
 
 	if prototype {
 		err = api.ProtoItemsCreate(items)
@@ -261,7 +483,10 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
 	api := m.(*zabbix.API)
 
-	item := buildItemObject(d, api, prototype)
+	item, err := buildItemObject(d, api, prototype)
+	if err != nil {
+		return err
+	}
 	item.ItemID = d.Id()
 
 	// run custom function
@@ -270,8 +495,6 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 	log.Trace("preparing item object for create/update: %#v", item)
 
 	items := []zabbix.Item{*item}
-
-	var err error
 
 	if prototype {
 		err = api.ProtoItemsUpdate(items)
@@ -344,7 +567,7 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 }
 
 // Build the base Item Object
-func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *zabbix.Item {
+func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*zabbix.Item, error) {
 	item := zabbix.Item{
 		Key:       d.Get("key").(string),
 		HostID:    d.Get("hostid").(string),
@@ -353,7 +576,11 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *z
 		Trends:    d.Get("trends").(string),
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
 	}
-	item.Preprocessors = itemGeneratePreprocessors(d)
+	preprocessors, err := itemGeneratePreprocessors(d, api)
+	if err != nil {
+		return nil, err
+	}
+	item.Preprocessors = preprocessors
 	item.Tags = tagGenerate(d)
 
 	if v, ok := d.GetOk("trends"); ok {
@@ -371,13 +598,13 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) *z
 		item.RuleID = d.Get("ruleid").(string)
 	}
 
-	return &item
+	return &item, nil
 }
 
 // Generate preprocessor objects
-func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Preprocessors) {
+func itemGeneratePreprocessors(d *schema.ResourceData, api *zabbix.API) (zabbix.Preprocessors, error) {
 	preprocessorCount := d.Get("preprocessor.#").(int)
-	preprocessors = make(zabbix.Preprocessors, preprocessorCount)
+	preprocessors := make(zabbix.Preprocessors, preprocessorCount)
 
 	for i := 0; i < preprocessorCount; i++ {
 		prefix := fmt.Sprintf("preprocessor.%d.", i)
@@ -387,15 +614,22 @@ func itemGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Pre
 			pstrarr[i] = params[i].(string)
 		}
 
+		code, err := resolvePreprocessorType(
+			d.Get(prefix+"type").(string),
+			PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_MIN_VERSION, api.Config.Version)
+		if err != nil {
+			return nil, fmt.Errorf("preprocessor %d: %w", i, err)
+		}
+
 		preprocessors[i] = zabbix.Preprocessor{
-			Type:               d.Get(prefix + "type").(string),
+			Type:               code,
 			Params:             strings.Join(pstrarr, "\n"),
 			ErrorHandler:       d.Get(prefix + "error_handler").(string),
 			ErrorHandlerParams: d.Get(prefix + "error_handler_params").(string),
 		}
 	}
 
-	return
+	return preprocessors, nil
 }
 
 // Generate terraform flattened form of item preprocessors
@@ -404,7 +638,7 @@ func flattenItemPreprocessors(item zabbix.Item) []interface{} {
 	for i := 0; i < len(item.Preprocessors); i++ {
 		val[i] = map[string]interface{}{
 			//"id": host.Interfaces[i].InterfaceID,
-			"type":                 item.Preprocessors[i].Type,
+			"type":                 flattenPreprocessorType(item.Preprocessors[i].Type, PREPROC_LOOKUP_REV),
 			"error_handler":        item.Preprocessors[i].ErrorHandler,
 			"error_handler_params": item.Preprocessors[i].ErrorHandlerParams,
 		}

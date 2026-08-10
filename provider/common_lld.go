@@ -53,6 +53,82 @@ var _ = func() bool {
 	return false
 }()
 
+// Preprocessing step types accepted on a *discovery rule*, which is a smaller
+// and differently-gated list than the item one in common_item.go. It is not a
+// prefix of it either: an LLD rule takes 5, 11, 12, 14-17, 20, 21, 23-25, 27
+// and the SNMP walk steps, and nothing else -- no arithmetic, no change
+// detection, no `check_unsupported`, because a discovery rule's value is a JSON
+// document rather than a metric.
+//
+// Established from the discoveryrule object documentation for 6.0, 6.2, 6.4 and
+// 7.0 and confirmed against live 6.0.48, 7.0.29, 7.4.13 and 8.0 servers with a
+// discoveryrule.create per code. 6.0 rejects `matches_regex` (14) outright
+// where the item list has had it all along -- the one place the two lists
+// disagree about a step that is not simply new -- so it is gated at 7.0 here
+// and ungated there. 7.0's own rejection message enumerates exactly this set:
+//
+//	value must be one of 5, 11, 12, 14, 15, 16, 17, 20, 21, 23, 24, 25, 27, 28, 29, 30
+//
+// The codes are read out of PREPROC_LOOKUP rather than repeated, so the two
+// tables cannot drift apart on what a name means; TestLLDPreprocLookupSubset
+// enforces that from the other side.
+var LLD_PREPROC_LOOKUP = map[string]string{}
+var LLD_PREPROC_LOOKUP_REV = map[string]string{}
+var LLD_PREPROC_LOOKUP_ARR = []string{}
+
+// lldPreprocTypes is the membership list; LLD_PREPROC_LOOKUP is built from it.
+var lldPreprocTypes = []string{
+	"regex",
+	"xml_xpath",
+	"jsonpath",
+	"matches_regex",
+	"not_matches_regex",
+	"check_json_error",
+	"check_xml_error",
+	"discard_unchanged_heartbeat",
+	"javascript",
+	"prometheus_to_json",
+	"csv_to_json",
+	"replace",
+	"xml_to_json",
+	"snmp_walk_value",
+	"snmp_walk_to_json",
+	"snmp_get_value",
+}
+
+// LLD_PREPROC_MIN_VERSION is PREPROC_MIN_VERSION's discovery-rule counterpart.
+// It carries the same SNMP entries and one the item list does not have.
+var LLD_PREPROC_MIN_VERSION = map[string]preprocGate{
+	"matches_regex":     {zabbix.V70, "7.0"},
+	"snmp_walk_value":   {zabbix.V64, "6.4"},
+	"snmp_walk_to_json": {zabbix.V64, "6.4"},
+	"snmp_get_value":    {zabbix.V70, "7.0"},
+}
+
+// generate the above structures
+var _ = func() bool {
+	for _, name := range lldPreprocTypes {
+		code, ok := PREPROC_LOOKUP[name]
+		if !ok {
+			// unreachable unless lldPreprocTypes and PREPROC_LOOKUP have been
+			// edited apart; panicking at init beats a silent empty code
+			panic("lldPreprocTypes names a preprocessing type PREPROC_LOOKUP does not have: " + name)
+		}
+		LLD_PREPROC_LOOKUP[name] = code
+		LLD_PREPROC_LOOKUP_REV[code] = name
+		LLD_PREPROC_LOOKUP_ARR = append(LLD_PREPROC_LOOKUP_ARR, name)
+	}
+	sort.Strings(LLD_PREPROC_LOOKUP_ARR)
+	return false
+}()
+
+// lldPreprocessorTypeDescription is the discovery-rule wording of
+// preprocessorTypeDescription, built from the smaller list.
+var lldPreprocessorTypeDescription = "Preprocessing step type. A discovery rule accepts " +
+	"fewer of these than an item does; one of: " +
+	preprocTypeList(LLD_PREPROC_LOOKUP, LLD_PREPROC_MIN_VERSION) + "." +
+	preprocessorTypeCompatNote
+
 // common schema elements for all lld types
 var lldCommonSchema = map[string]*schema.Schema{
 	"hostid": &schema.Schema{
@@ -126,8 +202,9 @@ var lldPreprocessorSchema = &schema.Schema{
 			"type": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  preprocessorTypeDescription,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be numeric"),
+				Description:  lldPreprocessorTypeDescription,
+				ValidateFunc: preprocessorTypeValidator(LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_LOOKUP_ARR),
+				StateFunc:    preprocessorTypeStateFunc(LLD_PREPROC_LOOKUP_REV),
 			},
 			"params": &schema.Schema{
 				Type: schema.TypeList,
@@ -272,7 +349,10 @@ func lldGetReadWrapper(r LLDHandler) schema.ReadFunc {
 func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler) error {
 	api := m.(*zabbix.API)
 
-	lld := buildLLDObject(d)
+	lld, err := buildLLDObject(d, api)
+	if err != nil {
+		return err
+	}
 
 	// run custom function
 	c(d, m, lld)
@@ -281,9 +361,7 @@ func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 
 	llds := []zabbix.LLDRule{*lld}
 
-	err := api.LLDsCreate(llds)
-
-	if err != nil {
+	if err := api.LLDsCreate(llds); err != nil {
 		return err
 	}
 
@@ -298,7 +376,10 @@ func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler) error {
 	api := m.(*zabbix.API)
 
-	lld := buildLLDObject(d)
+	lld, err := buildLLDObject(d, api)
+	if err != nil {
+		return err
+	}
 	lld.ItemID = d.Id()
 
 	// run custom function
@@ -308,9 +389,7 @@ func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 
 	llds := []zabbix.LLDRule{*lld}
 
-	err := api.LLDsUpdate(llds)
-
-	if err != nil {
+	if err := api.LLDsUpdate(llds); err != nil {
 		return err
 	}
 
@@ -398,7 +477,7 @@ var lldDelaySchema = map[string]*schema.Schema{
 }
 
 // Build the base lld Object
-func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
+func buildLLDObject(d *schema.ResourceData, api *zabbix.API) (*zabbix.LLDRule, error) {
 	lld := zabbix.LLDRule{
 		Key:      d.Get("key").(string),
 		HostID:   d.Get("hostid").(string),
@@ -407,7 +486,11 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 		LifeTime: d.Get("lifetime").(string),
 	}
 
-	lld.Preprocessors = lldGeneratePreprocessors(d)
+	preprocessors, err := lldGeneratePreprocessors(d, api)
+	if err != nil {
+		return nil, err
+	}
+	lld.Preprocessors = preprocessors
 	if paths := lldGenerateMacroPaths(d); len(paths) > 0 {
 		lld.MacroPaths = &paths
 	}
@@ -416,13 +499,13 @@ func buildLLDObject(d *schema.ResourceData) *zabbix.LLDRule {
 	lld.Filter.Formula = d.Get("formula").(string)
 	lld.Filter.Conditions = lldGenerateConditions(d)
 
-	return &lld
+	return &lld, nil
 }
 
 // Generate preprocessor objects
-func lldGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Preprocessors) {
+func lldGeneratePreprocessors(d *schema.ResourceData, api *zabbix.API) (zabbix.Preprocessors, error) {
 	preprocessorCount := d.Get("preprocessor.#").(int)
-	preprocessors = make(zabbix.Preprocessors, preprocessorCount)
+	preprocessors := make(zabbix.Preprocessors, preprocessorCount)
 
 	for i := 0; i < preprocessorCount; i++ {
 		prefix := fmt.Sprintf("preprocessor.%d.", i)
@@ -432,15 +515,22 @@ func lldGeneratePreprocessors(d *schema.ResourceData) (preprocessors zabbix.Prep
 			pstrarr[i] = params[i].(string)
 		}
 
+		code, err := resolvePreprocessorType(
+			d.Get(prefix+"type").(string),
+			LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_MIN_VERSION, api.Config.Version)
+		if err != nil {
+			return nil, fmt.Errorf("preprocessor %d: %w", i, err)
+		}
+
 		preprocessors[i] = zabbix.Preprocessor{
-			Type:               d.Get(prefix + "type").(string),
+			Type:               code,
 			Params:             strings.Join(pstrarr, "\n"),
 			ErrorHandler:       d.Get(prefix + "error_handler").(string),
 			ErrorHandlerParams: d.Get(prefix + "error_handler_params").(string),
 		}
 	}
 
-	return
+	return preprocessors, nil
 }
 
 // Generate macro path objects
@@ -494,7 +584,7 @@ func flattenlldPreprocessors(lld zabbix.LLDRule) []interface{} {
 		parr := strings.Split(lld.Preprocessors[i].Params, "\n")
 		val[i] = map[string]interface{}{
 			//"id": host.Interfaces[i].InterfaceID,
-			"type":                 lld.Preprocessors[i].Type,
+			"type":                 flattenPreprocessorType(lld.Preprocessors[i].Type, LLD_PREPROC_LOOKUP_REV),
 			"params":               parr,
 			"error_handler":        lld.Preprocessors[i].ErrorHandler,
 			"error_handler_params": lld.Preprocessors[i].ErrorHandlerParams,

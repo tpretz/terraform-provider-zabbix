@@ -193,19 +193,19 @@ resource "zabbix_item_agent" "testitem" {
 	trends = "7d"
 
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "var bob = true;", "return bob;" ]
 		error_handler = "0"
 	}
 	
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = split("\n", "var cheese = true;\nreturn cheese;")
 		error_handler = "0"
 	}
 	
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = split("\n", trimspace(local.script))
 		# note: change schema to allow blank lines
 		error_handler = "0"
@@ -218,13 +218,13 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "history", "1h"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "trends", "7d"),
 					resource.TestCheckResourceAttrSet("zabbix_item_agent.testitem", "interfaceid"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "21"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "javascript"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.0", "var bob = true;"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.1", "return bob;"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "21"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "javascript"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.params.0", "var cheese = true;"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.params.1", "return cheese;"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.type", "21"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.type", "javascript"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.params.0", "var fish = false;"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.2.params.1", "return fish;"),
 				),
@@ -256,13 +256,13 @@ resource "zabbix_item_agent" "testitem" {
 	trends = "7d"
 
 	preprocessor {
-		type = "1"
+		type = "multiplier"
 		params = [ "55" ]
 		error_handler = "0" # issue for version 4
 	}
 	
 	preprocessor {
-		type = "10"
+		type = "change_per_second"
 		error_handler = "0"
 	}
 }
@@ -273,9 +273,9 @@ resource "zabbix_item_agent" "testitem" {
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "history", "1h"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "trends", "7d"),
 					resource.TestCheckResourceAttrSet("zabbix_item_agent.testitem", "interfaceid"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "1"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "multiplier"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.params.0", "55"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "10"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "change_per_second"),
 				),
 			},
 			{ // C4 for a list: preprocessing order IS semantic, so a reorder must
@@ -311,20 +311,20 @@ resource "zabbix_item_agent" "testitem" {
 	trends = "7d"
 
 	preprocessor {
-		type = "10"
+		type = "change_per_second"
 		error_handler = "0"
 	}
 
 	preprocessor {
-		type = "1"
+		type = "multiplier"
 		params = [ "55" ]
 		error_handler = "0"
 	}
 }
 `),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "10"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "1"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "change_per_second"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.type", "multiplier"),
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.1.params.0", "55"),
 				),
 			},
@@ -355,12 +355,12 @@ resource "zabbix_item_agent" "testitem" {
 	trends = "7d"
 
 	preprocessor {
-		type = "10"
+		type = "change_per_second"
 		error_handler = "0"
 	}
 
 	preprocessor {
-		type = "1"
+		type = "multiplier"
 		params = [ "55" ]
 		error_handler = "0"
 	}
@@ -374,14 +374,14 @@ resource "zabbix_item_agent" "testitem" {
 				// deletion.
 				Config: hcl(t, itemAgentPreprocessorHCL(`
 	preprocessor {
-		type = "1"
+		type = "multiplier"
 		params = [ "55" ]
 		error_handler = "0"
 	}
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.#", "1"),
-					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "1"),
+					resource.TestCheckResourceAttr("zabbix_item_agent.testitem", "preprocessor.0.type", "multiplier"),
 					testAccCheckItemPreprocessorCount("zabbix_item_agent.testitem", 1),
 				),
 			},
@@ -662,7 +662,7 @@ resource "zabbix_item_agent" "testitem" {
 	}
 
 	preprocessor {
-		type = "10"
+		type = "change_per_second"
 	}
 }
 `),

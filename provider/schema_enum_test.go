@@ -4,10 +4,12 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 // Unit-level half of E2 (PLAN.md Phase 8). The acceptance half, in
@@ -183,8 +185,8 @@ var requiredEnumSites = map[string][]string{
 		"priority",
 		"correlation_mode",
 	},
-	"zabbix_item_agent":       {"valuetype"},
-	"zabbix_proto_item_agent": {"valuetype"},
+	"zabbix_item_agent":       {"valuetype", "preprocessor.type"},
+	"zabbix_proto_item_agent": {"valuetype", "preprocessor.type"},
 	"zabbix_item_http": {
 		"valuetype",
 		"request_method",
@@ -195,6 +197,8 @@ var requiredEnumSites = map[string][]string{
 	"zabbix_lld_agent": {
 		"evaltype",
 		"condition.operator",
+		// the discovery-rule preprocessing list, which is not the item one
+		"preprocessor.type",
 	},
 	// the two discovery-rule types Zabbix requires delay == 0 for: the schema
 	// pins the value with a one-element StringInSlice rather than leaving the
@@ -295,6 +299,8 @@ func lookupTables() []lookupTable {
 		{"PROXY_TLS_LOOKUP", PROXY_TLS_LOOKUP, PROXY_TLS_LOOKUP_REV, PROXY_TLS_LOOKUP_ARR},
 		{"TRIGGER_PRIORITY", TRIGGER_PRIORITY, TRIGGER_PRIORITY_REV, TRIGGER_PRIORITY_ARR},
 		{"TRIGGER_CORRELATION", TRIGGER_CORRELATION, TRIGGER_CORRELATION_REV, TRIGGER_CORRELATION_ARR},
+		{"PREPROC_LOOKUP", PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_LOOKUP_ARR},
+		{"LLD_PREPROC_LOOKUP", LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_LOOKUP_ARR},
 	}
 }
 
@@ -443,5 +449,232 @@ func TestEnumValueListsAreSorted(t *testing.T) {
 	want := []string{"not_classified", "info", "warn", "average", "high", "disaster"}
 	if !reflect.DeepEqual(TRIGGER_PRIORITY_ARR, want) {
 		t.Errorf("TRIGGER_PRIORITY_ARR is %v, want severity order %v", TRIGGER_PRIORITY_ARR, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// preprocessor.type
+// ---------------------------------------------------------------------------
+//
+// The preprocessing step type was the last enum in the provider written as raw
+// Zabbix numbering -- a TypeString validated by "^[0-9]+$", so `type = "12"`
+// was the interface and the user had to know 12 means JSONPath. It is now a
+// named enum like every other, with three properties nothing else in the
+// provider has and which therefore need their own checks: it accepts the old
+// numeric form as well, it normalises that form to the name before state, and
+// the item list and the discovery-rule list are different lists.
+
+// TestLLDPreprocLookupSubset requires the discovery-rule table to agree with
+// the item table on what every name means. The two are separate maps -- an LLD
+// rule accepts a strict subset of the item types -- and the failure mode of
+// letting them drift is a name that silently means a different step depending
+// on which resource it was written in.
+func TestLLDPreprocLookupSubset(t *testing.T) {
+	for name, code := range LLD_PREPROC_LOOKUP {
+		itemCode, ok := PREPROC_LOOKUP[name]
+		if !ok {
+			t.Errorf("LLD_PREPROC_LOOKUP has %q, which PREPROC_LOOKUP does not", name)
+			continue
+		}
+		if itemCode != code {
+			t.Errorf("%q is code %s for an LLD rule but %s for an item", name, code, itemCode)
+		}
+	}
+	if len(LLD_PREPROC_LOOKUP) >= len(PREPROC_LOOKUP) {
+		t.Errorf("LLD_PREPROC_LOOKUP has %d entries and PREPROC_LOOKUP %d; the discovery-rule list is meant to be the smaller one",
+			len(LLD_PREPROC_LOOKUP), len(PREPROC_LOOKUP))
+	}
+
+	// the codes established against the live servers, spelled out so that a
+	// well-meaning "surely an LLD rule can do arithmetic too" edit fails here
+	// rather than against a server the author did not happen to run
+	want := []string{"5", "11", "12", "14", "15", "16", "17", "20", "21", "23", "24", "25", "27", "28", "29", "30"}
+	var got []string
+	for code := range LLD_PREPROC_LOOKUP_REV {
+		got = append(got, code)
+	}
+	sort.Slice(got, func(i, j int) bool { return atoiOrZero(got[i]) < atoiOrZero(got[j]) })
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("discovery rules accept codes %v, want %v", got, want)
+	}
+}
+
+func atoiOrZero(s string) int {
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
+// TestPreprocTypeGatesAreKnownTypes stops a gate being written for a name that
+// does not exist. A typo there is invisible: the gate simply never fires and
+// the type is offered on a server that does not have it.
+func TestPreprocTypeGatesAreKnownTypes(t *testing.T) {
+	for name := range PREPROC_MIN_VERSION {
+		if _, ok := PREPROC_LOOKUP[name]; !ok {
+			t.Errorf("PREPROC_MIN_VERSION gates %q, which is not a preprocessing type", name)
+		}
+	}
+	for name := range LLD_PREPROC_MIN_VERSION {
+		if _, ok := LLD_PREPROC_LOOKUP[name]; !ok {
+			t.Errorf("LLD_PREPROC_MIN_VERSION gates %q, which is not a discovery-rule preprocessing type", name)
+		}
+	}
+
+	// matches_regex is the one gate that differs between the two, and it is
+	// the reason the LLD list has its own gate map rather than sharing the
+	// item one. Zabbix 6.0 takes "14" on an item and rejects it on a discovery
+	// rule with `unexpected value "14"`; 7.0 takes it on both. Verified on
+	// live 6.0.48 and 7.0.29.
+	if _, ok := PREPROC_MIN_VERSION["matches_regex"]; ok {
+		t.Error("matches_regex is gated for items; it has existed since 6.0 there")
+	}
+	if g := LLD_PREPROC_MIN_VERSION["matches_regex"]; g.version != zabbix.V70 {
+		t.Errorf("matches_regex on a discovery rule is gated at %d, want %d (7.0)", g.version, zabbix.V70)
+	}
+}
+
+// TestPreprocTypeValidatorAcceptsNumeric covers the compatibility form: every
+// name is accepted, so is the code it stands for, the code produces a
+// deprecation warning rather than an error, and anything else is rejected with
+// the message shape the rest of this file depends on.
+func TestPreprocTypeValidatorAcceptsNumeric(t *testing.T) {
+	for _, tc := range []struct {
+		what     string
+		lookup   map[string]string
+		rev      map[string]string
+		arr      []string
+		rejected string
+	}{
+		{"item", PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_LOOKUP_ARR, "999"},
+		// an item type that is not a discovery-rule type: the LLD validator
+		// must turn it down, by name and by code alike
+		{"lld", LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_LOOKUP_ARR, "multiplier"},
+	} {
+		t.Run(tc.what, func(t *testing.T) {
+			v := preprocessorTypeValidator(tc.lookup, tc.rev, tc.arr)
+
+			for name, code := range tc.lookup {
+				if warns, errs := v(name, "type"); len(errs) > 0 || len(warns) > 0 {
+					t.Errorf("name %q: warns %v errs %v, want silence", name, warns, errs)
+				}
+				warns, errs := v(code, "type")
+				if len(errs) > 0 {
+					t.Errorf("code %q (%s): rejected: %v", code, name, errs)
+				}
+				if len(warns) != 1 || !strings.Contains(warns[0], "deprecated") {
+					t.Errorf("code %q (%s): warns %v, want one deprecation warning", code, name, warns)
+				}
+			}
+
+			_, errs := v(tc.rejected, "type")
+			if len(errs) != 1 {
+				t.Fatalf("%q: errs %v, want one", tc.rejected, errs)
+			}
+			if !strings.Contains(errs[0].Error(), "to be one of") {
+				t.Errorf("%q: %q does not carry the permitted set; schema_enum_test and "+
+					"acc_negative_test both read the enum back out of that phrase",
+					tc.rejected, errs[0])
+			}
+		})
+	}
+
+	// "0" is a code Zabbix does not use, and the empty string is what a
+	// missing value decodes to; neither may slip through as a valid step
+	for _, bad := range []string{"", "0", "31", "-1", "12.0", "JSONPath"} {
+		if _, errs := preprocessorTypeValidator(PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_LOOKUP_ARR)(bad, "type"); len(errs) == 0 {
+			t.Errorf("%q was accepted", bad)
+		}
+	}
+}
+
+// TestPreprocTypeStateFuncNormalises is the other half of the compatibility
+// story. The validator letting "12" through is only safe because the value is
+// rewritten to "jsonpath" before it is compared with state -- otherwise a
+// config that kept the numeric form would plan a diff on every run, for ever.
+func TestPreprocTypeStateFuncNormalises(t *testing.T) {
+	f := preprocessorTypeStateFunc(PREPROC_LOOKUP_REV)
+
+	for name, code := range PREPROC_LOOKUP {
+		if got := f(code); got != name {
+			t.Errorf("StateFunc(%q) = %q, want %q", code, got, name)
+		}
+		if got := f(name); got != name {
+			t.Errorf("StateFunc(%q) = %q, want it left alone", name, got)
+		}
+	}
+
+	// a code from a Zabbix newer than this provider is passed through rather
+	// than blanked, so the resulting diff names something a human can look up
+	if got := f("31"); got != "31" {
+		t.Errorf("StateFunc(%q) = %q, want the unknown code passed through", "31", got)
+	}
+}
+
+// TestResolvePreprocessorType covers the create/update path: name or code in,
+// Zabbix's code out, and a refusal with the version in it for a type the
+// server does not have. A ValidateFunc cannot do this -- it runs before the
+// provider has spoken to any server -- so this is the only place the gate
+// exists.
+func TestResolvePreprocessorType(t *testing.T) {
+	const v60, v64, v70 = 60048, 60400, 70029
+
+	for _, tc := range []struct {
+		in      string
+		version int
+		want    string
+		errWant string
+	}{
+		{"jsonpath", v60, "12", ""},
+		{"12", v60, "12", ""},
+		{"matches_regex", v60, "14", ""}, // item side: 6.0 has it
+		{"snmp_walk_value", v70, "28", ""},
+		{"snmp_walk_value", v64, "28", ""},
+		{"snmp_walk_value", v60, "", "requires Zabbix 6.4 or later"},
+		{"29", v60, "", "requires Zabbix 6.4 or later"},
+		{"snmp_get_value", v70, "30", ""},
+		{"snmp_get_value", v64, "", "requires Zabbix 7.0 or later"},
+		{"nonsense", v70, "", "unknown preprocessing step type"},
+	} {
+		got, err := resolvePreprocessorType(tc.in, PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_MIN_VERSION, tc.version)
+		switch {
+		case tc.errWant == "" && err != nil:
+			t.Errorf("item %q at %d: %s", tc.in, tc.version, err)
+		case tc.errWant == "" && got != tc.want:
+			t.Errorf("item %q at %d = %q, want %q", tc.in, tc.version, got, tc.want)
+		case tc.errWant != "" && err == nil:
+			t.Errorf("item %q at %d = %q, want error %q", tc.in, tc.version, got, tc.errWant)
+		case tc.errWant != "" && !strings.Contains(err.Error(), tc.errWant):
+			t.Errorf("item %q at %d: %q does not contain %q", tc.in, tc.version, err, tc.errWant)
+		}
+	}
+
+	// the discovery-rule difference, which is the whole reason the two tables
+	// carry separate gates
+	if _, err := resolvePreprocessorType("matches_regex", LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_MIN_VERSION, v60); err == nil {
+		t.Error("matches_regex on a 6.0 discovery rule was allowed; 6.0 rejects code 14 there")
+	} else if !strings.Contains(err.Error(), "7.0") {
+		t.Errorf("matches_regex on 6.0: %q does not name the version that has it", err)
+	}
+	if _, err := resolvePreprocessorType("matches_regex", LLD_PREPROC_LOOKUP, LLD_PREPROC_LOOKUP_REV, LLD_PREPROC_MIN_VERSION, v70); err != nil {
+		t.Errorf("matches_regex on a 7.0 discovery rule: %s", err)
+	}
+
+	// the message has to say what the server is, not what its encoded version
+	// integer is -- 60048 is not a version anybody recognises
+	_, err := resolvePreprocessorType("snmp_get_value", PREPROC_LOOKUP, PREPROC_LOOKUP_REV, PREPROC_MIN_VERSION, v60)
+	if err == nil || !strings.Contains(err.Error(), "6.0.48") {
+		t.Errorf("gate message %v does not report the server version readably", err)
+	}
+}
+
+func TestZabbixVersionString(t *testing.T) {
+	for in, want := range map[int]string{
+		60048: "6.0.48",
+		70029: "7.0.29",
+		70413: "7.4.13",
+		80000: "8.0.0",
+	} {
+		if got := zabbixVersionString(in); got != want {
+			t.Errorf("zabbixVersionString(%d) = %q, want %q", in, got, want)
+		}
 	}
 }

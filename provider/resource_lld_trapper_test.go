@@ -305,14 +305,14 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 			{ // C2: one step
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.data" ]
 		error_handler = "0"
 	}
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.#", "1"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "12"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "jsonpath"),
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.params.0", "$.data"),
 					testAccCheckLLDPreprocessorCount("zabbix_lld_trapper.testlld", 1),
 				),
@@ -321,24 +321,24 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 				// and position tell them apart
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.data" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value;" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value.trim();" ]
 		error_handler = "0"
 	}
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.#", "3"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "12"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "jsonpath"),
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.1.params.0", "return value;"),
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.2.params.0", "return value.trim();"),
 					testAccCheckLLDPreprocessorCount("zabbix_lld_trapper.testlld", 3),
@@ -351,41 +351,41 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 				// order, this is the step that would say so.
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value.trim();" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.data" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value;" ]
 		error_handler = "0"
 	}
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.params.0", "return value.trim();"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.1.type", "12"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.1.type", "jsonpath"),
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.2.params.0", "return value;"),
 				),
 			},
 			{ // and the reordered state is stable, not flapping back
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value.trim();" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.data" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value;" ]
 		error_handler = "0"
 	}
@@ -401,17 +401,17 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 				// side of it alone
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value.trim();" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.items" ]
 		error_handler = "0"
 	}
 	preprocessor {
-		type = "21"
+		type = "javascript"
 		params = [ "return value;" ]
 		error_handler = "0"
 	}
@@ -426,14 +426,14 @@ func TestAccResourceLLDPreprocessor(t *testing.T) {
 			{ // C6: three down to one
 				Config: hcl(t, lldTrapperPreprocessorHCL(`
 	preprocessor {
-		type = "12"
+		type = "jsonpath"
 		params = [ "$.items" ]
 		error_handler = "0"
 	}
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.#", "1"),
-					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "12"),
+					resource.TestCheckResourceAttr("zabbix_lld_trapper.testlld", "preprocessor.0.type", "jsonpath"),
 					testAccCheckLLDPreprocessorCount("zabbix_lld_trapper.testlld", 1),
 				),
 			},

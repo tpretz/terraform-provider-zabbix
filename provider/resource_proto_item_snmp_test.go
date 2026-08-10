@@ -52,7 +52,7 @@ resource "zabbix_proto_item_snmp" "testproto" {
 	delay = "3m"
 
 	preprocessor {
-		type = "10"
+		type = "change_per_second"
 		error_handler = "0"
 	}
 }
@@ -63,7 +63,7 @@ resource "zabbix_proto_item_snmp" "testproto" {
 					resource.TestCheckResourceAttr("zabbix_proto_item_snmp.testproto", "valuetype", "float"),
 					resource.TestCheckResourceAttr("zabbix_proto_item_snmp.testproto", "snmp_oid", "1.3.6.1.2.1.2.2.1.16.{#SNMPINDEX}"),
 					resource.TestCheckResourceAttr("zabbix_proto_item_snmp.testproto", "delay", "3m"),
-					resource.TestCheckResourceAttr("zabbix_proto_item_snmp.testproto", "preprocessor.0.type", "10"),
+					resource.TestCheckResourceAttr("zabbix_proto_item_snmp.testproto", "preprocessor.0.type", "change_per_second"),
 				),
 			},
 			{ // import
