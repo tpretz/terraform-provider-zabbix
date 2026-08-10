@@ -491,7 +491,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 // resourceHost terraform host resource entrypoint
 func resourceHost() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group and at least one interface.",
+		Description: "Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group. Interfaces are optional: a host carrying only calculated, dependent, trapper or internal items does not need one.",
 		Create:      resourceHostCreate,
 		Read:        resourceHostRead,
 		Update:      resourceHostUpdate,
@@ -524,8 +524,14 @@ func hostResourceSchema(m map[string]*schema.Schema) (o map[string]*schema.Schem
 
 		// required
 		switch k {
-		case "host", "interface", "groups":
+		case "host", "groups":
 			schema.Required = true
+		case "interface":
+			// Not required. Zabbix accepts a host with no interfaces at all on
+			// every supported version - one carrying only calculated, dependent,
+			// trapper or internal items, or existing purely to hold templates,
+			// has nothing to attach an interface to.
+			schema.Optional = true
 		case "templates", "proxyid", "inventory":
 			schema.Optional = true
 		}

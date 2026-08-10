@@ -957,3 +957,73 @@ resource "zabbix_host" "testhost" {
 		},
 	})
 }
+
+// TestAccResourceHostNoInterface covers C1 and C6-to-zero for host interfaces,
+// both of which the Phase 7 audit recorded as "N/A: interface is Required,
+// Min 1". That was wrong. Zabbix accepts a host with no interfaces at all on
+// 6.0, 7.0, 7.4 and 8.0 — verified by direct API call — and a host carrying
+// only calculated, dependent, trapper or internal items has nothing to attach
+// one to. The provider used to reject it with "Insufficient interface blocks".
+func TestAccResourceHostNoInterface(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // C1: no interface block at all
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+}
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "0"),
+					testAccCheckHostInterfaceCount("zabbix_host.testhost", 0),
+				),
+			},
+			{ // an interface can still be added afterwards
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+	interface {
+		type = "agent"
+		ip   = "127.0.0.1"
+	}
+}
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "1"),
+					testAccCheckHostInterfaceCount("zabbix_host.testhost", 1),
+				),
+			},
+			{ // C6 to zero: and removed again, which omitempty used to prevent
+				Config: hcl(t, `
+resource "zabbix_hostgroup" "testgrp" {
+	name = "test-group"
+}
+resource "zabbix_host" "testhost" {
+	host   = "test-host"
+	groups = [zabbix_hostgroup.testgrp.id]
+}
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_host.testhost", "interface.#", "0"),
+					testAccCheckHostInterfaceCount("zabbix_host.testhost", 0),
+				),
+			},
+			{
+				ResourceName:      "zabbix_host.testhost",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

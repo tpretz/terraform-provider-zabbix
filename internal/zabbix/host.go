@@ -67,8 +67,13 @@ type Host struct {
 	InventoryMode    InventoryMode   `json:"-"`
 
 	// Fields below used only when creating hosts
-	GroupIds         HostGroupIDs   `json:"groups,omitempty"`
-	Interfaces       HostInterfaces `json:"interfaces,omitempty"`
+	GroupIds HostGroupIDs `json:"groups,omitempty"`
+	// no omitempty: Zabbix replaces the interface collection wholesale, reading an
+	// absent property as "leave as is" and [] as "clear", so with omitempty the
+	// last interface could never be removed. Both create and update accept [] on
+	// 6.0 through 8.0 - a host needs no interface at all if it only carries
+	// calculated, dependent, trapper or internal items. prepHosts normalises nil.
+	Interfaces       HostInterfaces `json:"interfaces"`
 	TemplateIDs      TemplateIDs    `json:"templates,omitempty"`
 	TemplateIDsClear TemplateIDs    `json:"templates_clear,omitempty"`
 	// templates are read back from this one
@@ -273,6 +278,10 @@ func (api *API) prepHosts(hosts Hosts) {
 
 		// Never send the read-only host group mirror back.
 		hosts[i].HostGroups = nil
+
+		if hosts[i].Interfaces == nil {
+			hosts[i].Interfaces = HostInterfaces{}
+		}
 
 		// Proxy link. Zabbix 7.0 replaced "proxy_hostid" with "proxyid" and
 		// requires "monitored_by" to say who does the monitoring; sending

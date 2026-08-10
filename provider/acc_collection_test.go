@@ -145,6 +145,19 @@ func testAccCheckLLDConditionCount(addr string, want int) resource.TestCheckFunc
 	})
 }
 
+func testAccCheckHostInterfaceCount(addr string, want int) resource.TestCheckFunc {
+	return testAccCheckServerCount(addr, "host interfaces", want, func(api *zabbix.API, id string) (int, error) {
+		res, err := api.HostsGet(zabbix.Params{"hostids": []string{id}, "selectInterfaces": "extend"})
+		if err != nil {
+			return 0, err
+		}
+		if len(res) != 1 {
+			return 0, fmt.Errorf("host.get returned %d hosts", len(res))
+		}
+		return len(res[0].Interfaces), nil
+	})
+}
+
 func testAccCheckLLDMacroPathCount(addr string, want int) resource.TestCheckFunc {
 	return testAccCheckServerCount(addr, "LLD macro paths", want, func(api *zabbix.API, id string) (int, error) {
 		res, err := api.LLDsGet(zabbix.Params{"itemids": []string{id}, "selectLLDMacroPaths": "extend"})
