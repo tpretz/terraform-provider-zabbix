@@ -155,6 +155,51 @@ resource "zabbix_item_agent" "testitem" {
 	valuetype = "flooat"
 }
 `},
+		// common_item.go -- the preprocessing step type, shared by all twenty
+		// item and prototype resources
+		{"item preprocessor type", negTemplateHCL + `
+resource "zabbix_item_agent" "testitem" {
+	hostid    = zabbix_template.testtmpl.id
+	key       = "negative.item"
+	name      = "Negative Item"
+	valuetype = "float"
+	preprocessor {
+		type = "jsonpaths"
+	}
+}
+`},
+		// an out-of-range numeric code. The numeric form is accepted for
+		// compatibility with v0.x configurations, which makes "^[0-9]+$" no
+		// longer a sufficient check on its own: a number Zabbix does not use
+		// has to be rejected here rather than reaching the server.
+		{"item preprocessor numeric type", negTemplateHCL + `
+resource "zabbix_item_agent" "testitem" {
+	hostid    = zabbix_template.testtmpl.id
+	key       = "negative.item"
+	name      = "Negative Item"
+	valuetype = "float"
+	preprocessor {
+		type = "999"
+	}
+}
+`},
+
+		// common_lld.go -- a discovery rule takes a smaller list than an item,
+		// so a perfectly good *item* step type must be turned down here. This
+		// is the case that would pass unnoticed if the two shared one lookup.
+		{"lld preprocessor type", negLLDHCL(`
+	preprocessor {
+		type   = "multiplier"
+		params = ["2"]
+	}
+`)},
+		{"lld preprocessor numeric type", negLLDHCL(`
+	preprocessor {
+		type   = "1"
+		params = ["2"]
+	}
+`)},
+
 		// resource_http_common.go
 		{"http request_method", negTemplateHCL + `
 resource "zabbix_item_http" "testitem" {
