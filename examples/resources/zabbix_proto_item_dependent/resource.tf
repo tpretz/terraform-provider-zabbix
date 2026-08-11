@@ -26,7 +26,7 @@ resource "zabbix_proto_item_dependent" "errors" {
   valuetype     = "unsigned"
 
   preprocessor {
-    type   = "12"
+    type   = "jsonpath"
     params = ["$.errors"]
   }
 }

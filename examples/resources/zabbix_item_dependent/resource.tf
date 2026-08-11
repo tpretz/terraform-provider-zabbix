@@ -17,7 +17,7 @@ resource "zabbix_item_dependent" "queue_depth" {
   valuetype     = "unsigned"
 
   preprocessor {
-    type   = "12"
+    type   = "jsonpath"
     params = ["$.queue.depth"]
   }
 }

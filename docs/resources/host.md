@@ -2,12 +2,12 @@
 page_title: "zabbix_host Resource - Zabbix"
 subcategory: "Hosts and Templates"
 description: |-
-  Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group and at least one interface.
+  Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group. Interfaces are optional: a host carrying only calculated, dependent, trapper or internal items does not need one.
 ---
 
 # zabbix_host (Resource)
 
-Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group and at least one interface.
+Manages a Zabbix host: the monitored object that items, triggers and graphs belong to. A host needs at least one group. Interfaces are optional: a host carrying only calculated, dependent, trapper or internal items does not need one.
 
 ## Interfaces are a set
 
@@ -97,11 +97,11 @@ output "agent_interface_id" {
 
 - `groups` (Set of String) Host group IDs this host belongs to. At least one is required
 - `host` (String) Technical host name, unique across the Zabbix server. Usually the FQDN
-- `interface` (Block Set, Min: 1) Host interfaces (unordered). A set, not a list: `interface[0]` does not parse — use `one(...)` or a `for` expression to pick one out (see [below for nested schema](#nestedblock--interface))
 
 ### Optional
 
 - `enabled` (Boolean) Whether the host is monitored. A disabled host keeps its configuration but is not polled
+- `interface` (Block Set) Host interfaces (unordered). A set, not a list: `interface[0]` does not parse — use `one(...)` or a `for` expression to pick one out (see [below for nested schema](#nestedblock--interface))
 - `inventory` (Block List) Host inventory fields. A single block, not a collection — the list type is how a lone optional nested block is expressed in SDKv2. Requires `inventory_mode` to be "manual" or "automatic"; under "automatic" Zabbix overwrites any field populated by an item, so managing those here will fight the server. (see [below for nested schema](#nestedblock--inventory))
 - `inventory_mode` (String) How the host inventory is populated, one of: automatic, disabled, manual. The `inventory` block requires "manual" or "automatic"
 - `ipmi_authtype` (String) IPMI authentication algorithm, one of: default, md2, md5, none, oem, rmcp+, straight

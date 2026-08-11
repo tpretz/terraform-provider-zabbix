@@ -12,7 +12,7 @@ resource "zabbix_item_snmp" "uptime" {
 
   # DISPLAY_STRING timeticks arrive in hundredths of a second
   preprocessor {
-    type   = "10"
-    params = ["100"]
+    type   = "multiplier"
+    params = ["0.01"]
   }
 }

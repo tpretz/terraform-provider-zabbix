@@ -115,13 +115,13 @@ Required:
 
 Required:
 
-- `type` (String) Preprocessing step type, as Zabbix's numeric code — e.g. `5` regular expression, `11` XML XPath, `12` JSONPath, `20` discard unchanged with heartbeat. See the Zabbix API documentation for `preprocessing.type`; the full list grows with every release, so it is not enumerated or validated here.
+- `type` (String) Preprocessing step type. A discovery rule accepts fewer of these than an item does; one of: `regex` (5), `xml_xpath` (11), `jsonpath` (12), `matches_regex` (14, Zabbix 7.0 and later), `not_matches_regex` (15), `check_json_error` (16), `check_xml_error` (17), `discard_unchanged_heartbeat` (20), `javascript` (21), `prometheus_to_json` (23), `csv_to_json` (24), `replace` (25), `xml_to_json` (27), `snmp_walk_value` (28, Zabbix 6.4 and later), `snmp_walk_to_json` (29, Zabbix 6.4 and later), `snmp_get_value` (30, Zabbix 7.0 and later). Zabbix's numeric code is accepted too, for compatibility with provider v0.x configurations — `"12"` means `jsonpath` — but it is deprecated, warns on every plan, and will be removed in the next major release. The name is canonical: a numeric configuration is rewritten to the name in state on the first apply, so the plan after that is empty.
 
 Optional:
 
 - `error_handler` (String) What to do when this step fails, as Zabbix's numeric code: `0` discard the value and report the error (the default), `1` discard the value silently, `2` set the value in `error_handler_params`, `3` report the error text in `error_handler_params`.
 - `error_handler_params` (String) Value or error text used by `error_handler` codes `2` and `3`. Ignored otherwise.
-- `params` (List of String) Parameters for the step, one element per line Zabbix expects. Which parameters apply, and how many, depends entirely on `type`.
+- `params` (List of String) Parameters for the step, one element per line Zabbix expects. Which parameters apply, and how many, depends entirely on `type`. They are positional, so an empty string is a meaningful value: `prometheus_pattern` with output `value` is stored and returned by Zabbix as three parameters, the third empty.
 
 Read-Only:
 

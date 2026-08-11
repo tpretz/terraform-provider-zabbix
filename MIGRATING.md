@@ -25,10 +25,12 @@ keeps running throughout.
 | 5 | `zabbix_template.groups` takes **template** group ids on 6.2+ | edit + `terraform import` |
 | 6 | `graph.item`, `host.interface`, LLD `condition` are **sets, not lists** | fix every `[0]` index |
 | 7 | Legacy SNMP item attributes removed | delete the attributes |
+| 8 | `preprocessor.type` takes a name, not a number | none now, edit at leisure |
 
 Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
-config and the provider quietly discards them from state. Number 6 is the one
-most likely to break a config that otherwise looks fine.
+config and the provider quietly discards them from state. Number 8 is cheaper
+still — nothing to do at upgrade time. Number 6 is the one most likely to break
+a config that otherwise looks fine.
 
 ---
 
@@ -570,6 +572,130 @@ provider discards them on the first plan. Only the configuration has to change.
 
 ---
 
+## 8. `preprocessor.type` takes a name, not a number
+
+`preprocessor.type` used to be Zabbix's internal numeric code, validated only
+as "must be numeric". It is now a named enum, like every other enum in the
+provider:
+
+**Before**
+
+```hcl
+resource "zabbix_item_agent" "queue" {
+  hostid    = zabbix_host.web.id
+  key       = "app.queue"
+  name      = "Queue depth"
+  valuetype = "unsigned"
+
+  preprocessor {
+    type   = "12"
+    params = ["$.depth"]
+  }
+
+  preprocessor {
+    type   = "20"
+    params = ["1h"]
+  }
+}
+```
+
+**After**
+
+```hcl
+resource "zabbix_item_agent" "queue" {
+  hostid    = zabbix_host.web.id
+  key       = "app.queue"
+  name      = "Queue depth"
+  valuetype = "unsigned"
+
+  preprocessor {
+    type   = "jsonpath"
+    params = ["$.depth"]
+  }
+
+  preprocessor {
+    type   = "discard_unchanged_heartbeat"
+    params = ["1h"]
+  }
+}
+```
+
+### Nothing breaks if you do not do this
+
+The numeric form is still accepted. It emits a deprecation warning on every
+plan and **will be removed in the next major release**, but it applies, and it
+converges on its own: the provider rewrites the number to the name in state on
+the first apply, so the plan after that is empty and the configuration keeps
+working unchanged until you get round to it.
+
+Concretely, upgrading a state written by v0.17.0 shows one in-place update per
+item that has preprocessing — `type` changing from the number to the name, with
+nothing sent to Zabbix that it did not already have. Apply it and the diff is
+gone for good.
+
+### The names
+
+The number in brackets is Zabbix's code, so an old configuration can be
+translated by looking it up.
+
+| Item | | |
+|---|---|---|
+| `multiplier` (1) | `rtrim` (2) | `ltrim` (3) |
+| `trim` (4) | `regex` (5) | `bool_to_decimal` (6) |
+| `octal_to_decimal` (7) | `hex_to_decimal` (8) | `simple_change` (9) |
+| `change_per_second` (10) | `xml_xpath` (11) | `jsonpath` (12) |
+| `in_range` (13) | `matches_regex` (14) | `not_matches_regex` (15) |
+| `check_json_error` (16) | `check_xml_error` (17) | `check_regex_error` (18) |
+| `discard_unchanged` (19) | `discard_unchanged_heartbeat` (20) | `javascript` (21) |
+| `prometheus_pattern` (22) | `prometheus_to_json` (23) | `csv_to_json` (24) |
+| `replace` (25) | `check_unsupported` (26) | `xml_to_json` (27) |
+| `snmp_walk_value` (28) | `snmp_walk_to_json` (29) | `snmp_get_value` (30) |
+
+A **discovery rule** takes a smaller list, and always did — Zabbix refuses the
+rest on a `zabbix_lld_*` resource. The provider now refuses them too, at plan
+time, instead of passing them through for the server to reject:
+
+`regex` (5), `xml_xpath` (11), `jsonpath` (12), `matches_regex` (14),
+`not_matches_regex` (15), `check_json_error` (16), `check_xml_error` (17),
+`discard_unchanged_heartbeat` (20), `javascript` (21), `prometheus_to_json`
+(23), `csv_to_json` (24), `replace` (25), `xml_to_json` (27),
+`snmp_walk_value` (28), `snmp_walk_to_json` (29), `snmp_get_value` (30).
+
+### Types your server may not have
+
+Four of these arrived after 6.0, and the provider now says so at apply time
+rather than letting the server answer with a number you did not write:
+
+| Type | Needs |
+|---|---|
+| `snmp_walk_value` (28) | Zabbix 6.4 |
+| `snmp_walk_to_json` (29) | Zabbix 6.4 |
+| `snmp_get_value` (30) | Zabbix 7.0 |
+| `matches_regex` (14) **on a discovery rule only** | Zabbix 7.0 |
+
+`matches_regex` is the odd one: on an *item* it has existed since 6.0 and is
+not gated. Only the discovery-rule use of it needs 7.0.
+
+### While you are here: `params` no longer rejects an empty string
+
+Related, and a fix rather than a break. A step's parameters are positional
+slots, and an empty one is a real value — `prometheus_pattern` with output
+`value` is stored by Zabbix as three parameters with the third empty, whatever
+you send. The provider used to reject `""` at plan time, which made that step
+impossible to write in a form that matched what the server returned:
+
+```hcl
+preprocessor {
+  type   = "prometheus_pattern"
+  params = ["cpu_usage_system", "value", ""]
+}
+```
+
+If you have a `prometheus_pattern` step that has been showing a permanent diff,
+adding the empty third parameter is the fix.
+
+---
+
 ## Checklist
 
 ```
@@ -585,6 +711,8 @@ provider discards them on the first plan. Only the configuration has to change.
 [ ] templates with stale group ids re-imported
 [ ] every interface[N] / item[N] / condition[N] index replaced
 [ ] legacy snmp_* attributes moved from items to host interfaces
+[ ] preprocessor { type = "<number>" } rewritten to the name (optional, but
+    the numeric form goes away in the next major release)
 [ ] terraform plan is empty
 ```
 

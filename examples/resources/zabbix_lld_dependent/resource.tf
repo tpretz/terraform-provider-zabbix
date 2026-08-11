@@ -18,7 +18,7 @@ resource "zabbix_lld_dependent" "disks" {
   delay         = "0"
 
   preprocessor {
-    type   = "12"
+    type   = "jsonpath"
     params = ["$.disks"]
   }
 }
