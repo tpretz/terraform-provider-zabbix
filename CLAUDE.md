@@ -137,7 +137,7 @@ Each `resource_<type>_common.go` provides two callbacks and wires them into all 
 
 `common_item.go` supplies the shared machinery: `itemGetCreateWrapper` / `protoItemGetCreateWrapper` / `lldGetCreateWrapper` (and Read/Update equivalents) are factories that take the mod+read funcs and return Terraform CRUD closures; `buildItemObject` handles common fields; `resourceItemCreate/Read/Update` plus a `prototype bool` flag route to the right API method. Schemas are assembled with `mergeSchemas(itemCommonSchema, itemDelaySchema, itemInterfaceSchema, …, typeSpecificSchema)` (`utils.go`). `common_lld.go`, `common_macro.go`, and `common_tag.go` play the same role for LLD rules, macros, and tags.
 
-**To add a new item backend type**: create `resource_<type>_common.go` following an existing one (snmp is the fullest example), then register the three resource constructors in `provider/provider.go`. Seven types are still missing — db_monitor, ipmi, ssh, telnet, jmx, script, browser — and are enumerated in PLAN.md § 4a. Follow the S1–S8 definition of done in PLAN.md § "The unit of work": every new resource lands with an acceptance test including an import step, a sweeper, docs and an example.
+**To add a new item backend type**: create `resource_<type>_common.go` following an existing one (snmp is the fullest example), then register the three resource constructors in `provider/provider.go`. Seven types are still missing — db_monitor, ipmi, ssh, telnet, jmx, script, browser — and are enumerated in PLAN.md § 4a. Follow the S1–S9 definition of done in PLAN.md § "The unit of work": every new resource lands with an acceptance test including an import step, a sweeper, docs and an example.
 
 ### Collections: do not model unordered server data as an ordered list
 
@@ -238,7 +238,49 @@ scalar boundaries are covered — see PLAN.md § Phase 8.
 
 **Do not treat that as licence to add a resource without tests.** Of the 24 defects fixed in
 v2, most were found by a test written where coverage was absent, and every one had been
-invisible for years. `S1`–`S8` and `C1`–`C7` below are the bar.
+invisible for years. `S1`–`S9` and `C1`–`C7` below are the bar.
+
+### `S9`: a resource is not tested until it has been built from its minimum, and taken back
+
+This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of
+truth. Two questions, neither of which any other criterion asks:
+
+> **Does the resource work when the user sets only what is required?**
+> **Can what was set be unset?**
+
+Six defects came from those two, all of them invisible to `C1`–`C7` and `E1`–`E6`,
+because every fixture in the suite was written by somebody who already knew the
+answer and set the attribute: `zabbix_lld_trapper` uncreatable without an explicit
+`delay = "0"`; a `preprocessor` block failing on create when `error_handler` was
+omitted; `zabbix_host` refusing a host with no interface; HTTP `posts`/`proxy` and
+trigger `url` settable but not clearable; HTTP `status_codes`/`timeout` the same;
+the four SNMPv3 credentials the same, and forbidden by a `ValidateFunc` besides.
+
+| | Case | What it must do |
+|---|---|---|
+| S9a | **the documented minimum** | only the `Required` attributes — what the generated docs tell a user to write — applies and plans clean. Needing more is a finding: either the attribute should be `Required`, or it needs a working default |
+| S9b | **each optional block at its own minimum** | S9a omits optional blocks entirely, so it never reaches the defaults declared *inside* one — where the `error_handler` defect lived. Each block gets its own minimum, carrying only what the block marks `Required` |
+| S9c | **every `Default:` against a live server** | the empty plan after S9a/S9b is the check. `""` is legal for some Zabbix properties and rejected outright for others, so probe — do not reason from the documentation |
+| S9d | **set, then unset** | every optional scalar that can hold an empty value is set to a non-default and then returned to empty, and the plan after the clear must be empty |
+| S9e | **the clear reaching the server** | where the property is *merged* rather than replaced — host `inventory`, interface `details` — assert against a re-read, as `C6` does. State is written by the provider's own read, so a dropped clear still looks right there |
+
+`S9d` is the scalar twin of `C6`. The usual mechanical cause is an `omitempty`
+struct tag on a property the user is allowed to empty (see CONTRIBUTING.md
+§ "The `omitempty` trap"), but it is not the only one: `d.GetOk` reports `""` as
+"not set" and drops the key just as thoroughly — that is how the host inventory
+fields were unclearable while every struct tag involved was correct.
+
+Two traps, both of which hid a defect behind something that looked fine:
+
+- **A default hides the empty value.** An attribute with no default reaches `""` by
+  being omitted, so a fixture may stumble over it. An attribute *with* a default
+  only reaches `""` if the user writes it out, and no fixture ever does.
+- **A `ValidateFunc` can make a legal value unreachable.** `StringIsNotWhiteSpace`
+  on an optional attribute forbids the empty string outright. Check the server
+  agrees before adding one.
+
+The tests are `provider/acc_minimal_test.go` (S9a–S9c) and
+`provider/acc_clearable_test.go` (S9d–S9e).
 
 ### `C1`–`C7`: a collection attribute is not tested until it is tested plural
 

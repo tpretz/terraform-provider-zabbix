@@ -91,7 +91,7 @@ Phases 0–3 are enumerated task by task below. Phase 4 is not, and deliberately
 35 repetitions of one well-defined shape. Rather than write out 250 checkboxes, the
 shape is defined once here, and Phase 4 lists the instances.
 
-**Definition of done for a new resource** (8 steps, `S1`–`S8`):
+**Definition of done for a new resource** (9 steps, `S1`–`S9`):
 
 | | Step | Detail |
 |---|---|---|
@@ -103,6 +103,52 @@ shape is defined once here, and Phase 4 lists the instances.
 | S6 | Acceptance test | create → update → re-read, plus `ImportState`/`ImportStateVerify`, plus a `SkipFunc` for version-bound behaviour. Every collection attribute additionally meets `C1`–`C7` below |
 | S7 | Sweeper | `resource.AddTestSweepers` entry so aborted runs self-clean |
 | S8 | Docs + example | schema descriptions drive `tfplugindocs`; hand-written intro in `templates/`, runnable HCL in `examples/` |
+| S9 | Minimum and reverse | applied from its Required set alone, and every optional attribute that was set has been unset again — see `S9` below |
+
+**Definition of done for the minimum and the way back** (`S9`).
+
+`S1`–`S8` and `C1`–`C7` between them ask *"does this attribute behave correctly when
+set?"*. `E1`–`E6` ask *"what happens when things go wrong?"*. None of them asks the two
+questions a user asks on day one and on day thirty:
+
+> **Does the resource work when I set only what is required?**
+> **Can what I set be unset?**
+
+Those two have produced **six** defects between them, every one of which survived eight
+phases of structured testing, because every fixture in the suite was written by somebody
+who already knew the answer: `zabbix_lld_trapper` uncreatable without an explicit
+`delay = "0"`; a `preprocessor` block failing on create when `error_handler` was omitted;
+`zabbix_host` refusing a host with no interface; HTTP `posts`/`proxy` and trigger `url`
+settable but not clearable; HTTP `status_codes`/`timeout` the same; the four SNMPv3
+credentials the same, and not even expressible as empty. A resource is not tested until
+it has been created from its documented minimum and returned from every optional value
+it can hold.
+
+| | Case | What it must do |
+|---|---|---|
+| S9a | **the documented minimum** | a configuration setting *only* the attributes marked `Required` — what someone following the generated docs writes — applies and then plans clean. Needing more than that is a finding, not a fixture detail: either the attribute should be `Required`, or it needs a working default |
+| S9b | **each optional block at its own minimum** | S9a omits optional blocks entirely and so never reaches the defaults declared *inside* one — which is exactly where the `error_handler` defect lived. Every optional block gets the same treatment, carrying only the attributes the block itself marks `Required` |
+| S9c | **every `Default:` against a live server** | the empty plan after S9a/S9b is the check: a default the server rewrites, or rejects, shows up there and nowhere else. `""` is legal for some Zabbix properties and rejected outright for others, so probe — do not reason from the documentation |
+| S9d | **set, then unset** | every optional scalar that can hold an empty value is set to a non-default, then returned to empty, and the plan after the clear must be empty. Zabbix reads an absent property as "leave as is", so a clear that does not reach the server leaves a diff that reapplies forever |
+| S9e | **the clear reaching the server** | where the property is merged rather than replaced — host `inventory`, interface `details` — assert against a re-read, as `C6` does for collections. State is written by the provider's own read, so a dropped clear still looks right in state |
+
+S9d is the scalar twin of `C6`, and it has the same cause. The mechanical form of the
+bug is an `omitempty` struct tag in `internal/zabbix/` on a property the user is allowed
+to empty — see [CONTRIBUTING.md § "The `omitempty` trap"](./CONTRIBUTING.md#the-omitempty-trap)
+for which tag a new field should carry. It is not the only form: `d.GetOk` reports `""`
+as "not set" and will drop the key just as thoroughly, which is how the host inventory
+fields were unclearable while every struct tag involved was correct.
+
+Two traps worth naming, because both hid a defect behind something that looked fine:
+
+- **A default hides the empty value.** An attribute with no default reaches `""` by being
+  omitted, so an existing fixture may stumble over it. An attribute *with* a default only
+  reaches `""` if the user writes it out, and no fixture ever does — which is why
+  `status_codes` and the SNMPv3 credentials outlasted the ones without defaults.
+- **A `ValidateFunc` can make a legal value unreachable.** `StringIsNotWhiteSpace` on an
+  optional attribute forbids the empty string outright. Before adding one, check that
+  Zabbix agrees the value is invalid; four interface attributes carried it for values
+  Zabbix accepts, so the plugin rejected a configuration the server would have taken.
 
 **Definition of done for a collection attribute** (`C1`–`C7`).
 
@@ -153,7 +199,7 @@ S1/S3 are mostly free, since `common_item.go` supplies the machinery and the wor
 | 2 — 7.x correctness + purge | 8 | ~25 |
 | 3 — fix + test existing | 15 | ~60 (mostly test files) |
 | **v2.0.0 — release gate** | — | — |
-| 4 — feature completeness | 35 instances (+2 deferred) | ~250 (35 × S1–S8) |
+| 4 — feature completeness | 35 instances (+2 deferred) | ~250 (35 × S1–S9) |
 | 5 — documentation | 7 | ~55 (per-resource descriptions) |
 | 6 — maintenance posture | 5 | ~10 |
 | 7 — collection test backfill | 8 | ~40 |
@@ -446,7 +492,7 @@ Ordered by user value; see [API-COVERAGE.md §2](./API-COVERAGE.md) for the full
 This is the post-2.0 backlog — additive, parallelisable, no longer on the critical path,
 and shipped as ordinary `v2.x` minor releases.
 
-Each row below is one work item following S1–S8 from "The unit of work". Columns flag the
+Each row below is one work item following S1–S9 from "The unit of work". Columns flag the
 steps that carry unusual cost: **DS** = data source also needed, **VG** = version-gated
 behaviour, **∼** = relative size.
 
@@ -675,7 +721,7 @@ Tasks:
       absence as an oversight.
 - [x] Mirror `C1`–`C7` into CLAUDE.md § "Testing expectations" — the rules are only
       useful if they are read before the test is written, and CLAUDE.md is what gets read
-- [ ] **Standing rule, not a task:** fold the checklist into the S1–S8 review for every Phase 4 resource, so the
+- [ ] **Standing rule, not a task:** fold the checklist into the S1–S9 review for every Phase 4 resource, so the
       backlog stops growing while it is being paid down
 
 **Exit criteria:** every row in the table above reads "complete", and any deliberate
