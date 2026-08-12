@@ -122,6 +122,11 @@ is not the fix — it breaks 7.4, because config order need not match `sortorder
 either a `TypeSet` migration or config-order matching on read. Must be resolved before
 8.0 becomes release-gating on GA.
 
+Preprocessing step types are `PREPROC_LOOKUP` (items) and `LLD_PREPROC_LOOKUP`
+(discovery rules). The two lists genuinely differ: `matches_regex` (14) is accepted on an
+item by 6.0 but rejected on a discovery rule until 7.0, so they carry separate gate maps
+rather than sharing one.
+
 Bugs found by writing these tests — five so far, all invisible behind missing coverage:
 - **Every `zabbix_proto_item_*` was impossible to update on Zabbix 7.2+.** `itemprototype.update` was sent the create-only `ruleid`; 7.2 made unknown parameters a hard error, so any change to any item prototype failed. Item prototypes were effectively write-once on both current Zabbix releases.
 - **`post_type` defaulted to `"body"` across the whole http triad** — not a valid value (raw/json/xml); copied from `retrieve_mode` where `"body"` is valid. It mapped to `""`, Zabbix applied `raw`, and the item read back as `raw` against a config saying `body`: a permanent, unappliable diff on every http item.

@@ -108,8 +108,8 @@ With the 6.0 floor, the gates that **survive** are:
 | Gate | What it covers |
 |---|---|
 | `>= 60200` | template groups split from host groups |
-| `>= 60400` | bearer auth; template `vendor_name`/`vendor_version` |
-| `>= 70000` | proxy model rewrite, `monitored_by`, LLD header arrays, browser items |
+| `>= 60400` | bearer auth; template `vendor_name`/`vendor_version`; `snmp_walk_value` and `snmp_walk_to_json` preprocessing |
+| `>= 70000` | proxy model rewrite, `monitored_by`, LLD header arrays, browser items; `snmp_get_value` preprocessing, and `matches_regex` on discovery rules |
 | `>= 70200` | `selectHostGroups`/`selectTemplateGroups` replacing `selectGroups` |
 | `>= 70400` | LLD rule prototypes |
 
