@@ -353,11 +353,10 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Default:      "{$SNMP_COMMUNITY}",
 				},
 				"snmp3_authpassphrase": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "SNMPv3 authentication passphrase (v3 only)",
-					ValidateFunc: validation.StringIsNotWhiteSpace,
-					Default:      "{$SNMP3_AUTHPASSPHRASE}",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
+					Default:     "{$SNMP3_AUTHPASSPHRASE}",
 				},
 				"snmp3_authprotocol": &schema.Schema{
 					Type:         schema.TypeString,
@@ -367,18 +366,16 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Default:      "sha",
 				},
 				"snmp3_contextname": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "SNMPv3 context name (v3 only)",
-					ValidateFunc: validation.StringIsNotWhiteSpace,
-					Default:      "{$SNMP3_CONTEXTNAME}",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "SNMPv3 context name (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
+					Default:     "{$SNMP3_CONTEXTNAME}",
 				},
 				"snmp3_privpassphrase": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "SNMPv3 privacy passphrase (v3 only)",
-					ValidateFunc: validation.StringIsNotWhiteSpace,
-					Default:      "{$SNMP3_PRIVPASSPHRASE}",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "SNMPv3 privacy passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
+					Default:     "{$SNMP3_PRIVPASSPHRASE}",
 				},
 				"snmp3_privprotocol": &schema.Schema{
 					Type:         schema.TypeString,
@@ -395,11 +392,10 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Default:      "authpriv",
 				},
 				"snmp3_securityname": &schema.Schema{
-					Type:         schema.TypeString,
-					Optional:     true,
-					Description:  "SNMPv3 security name (v3 only)",
-					ValidateFunc: validation.StringIsNotWhiteSpace,
-					Default:      "{$SNMP3_SECURITYNAME}",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "SNMPv3 security name (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
+					Default:     "{$SNMP3_SECURITYNAME}",
 				},
 			},
 		},
@@ -759,14 +755,26 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 	return
 }
 
+// hostGenerateInventory builds the inventory object for the write path.
+//
+// Zabbix *merges* the inventory it is sent into what it already holds -- a key
+// left out of the object keeps its stored value, the same rule an absent
+// scalar property follows. So emptying an inventory field has to be an
+// explicit "" on the wire, and this used to read the block with d.GetOk, which
+// reports "" as "not set" and dropped the key. The field could be set and
+// never unset: the server kept the old text, the read wrote it back into
+// state, and the plan never emptied. Removing the whole block had the same
+// effect, only for every field at once.
+//
+// Only fields that are set, or that *were* set and are not any more, go on the
+// wire. Sending all seventy keys unconditionally would be shorter but would
+// fight inventory_mode = "automatic", where Zabbix refuses a write to a field
+// an item is populating.
 func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 
 	inventoryCount := d.Get("inventory.#").(int)
 	if inventoryCount > 1 {
 		return nil, errors.New("must be 0 or 1 instances of inventory block")
-	}
-	if inventoryCount < 1 {
-		return nil, nil
 	}
 
 	inventory := zabbix.Inventory{}
@@ -774,13 +782,52 @@ func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 		prefix := fmt.Sprintf("inventory.%d.", i)
 
 		for _, k := range INVENTORY_KEYS {
-			if val, ok := d.GetOk(prefix + k); ok {
-				inventory[k] = val.(string)
+			if val := d.Get(prefix + k).(string); val != "" {
+				inventory[k] = val
 			}
 		}
 	}
 
+	// Anything the previous state held and the configuration no longer does
+	// has to be sent as "" for the server to drop it. State mirrors the
+	// server here -- the read copies back whatever host.get returned -- so
+	// this is precisely the set of fields that would otherwise be stranded.
+	for k, v := range hostPriorInventory(d) {
+		if v == "" {
+			continue
+		}
+		if _, ok := inventory[k]; !ok {
+			inventory[k] = ""
+		}
+	}
+
+	if len(inventory) == 0 {
+		return nil, nil
+	}
+
 	return inventory, nil
+}
+
+// hostPriorInventory reads the inventory block as it was before this plan.
+// Used to work out which fields the configuration has stopped setting; see
+// hostGenerateInventory.
+func hostPriorInventory(d *schema.ResourceData) map[string]string {
+	old, _ := d.GetChange("inventory")
+	list, ok := old.([]interface{})
+	if !ok || len(list) == 0 {
+		return nil
+	}
+	m, ok := list[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	prev := make(map[string]string, len(m))
+	for k, v := range m {
+		if s, ok := v.(string); ok {
+			prev[k] = s
+		}
+	}
+	return prev
 }
 
 // buildHostObject create host struct
@@ -828,8 +875,15 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 	}
 
 	// adjust inventory mode if block is included
-	if item.Inventory != nil && item.InventoryMode == zabbix.InventoryDisabled {
-		return nil, errors.New("inventory_mode must be enabled for inventory to be used")
+	if item.InventoryMode == zabbix.InventoryDisabled {
+		if d.Get("inventory.#").(int) > 0 {
+			return nil, errors.New("inventory_mode must be enabled for inventory to be used")
+		}
+		// The block is gone and inventory is off; hostGenerateInventory may
+		// still have produced clears for whatever the previous state held.
+		// Turning inventory off empties it server-side anyway, and Zabbix
+		// rejects an inventory object alongside inventory_mode -1.
+		item.Inventory = nil
 	}
 
 	log.Trace("build host object: %#v", item)
@@ -981,6 +1035,15 @@ func flattenInventory(host zabbix.Host) []interface{} {
 	for k, v := range host.Inventory {
 		// handle legacy zabbix v4 values that may be in here
 		if k == "hostid" || k == "inventory_mode" {
+			continue
+		}
+		// Once inventory is enabled host.get returns all seventy fields,
+		// almost all of them empty. Keeping the empty ones would put a block
+		// into state for a host whose inventory holds nothing, which no
+		// configuration without an inventory block can ever match -- a plan
+		// that never empties. An omitted attribute and an empty one are the
+		// same thing to the schema, so dropping them here loses nothing.
+		if v == "" {
 			continue
 		}
 		obj[k] = v

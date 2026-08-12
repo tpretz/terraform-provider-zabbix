@@ -259,8 +259,8 @@ func itemHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Proxy = ptr(d.Get("proxy").(string))
 	item.Password = ptr(d.Get("password").(string))
 	item.Posts = ptr(d.Get("posts").(string))
-	item.StatusCodes = d.Get("status_codes").(string)
-	item.Timeout = d.Get("timeout").(string)
+	item.StatusCodes = ptr(d.Get("status_codes").(string))
+	item.Timeout = ptr(d.Get("timeout").(string))
 	item.Type = zabbix.HTTPAgent
 	item.VerifyHost = "0"
 	item.VerifyPeer = "0"
@@ -290,8 +290,8 @@ func lldHttpModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule)
 	item.Proxy = ptr(d.Get("proxy").(string))
 	item.Password = ptr(d.Get("password").(string))
 	item.Posts = ptr(d.Get("posts").(string))
-	item.StatusCodes = d.Get("status_codes").(string)
-	item.Timeout = d.Get("timeout").(string)
+	item.StatusCodes = ptr(d.Get("status_codes").(string))
+	item.Timeout = ptr(d.Get("timeout").(string))
 	item.Type = zabbix.HTTPAgent
 	item.VerifyHost = "0"
 	item.VerifyPeer = "0"
@@ -324,8 +324,8 @@ func itemHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) 
 	d.Set("proxy", derefOr(item.Proxy, ""))
 	d.Set("password", derefOr(item.Password, ""))
 	d.Set("posts", derefOr(item.Posts, ""))
-	d.Set("status_codes", item.StatusCodes)
-	d.Set("timeout", item.Timeout)
+	d.Set("status_codes", derefOr(item.StatusCodes, ""))
+	d.Set("timeout", derefOr(item.Timeout, ""))
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
 	d.Set("follow_redirects", item.FollowRedirects != "0")
@@ -342,8 +342,8 @@ func lldHttpReadFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule
 	d.Set("proxy", derefOr(item.Proxy, ""))
 	d.Set("password", derefOr(item.Password, ""))
 	d.Set("posts", derefOr(item.Posts, ""))
-	d.Set("status_codes", item.StatusCodes)
-	d.Set("timeout", item.Timeout)
+	d.Set("status_codes", derefOr(item.StatusCodes, ""))
+	d.Set("timeout", derefOr(item.Timeout, ""))
 	d.Set("verify_host", item.VerifyHost == "1")
 	d.Set("verify_peer", item.VerifyPeer == "1")
 	d.Set("follow_redirects", item.FollowRedirects != "0")

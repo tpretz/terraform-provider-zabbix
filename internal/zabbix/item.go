@@ -253,9 +253,17 @@ type Item struct {
 	// into state, leaving a diff that reapplied forever. A pointer to the
 	// empty string marshals as "" and a nil one is omitted, which is exactly
 	// the two behaviours needed. Only the HTTP mod funcs set them.
+	//
+	// status_codes and timeout are pointers for the same reason, arrived at
+	// from the other direction: both have a *default*, so "" is not what an
+	// omitted attribute becomes -- the user has to write it out, and both are
+	// values Zabbix documents. "" in status_codes accepts any response code
+	// (valid on every supported version) and "" in timeout means "use the
+	// global timeout" (7.0+; 6.0 rejects it with "cannot be empty", which is
+	// the honest answer and better than the silent no-op omitempty gave).
 	Posts           *string         `json:"posts,omitempty"`
-	StatusCodes     string          `json:"status_codes,omitempty"`
-	Timeout         string          `json:"timeout,omitempty"`
+	StatusCodes     *string         `json:"status_codes,omitempty"`
+	Timeout         *string         `json:"timeout,omitempty"`
 	VerifyHost      string          `json:"verify_host,omitempty"`
 	VerifyPeer      string          `json:"verify_peer,omitempty"`
 	AuthType        string          `json:"authtype,omitempty"`

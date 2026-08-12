@@ -90,9 +90,15 @@ type LLDRule struct {
 	// into state, leaving a diff that reapplied forever. A pointer to the
 	// empty string marshals as "" and a nil one is omitted, which is exactly
 	// the two behaviours needed. Only the HTTP mod funcs set them.
+	//
+	// status_codes and timeout are pointers for the same reason, arrived at
+	// from the other direction: both have a *default*, so "" is not what an
+	// omitted attribute becomes -- the user has to write it out, and both are
+	// values Zabbix documents. See the note on Item, which carries its own
+	// copy of these fields; the two write paths do not share code.
 	Posts           *string         `json:"posts,omitempty"`
-	StatusCodes     string          `json:"status_codes,omitempty"`
-	Timeout         string          `json:"timeout,omitempty"`
+	StatusCodes     *string         `json:"status_codes,omitempty"`
+	Timeout         *string         `json:"timeout,omitempty"`
 	VerifyHost      string          `json:"verify_host,omitempty"`
 	VerifyPeer      string          `json:"verify_peer,omitempty"`
 	Headers         HttpHeaders     `json:"-"`
