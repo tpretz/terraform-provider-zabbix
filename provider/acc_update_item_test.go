@@ -186,30 +186,10 @@ resource "zabbix_item_agent" "testitem" {
 	})
 }
 
-// testAccCheckItemInterfacePort re-reads the item's interfaceid from Zabbix
-// and then the interface itself, so that the assertion is about which
-// interface the server has the item on rather than about an opaque id the
-// test would have had to learn from the provider in the first place.
+// testAccCheckItemInterfacePort asserts which interface the server has the
+// item on, by port rather than by id.
 func testAccCheckItemInterfacePort(addr, wantPort string) resource.TestCheckFunc {
-	return testAccCheckServerAttrs(addr, func(api *zabbix.API, id string) (map[string]interface{}, error) {
-		obj, err := serverItem(api, id)
-		if err != nil {
-			return nil, err
-		}
-		ifaceID, _ := serverValue(obj, "interfaceid")
-		var ifaces []map[string]interface{}
-		err = api.CallWithErrorParse("hostinterface.get", map[string]interface{}{
-			"output":       "extend",
-			"interfaceids": []string{serverString(ifaceID)},
-		}, &ifaces)
-		if err != nil {
-			return nil, err
-		}
-		if len(ifaces) != 1 {
-			return nil, fmt.Errorf("hostinterface.get returned %d interfaces for %s", len(ifaces), serverString(ifaceID))
-		}
-		return ifaces[0], nil
-	}, map[string]string{"port": wantPort})
+	return testAccCheckServerAttrs(addr, serverInterfaceOf(serverItem), map[string]string{"port": wantPort})
 }
 
 // TestAccUpdateItemTypeSpecific owns the three single-attribute backend
