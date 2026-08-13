@@ -17,7 +17,7 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 | host | `zabbix_host` | `zabbix_host` | ✅ | 7.x fixed; 70 inventory fields, IPMI, TLS/PSK all covered |
 | hostgroup | `zabbix_hostgroup` | `zabbix_hostgroup` | ✅ | |
 | template | `zabbix_template` | `zabbix_template` | ✅ | 7.x fixed; template groups with state upgrader; `uuid`, `vendor_*` (6.4+), `readme`/`wizard_ready` (7.4+) |
-| item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types |
+| item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types. **No `units`, `description` or `valuemapid`** — three fields on every Zabbix item, absent from all 20 item and prototype resources |
 | item prototype | 10 of 17 types | ❌ | 🟡 | all tested; see §3 |
 | LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3 |
 | trigger | `zabbix_trigger` | ❌ | ✅ | field audit done: `event_name`, `opdata`, `manual_close`, correlation fields, dependencies |
