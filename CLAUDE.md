@@ -282,6 +282,40 @@ Two traps, both of which hid a defect behind something that looked fine:
 The tests are `provider/acc_minimal_test.go` (S9a–S9c) and
 `provider/acc_clearable_test.go` (S9d–S9e).
 
+### `U1`–`U4`: an attribute is not covered until it has been changed in life
+
+This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of
+truth.
+
+Creating a resource and destroying it exercises two thirds of what a user does. The
+other third — editing a value on something that already exists — is the most common
+operation of the three, and until `U1`–`U4` nothing checked it systematically. Two
+failure modes, both of which shipped in this codebase:
+
+| | Case | What it must do |
+|---|---|---|
+| U1 | **changed in life** | every settable attribute is changed on an existing resource, and the new value asserted against a **server re-read**, not merely Terraform state |
+| U2 | **and it was an update** | a `plancheck.ExpectResourceAction(...Update)` on the step. Without it a wrongly-`ForceNew` attribute passes: Terraform destroys and recreates, the end state matches, the test is green, and the user has silently lost their item's history |
+| U3 | **create-only is `ForceNew`** | every attribute Zabbix refuses to update is `ForceNew` and asserts replacement |
+| U4 | **nothing else is `ForceNew`** | no attribute is `ForceNew` that Zabbix would have accepted an update for — probed against live servers, never inferred |
+
+`U3` is how `hostid` (create-only from 7.0) and prototype `ruleid` (create-only from
+7.2) should have been found; both were instead found by accident, and `ruleid` had
+made **every** `zabbix_proto_item_*` resource un-updatable on current Zabbix.
+
+`U4` matters more than it looks. Replacing a Zabbix item **discards its history**, so a
+`ForceNew` that need not be there is silent data loss rather than an inconvenience.
+Probing found all three existing flags correct — and prototype `ruleid` correct on 6.0
+for the worse of the two possible reasons: `itemprototype.update` *accepts* it there and
+silently ignores it, so without `ForceNew` Terraform would report a move that never
+happened.
+
+The lists in `provider/acc_update_test.go` are the enforcement: the coverage map, the
+`ForceNew` set and the exemptions are each checked against the live schema, so an
+attribute added without update coverage fails the build. **Exempt by name with a
+reason, never by omission** — an attribute that quietly falls out of a list is exactly
+how `ruleid` stayed unnoticed.
+
 ### `C1`–`C7`: a collection attribute is not tested until it is tested plural
 
 This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of

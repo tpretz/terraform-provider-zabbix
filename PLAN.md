@@ -104,6 +104,7 @@ shape is defined once here, and Phase 4 lists the instances.
 | S7 | Sweeper | `resource.AddTestSweepers` entry so aborted runs self-clean |
 | S8 | Docs + example | schema descriptions drive `tfplugindocs`; hand-written intro in `templates/`, runnable HCL in `examples/` |
 | S9 | Minimum and reverse | applied from its Required set alone, and every optional attribute that was set has been unset again — see `S9` below |
+| U1–U4 | Changed in life | every settable attribute changed on an existing resource and asserted against a server re-read; the step asserts it was an *update*, not a replace; every create-only attribute is `ForceNew`, and nothing else is — see `U1`–`U4` below |
 
 **Definition of done for the minimum and the way back** (`S9`).
 
@@ -594,6 +595,35 @@ widget {
 An opaque `fields` blob is version-agnostic and costs nothing to maintain. Strongly-typed
 blocks for the handful of widgets people actually manage as code can be layered on later
 without a breaking change.
+
+---
+
+### `U1`–`U4`: an attribute is not covered until it has been changed in life
+
+Create and destroy exercise two thirds of what a user does. Editing an existing
+resource is the most common of the three and was the least tested.
+
+| | Case | What it must do |
+|---|---|---|
+| U1 | **changed in life** | every settable attribute changed on an existing resource, asserted against a **server re-read**, not merely Terraform state |
+| U2 | **and it was an update** | `plancheck.ExpectResourceAction(...Update)` on the step. Without it a wrongly-`ForceNew` attribute passes: Terraform destroys and recreates, the end state matches, the test is green, and the user has silently lost their item's history |
+| U3 | **create-only is `ForceNew`** | every attribute Zabbix refuses to update is `ForceNew` and asserts replacement |
+| U4 | **nothing else is `ForceNew`** | probed against live servers, never inferred. Replacing an item **discards its history**, so a needless `ForceNew` is silent data loss rather than an inconvenience |
+
+`U3` is how `hostid` (create-only from 7.0) and prototype `ruleid` (create-only from 7.2)
+should have been found. Both were found by accident instead, and `ruleid` had made
+**every** `zabbix_proto_item_*` resource un-updatable on current Zabbix.
+
+Probe results across all four versions: `item.update` and `discoveryrule.update` reject
+`hostid` on 6.0–8.0; `itemprototype.update` rejects `ruleid` from 7.0 and — worse —
+*accepts and silently ignores* it on 6.0, so without `ForceNew` Terraform would report a
+move that never happened. All three existing flags are correct.
+
+Enforcement lives in `provider/acc_update_test.go`: the coverage map, the `ForceNew` set
+and the exemptions are each checked against the live schema, so an attribute added
+without update coverage fails the build. **Exempt by name with a reason, never by
+omission** — an attribute quietly falling out of a list is exactly how `ruleid` stayed
+unnoticed.
 
 ---
 
