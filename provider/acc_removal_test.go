@@ -75,6 +75,16 @@ import (
 //	                                                   TestAccRemoveHostInterfaceType
 //	template                  resource_template.go     TestAccRemoveTemplateDefaults
 //	proxy                     resource_proxy.go        TestAccRemoveProxyDefaults
+//
+// and the five Optional+Computed declarations, one test each:
+//
+//	attribute                        coverage
+//	-------------------------------  ------------------------------------
+//	zabbix_host.name                 TestAccRemoveHostName
+//	zabbix_host.interface.port       TestAccRemoveHostInterfacePort
+//	zabbix_template.name             TestAccRemoveTemplateName
+//	item trends                      TestAccRemoveItemTrends
+//	trigger correlation_mode         TestAccRemoveTriggerCorrelationMode
 
 // ---------------------------------------------------------------------------
 // the registries
@@ -181,19 +191,21 @@ var removalExempt = map[string]string{
 // Nothing here is converted, and each verdict was reached against live
 // servers rather than by reading the schema -- the notes on each test say
 // what was probed.
-var removalComputed = map[string]string{}
-
-// removalPending is a migration scaffold, not a fourth registry. It holds the
-// declarations whose removal coverage is still being written, so that the
-// guard can land before the coverage does and every commit in between stays
-// green. It must be empty by the end of the series, which
-// TestRemovalCoverageComplete enforces once it is.
-var removalPending = map[string]string{
-	"zabbix_host.interface.port":            "coverage pending",
-	"zabbix_host.name":                      "coverage pending",
-	"zabbix_item_agent.trends":              "coverage pending",
-	"zabbix_proto_trigger.correlation_mode": "coverage pending",
-	"zabbix_template.name":                  "coverage pending",
+var removalComputed = map[string]string{
+	"zabbix_host.name": "intended: Zabbix derives the visible name from `host` and returns the derived value, " +
+		"so an absent `name` is the server's own default rather than the provider's. Write `name = <the host value>` " +
+		"to go back to it; TestAccRemoveHostName",
+	"zabbix_host.interface.port": "intended: the default is per interface type (HOST_IFACE_PORTS), so no single " +
+		"Default: can express it. Removal does revert, because hostInterfacePort normalises an absent port to the " +
+		"type default before hashing; TestAccRemoveHostInterfacePort",
+	"zabbix_template.name": "intended: the same server-derived visible name as zabbix_host.name, and the same way " +
+		"back; TestAccRemoveTemplateName",
+	"zabbix_item_agent.trends": "intended: the default is derived from `valuetype` -- \"0\" for text and log, " +
+		"\"365d\" otherwise -- which no single Default: can express, and from 7.0 Zabbix rejects any other value " +
+		"for text and log outright; TestAccRemoveItemTrends",
+	"zabbix_proto_trigger.correlation_mode": "intended: a Default: would break the configurations that predate the " +
+		"attribute and asked for tag correlation by setting correlation_tag alone. `correlation_mode = \"all\"` is " +
+		"the way back; TestAccRemoveTriggerCorrelationMode",
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +277,6 @@ func TestRemovalCoverageComplete(t *testing.T) {
 		{"removalOwner", "R1", removalOwner},
 		{"removalExempt", "R1", removalExempt},
 		{"removalComputed", "R2", removalComputed},
-		{"removalPending", "", removalPending},
 	} {
 		keys := make([]string, 0, len(reg.m))
 		for k := range reg.m {
@@ -301,7 +312,7 @@ func TestRemovalCoverageComplete(t *testing.T) {
 		}
 	}
 
-	covered, exempt, pending := 0, 0, 0
+	covered, exempt := 0, 0
 	var missing []string
 	for _, sites := range defaulted {
 		// precedence, not site order: while coverage is being written a
@@ -314,7 +325,6 @@ func TestRemovalCoverageComplete(t *testing.T) {
 		}{
 			{"covered", removalOwner},
 			{"exempt", removalExempt},
-			{"pending", removalPending},
 		} {
 			for _, s := range sites {
 				if _, ok := reg.m[s.key()]; ok {
@@ -331,8 +341,6 @@ func TestRemovalCoverageComplete(t *testing.T) {
 			covered++
 		case "exempt":
 			exempt++
-		case "pending":
-			pending++
 		default:
 			missing = append(missing, removalSiteList(sites))
 		}
@@ -341,32 +349,18 @@ func TestRemovalCoverageComplete(t *testing.T) {
 	decided := 0
 	var undecided []string
 	for _, sites := range computed {
-		state := ""
-		for _, reg := range []struct {
-			name string
-			m    map[string]string
-		}{
-			{"decided", removalComputed},
-			{"pending", removalPending},
-		} {
-			for _, s := range sites {
-				if _, ok := reg.m[s.key()]; ok {
-					state = reg.name
-					break
-				}
-			}
-			if state != "" {
+		found := false
+		for _, s := range sites {
+			if _, ok := removalComputed[s.key()]; ok {
+				found = true
 				break
 			}
 		}
-		switch state {
-		case "decided":
+		if found {
 			decided++
-		case "pending":
-			pending++
-		default:
-			undecided = append(undecided, removalSiteList(sites))
+			continue
 		}
+		undecided = append(undecided, removalSiteList(sites))
 	}
 
 	sort.Strings(missing)
@@ -378,11 +372,8 @@ func TestRemovalCoverageComplete(t *testing.T) {
 		t.Errorf("R2: no decision recorded: %s\n\tadd it to removalComputed as \"intended: ...\" or \"converted: ...\"; an Optional+Computed attribute can never be unset, and whether that is right is not something to leave implied", m)
 	}
 
-	if pending == 0 && len(removalPending) > 0 {
-		t.Error("removalPending is non-empty but satisfies nothing; delete it")
-	}
-	t.Logf("R1: %d defaulted declarations, %d covered, %d exempt, %d uncovered; R2: %d Optional+Computed declarations, %d decided, %d undecided; %d pending",
-		len(defaulted), covered, exempt, len(missing), len(computed), decided, len(undecided), pending)
+	t.Logf("R1: %d defaulted declarations, %d covered, %d exempt, %d uncovered; R2: %d Optional+Computed declarations, %d decided, %d undecided",
+		len(defaulted), covered, exempt, len(missing), len(computed), decided, len(undecided))
 }
 
 // removalSiteList renders the places one declaration is reachable from, for
@@ -1041,6 +1032,343 @@ resource "zabbix_lld_agent" "testremifidlld" {
 			{
 				Config:      lld(``),
 				ExpectError: removalNoInterfaceRe,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// R2 -- Optional + Computed
+// ---------------------------------------------------------------------------
+//
+// Five declarations, and the deliverable is the decision on each rather than a
+// pass. Terraform's contract for the flag is "if the configuration does not
+// give a value, keep whatever the provider last returned", so deleting the
+// line produces no diff and the value stays. Whether that is right depends
+// entirely on where the value comes from, and every one of the five turns out
+// to be a genuine derived default -- see removalComputed above for the
+// verdicts. Nothing was converted.
+//
+// Each test asserts the verdict it claims: that removing the line really does
+// plan empty, and that the documented way back really does work. The empty
+// plan is asserted with a PlanOnly step rather than inferred from a passing
+// apply, because an apply that changes nothing and an apply that quietly
+// changed something look identical afterwards.
+
+// TestAccRemoveHostName -- zabbix_host.name is Optional+Computed because
+// Zabbix derives the visible name from the technical one: host.update with
+// name "" and host set stores name = host, on 6.0.48 and 7.4.13 alike, and
+// host.get then returns the derived value. So an absent `name` is the
+// server's default and not the provider's, and Terraform's "keep what came
+// back" is the honest reading of a configuration that stops mentioning it.
+//
+// The consequence is that deleting the line does NOT restore the derived
+// name, which is worth asserting rather than assuming: the way back is to
+// write the technical name out, and the last step is there to show that it
+// works and lands the same value the server would have derived.
+//
+// Left as Optional+Computed deliberately. Making deletion revert would mean
+// re-deriving the name in CustomizeDiff, and that would clobber the visible
+// name of every host imported into a configuration that does not manage it --
+// a far worse failure than the one it fixes.
+func TestAccRemoveHostName(t *testing.T) {
+	const addr = "zabbix_host.testremnamehost"
+
+	host := func(body string) string {
+		return `
+resource "zabbix_hostgroup" "testremnamegrp" {
+	name = "test-removal-name-group"
+}
+resource "zabbix_host" "testremnamehost" {
+	host   = "test-removal-name-host"
+	groups = [ zabbix_hostgroup.testremnamegrp.id ]
+	interface {
+		ip = "127.0.0.1"
+	}
+` + body + `
+}
+`
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: host(`	name = "Removal Host Pretty"`),
+				Check: testAccCheckServerAttrs(addr, serverHost, map[string]string{
+					"name": "Removal Host Pretty",
+				}),
+			},
+			{ // the line deleted: no diff at all
+				Config:   host(``),
+				PlanOnly: true,
+			},
+			{ // and the value is still there, on the server as well as in state
+				Config: host(``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "name", "Removal Host Pretty"),
+					testAccCheckServerAttrs(addr, serverHost, map[string]string{
+						"name": "Removal Host Pretty",
+					}),
+				),
+			},
+			{ // the way back: write the technical name out
+				Config: host(`	name = "test-removal-name-host"`),
+				Check: testAccCheckServerAttrs(addr, serverHost, map[string]string{
+					"name": "test-removal-name-host",
+					"host": "test-removal-name-host",
+				}),
+			},
+		},
+	})
+}
+
+// TestAccRemoveTemplateName -- zabbix_template.name is the same attribute on
+// the same underlying object; a Zabbix template is a host with status 3, and
+// template.update derives the visible name from `host` in exactly the same
+// way. Covered separately because the two resources declare it separately.
+//
+// zabbix_template.host is Required here and so is not R2 at all. It is
+// Optional+Computed only on the *data source*, where it is one of the two
+// lookup keys and nothing is ever written, so removal has no meaning.
+func TestAccRemoveTemplateName(t *testing.T) {
+	const addr = "zabbix_template.testremnametmpl"
+
+	tmpl := func(body string) string {
+		return hcl(t, `
+resource "zabbix_templategroup" "testremnametmplgrp" {
+	name = "test-removal-name-template-group"
+}
+resource "zabbix_template" "testremnametmpl" {
+	groups = [ zabbix_templategroup.testremnametmplgrp.id ]
+	host   = "test-removal-name-template"
+`+body+`
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: tmpl(`	name = "Removal Template Pretty"`),
+				Check: testAccCheckServerAttrs(addr, serverTemplate, map[string]string{
+					"name": "Removal Template Pretty",
+				}),
+			},
+			{
+				Config:   tmpl(``),
+				PlanOnly: true,
+			},
+			{
+				Config: tmpl(``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "name", "Removal Template Pretty"),
+					testAccCheckServerAttrs(addr, serverTemplate, map[string]string{
+						"name": "Removal Template Pretty",
+					}),
+				),
+			},
+			{
+				Config: tmpl(`	name = "test-removal-name-template"`),
+				Check: testAccCheckServerAttrs(addr, serverTemplate, map[string]string{
+					"name": "test-removal-name-template",
+					"host": "test-removal-name-template",
+				}),
+			},
+		},
+	})
+}
+
+// TestAccRemoveHostInterfacePort -- the interface block's `port` is the one
+// Optional+Computed attribute whose removal *does* revert, and the reason is
+// worth pinning down because it is a side effect rather than a design.
+//
+// The default is per interface type (HOST_IFACE_PORTS), which no single
+// Default: can express, so Computed it has to be. But hostInterfaceHash
+// normalises an absent port to the type's default before hashing, so an
+// element that stops naming a port is not the element that named a different
+// one: the set diff sees a replacement, Terraform plans it, and
+// hostReuseInterfaceIDs hands the new element the old interfaceid so that
+// Zabbix takes it as an edit. The result is that deleting the line behaves
+// exactly like deleting an R1 line, which is what a user would expect and is
+// not what the flag promises -- so it is asserted here rather than left to be
+// rediscovered.
+func TestAccRemoveHostInterfacePort(t *testing.T) {
+	const addr = "zabbix_host.testremporthost"
+
+	host := func(body string) string {
+		return `
+resource "zabbix_hostgroup" "testremportgrp" {
+	name = "test-removal-port-group"
+}
+resource "zabbix_host" "testremporthost" {
+	host   = "test-removal-port-host"
+	groups = [ zabbix_hostgroup.testremportgrp.id ]
+	interface {
+		type = "snmp"
+		ip   = "127.0.0.1"
+` + body + `
+	}
+}
+`
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: host(`		port = 1161`),
+				Check: testAccCheckServerElem(addr, serverHost, "interfaces", "type", "2", map[string]string{
+					"port": "1161",
+				}),
+			},
+			{ // the line deleted, and the type's default arrives
+				Config:           host(``),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckTypeSetElemNestedAttrs(addr, "interface.*", map[string]string{
+						"port": "161",
+					}),
+					testAccCheckServerElem(addr, serverHost, "interfaces", "type", "2", map[string]string{
+						"port": "161",
+					}),
+				),
+			},
+		},
+	})
+}
+
+// TestAccRemoveItemTrends -- `trends` is Optional+Computed because its default
+// is derived from `valuetype`: "0" for text and log, "365d" for everything
+// else, applied by buildItemObject. No single Default: can express that, and
+// the derivation is not cosmetic -- Zabbix keeps no trends at all for text and
+// log values. Probed on all four servers: 6.0.48 accepts trends "365d" on a
+// text item and silently stores "0", while 7.0.29, 7.4.13 and 8.0-trunk reject
+// it outright with `Invalid parameter "/1/trends": value must be 0`.
+//
+// So the flag stays. What the test asserts is the consequence: deleting the
+// line keeps the value, and the way back is to write the derived default out.
+func TestAccRemoveItemTrends(t *testing.T) {
+	const addr = "zabbix_item_agent.testremtrends"
+
+	item := func(valuetype, body string) string {
+		return hcl(t, removalTemplateHCL+`
+resource "zabbix_item_agent" "testremtrends" {
+	hostid    = zabbix_template.testremtmpl.id
+	key       = "test.removal.trends"
+	name      = "Removal Trends Item"
+	valuetype = "`+valuetype+`"
+`+body+`
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: item("unsigned", `	trends = "30d"`),
+				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
+					"trends": "30d",
+				}),
+			},
+			{ // the line deleted: no diff at all
+				Config:   item("unsigned", ``),
+				PlanOnly: true,
+			},
+			{
+				Config: item("unsigned", ``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "trends", "30d"),
+					testAccCheckServerAttrs(addr, serverItem, map[string]string{
+						"trends": "30d",
+					}),
+				),
+			},
+			{ // the way back: the derived default, written out
+				Config:           item("unsigned", `	trends = "365d"`),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
+					"trends": "365d",
+				}),
+			},
+		},
+	})
+}
+
+// TestAccRemoveTriggerCorrelationMode -- correlation_mode is Optional+Computed
+// for a reason the schema records: before the attribute existed, the only way
+// to ask for tag correlation was to set correlation_tag, and a Default: of
+// "all" would put every such configuration into a permanent conflict --
+// buildTriggerObject rejects a correlation_tag whose mode is not "tag".
+//
+// Deleting the line therefore keeps the mode, and that is the intended
+// behaviour. Deleting *both* lines is the interesting case and the second half
+// of this test: the mode stays "tag" while the tag it needs is gone, and the
+// provider says so rather than sending Zabbix a trigger it would reject. The
+// way back is `correlation_mode = "all"`, which is Zabbix's own name for
+// correlation being off; there is no "none".
+func TestAccRemoveTriggerCorrelationMode(t *testing.T) {
+	const addr = "zabbix_trigger.testremcorr"
+
+	trigger := func(body string) string {
+		return hcl(t, removalTemplateHCL+`
+resource "zabbix_item_trapper" "testremcorritem" {
+	hostid    = zabbix_template.testremtmpl.id
+	key       = "test.removal.corr.item"
+	name      = "Removal Correlation Item"
+	valuetype = "unsigned"
+}
+resource "zabbix_trigger" "testremcorr" {
+	name       = "Removal Correlation Trigger"
+	expression = "last(/test-removal-template/test.removal.corr.item)=1"
+
+	depends_on = [ zabbix_item_trapper.testremcorritem ]
+`+body+`
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: trigger(`
+	correlation_mode = "tag"
+	correlation_tag  = "removaltag"
+`),
+				Check: testAccCheckServerAttrs(addr, serverTrigger, map[string]string{
+					"correlation_mode": "1",
+					"correlation_tag":  "removaltag",
+				}),
+			},
+			{ // correlation_mode's line deleted: no diff at all
+				Config:   trigger(`	correlation_tag = "removaltag"`),
+				PlanOnly: true,
+			},
+			{ // both lines deleted: the mode outlives the tag, and the
+				// provider refuses rather than letting Zabbix refuse
+				Config:      trigger(``),
+				ExpectError: regexp.MustCompile(`correlation_mode "tag" requires correlation_tag to be set`),
+			},
+			{ // the way back
+				Config:           trigger(`	correlation_mode = "all"`),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: testAccCheckServerAttrs(addr, serverTrigger, map[string]string{
+					"correlation_mode": "0",
+					"correlation_tag":  "",
+				}),
 			},
 		},
 	})
