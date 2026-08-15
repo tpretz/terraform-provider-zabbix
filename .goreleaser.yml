@@ -4,8 +4,11 @@ version: 2
 
 before:
   hooks:
-    # this is just an example and not a requirement for provider building/publishing
-    - go mod tidy
+    # Verify rather than mutate. `go mod tidy` here would let a release rewrite
+    # go.mod in CI, so a tag could ship dependencies that were never reviewed on
+    # the branch. `-diff` exits non-zero and prints the change instead, failing
+    # the release and leaving the fix to a normal commit.
+    - go mod tidy -diff
 builds:
 - env:
     # goreleaser does not work with CGO, it could also complicate
@@ -27,7 +30,11 @@ builds:
     - arm64
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
-- formats: [zip]
+- # The Registry reads terraform-registry-manifest.json from the release
+  # assets, not from inside the archive, so it is uploaded separately by the
+  # release job. Declaring protocol 5.0 is what the SDKv2 plugin actually
+  # speaks; a move to terraform-plugin-framework would make this 6.0.
+  formats: [zip]
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
@@ -45,6 +52,14 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 release:
+  # The Registry looks for terraform-registry-manifest.json among the release
+  # assets, named <project>_<version>_manifest.json. Without it the Registry
+  # assumes protocol 5.0 by default, which happens to be right today -- but it
+  # stops being right the moment this provider moves to terraform-plugin-
+  # framework, and a silently-wrong protocol version is a bad way to find out.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   # If you want to manually examine the release before its live, uncomment this line:
   # draft: true
 changelog:
