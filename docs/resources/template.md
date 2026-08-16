@@ -61,7 +61,7 @@ resource "zabbix_template" "example" {
 
 - `description` (String) Template description
 - `macro` (Block Set) User macros defined on this object (unordered). Zabbix replaces the whole macro collection on update, so omitting a macro removes it. (see [below for nested schema](#nestedblock--macro))
-- `name` (String) Template display name. Defaults to the value of `host`
+- `name` (String) Template display name. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it
 - `readme` (String) Template readme text, shown by the template wizard. Requires Zabbix 7.4 or later.
 - `templates` (Set of String) IDs of templates linked into this one, so their items and triggers are inherited
 - `vendor_name` (String) Template vendor name. Requires Zabbix 6.4 or later, and must be set together with vendor_version.

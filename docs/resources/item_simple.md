@@ -42,7 +42,7 @@ resource "zabbix_item_simple" "icmp_ping" {
 - `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well
 - `preprocessor` (Block List) Preprocessing steps, applied in the order written. This is a list rather than a set precisely because that order is semantic: Zabbix feeds each step the output of the previous one. (see [below for nested schema](#nestedblock--preprocessor))
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
-- `trends` (String) How long Zabbix keeps hourly trends for this item, e.g. "365d". "0" disables trends, and is the only valid value for text and log items. Defaults to "365d", or "0" for text and log
+- `trends` (String) How long Zabbix keeps hourly trends for this item, e.g. "365d". Defaults to "365d", or to "0" for text and log items, which is the only value Zabbix accepts for those -- so the default follows `valuetype` and is re-derived whenever it changes. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the default is to write it out
 
 ### Read-Only
 

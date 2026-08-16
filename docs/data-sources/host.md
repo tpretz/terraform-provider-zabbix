@@ -37,7 +37,7 @@ output "host_id" {
 - `hostid` (String) Look the host up by its Zabbix ID. Give one of `hostid`, `host` or `name`
 - `inventory_mode` (String) How the host inventory is populated, one of: automatic, disabled, manual. The `inventory` block requires "manual" or "automatic"
 - `macro` (Block Set) User macros defined on this object (unordered). Zabbix replaces the whole macro collection on update, so omitting a macro removes it. (see [below for nested schema](#nestedblock--macro))
-- `name` (String) Zabbix host displayname, defaults to the value of "host"
+- `name` (String) Zabbix host displayname. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `templates` (Set of String) Template IDs linked to this host. Removing a template here unlinks and clears it
 

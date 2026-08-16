@@ -79,7 +79,7 @@ func resourceTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "Template display name. Defaults to the value of `host`",
+				Description: "Template display name. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it",
 			},
 			"templates": &schema.Schema{
 				Type:     schema.TypeSet,

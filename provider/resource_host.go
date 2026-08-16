@@ -257,7 +257,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Required:    false,
 		Optional:    true,
 		Computed:    true,
-		Description: "Zabbix host displayname, defaults to the value of \"host\"",
+		Description: "Zabbix host displayname. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it",
 	},
 	"host": &schema.Schema{
 		Type:         schema.TypeString,
@@ -314,7 +314,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Optional:     true,
 					Computed:     true,
 					ValidateFunc: validation.IntBetween(0, 65535),
-					Description:  "Port Zabbix connects to. Defaults to the standard port for the interface type",
+					Description:  "Port Zabbix connects to. Defaults to the standard port for the interface type: agent 10050, snmp 161, ipmi 623, jmx 8686. Deleting the line returns the interface to that default",
 				},
 				"type": &schema.Schema{
 					Type:     schema.TypeString,

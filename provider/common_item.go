@@ -275,7 +275,7 @@ var itemCommonSchema = map[string]*schema.Schema{
 	},
 	"trends": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "How long Zabbix keeps hourly trends for this item, e.g. \"365d\". \"0\" disables trends, and is the only valid value for text and log items. Defaults to \"365d\", or \"0\" for text and log",
+		Description:  "How long Zabbix keeps hourly trends for this item, e.g. \"365d\". Defaults to \"365d\", or to \"0\" for text and log items, which is the only value Zabbix accepts for those -- so the default follows `valuetype` and is re-derived whenever it changes. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the default is to write it out",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		//Default:      "365d",
 		Optional: true,

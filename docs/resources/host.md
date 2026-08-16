@@ -109,7 +109,7 @@ output "agent_interface_id" {
 - `ipmi_privilege` (String) IPMI privilege level, one of: admin, callback, oem, operator, user
 - `ipmi_username` (String) Username used for IPMI checks against this host
 - `macro` (Block Set) User macros defined on this object (unordered). Zabbix replaces the whole macro collection on update, so omitting a macro removes it. (see [below for nested schema](#nestedblock--macro))
-- `name` (String) Zabbix host displayname, defaults to the value of "host"
+- `name` (String) Zabbix host displayname. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it
 - `proxyid` (String) ID of the proxy monitoring this host, or "0" for the Zabbix server itself. Sets `monitored_by` accordingly on Zabbix 7.0 and later
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `templates` (Set of String) Template IDs linked to this host. Removing a template here unlinks and clears it
@@ -132,7 +132,7 @@ Optional:
 - `dns` (String) DNS name Zabbix connects to. Used when `ip` is empty
 - `ip` (String) IP address Zabbix connects to. Takes precedence over `dns` when both are set
 - `main` (Boolean) Whether this is the default interface for its type. Exactly one interface of each type must be the primary
-- `port` (Number) Port Zabbix connects to. Defaults to the standard port for the interface type
+- `port` (Number) Port Zabbix connects to. Defaults to the standard port for the interface type: agent 10050, snmp 161, ipmi 623, jmx 8686. Deleting the line returns the interface to that default
 - `snmp3_authpassphrase` (String) SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level "noauthnopriv" needs
 - `snmp3_authprotocol` (String) Authentication Protocol (v3 only), one of: md5, sha
 - `snmp3_contextname` (String) SNMPv3 context name (v3 only). Empty is valid and is what security level "noauthnopriv" needs

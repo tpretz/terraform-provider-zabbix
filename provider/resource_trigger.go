@@ -132,7 +132,7 @@ var schemaTrigger = map[string]*schema.Schema{
 		// would put every such configuration into permanent drift.
 		Computed: true,
 		Description: "Event correlation mode, one of: " + strings.Join(TRIGGER_CORRELATION_ARR, ", ") +
-			". \"tag\" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Inferred from correlation_tag when omitted",
+			". \"tag\" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Inferred from correlation_tag when omitted, so deleting the line once the mode has been set changes nothing -- Terraform keeps the last value it read. `correlation_mode = \"all\"` is how correlation is turned back off; there is no \"none\"",
 		ValidateFunc: validation.StringInSlice(TRIGGER_CORRELATION_ARR, false),
 	},
 	"correlation_tag": &schema.Schema{
