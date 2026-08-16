@@ -67,7 +67,7 @@ resource "zabbix_lld_http" "services" {
 - `follow_redirects` (Boolean) follow http redirects
 - `formula` (String) Custom filter expression over the condition ids, e.g. "A or (B and C)". Only used when evaltype is "custom". Zabbix renumbers the ids into the order they first appear in the formula, so write it in that order or it will be read back rewritten.
 - `headers` (Map of String) HTTP headers to send with the request, as a name-to-value map. Zabbix replaces the whole header collection on update, so omitting a header removes it.
-- `interfaceid` (String) ID of the host interface to poll through. "0", the default, lets Zabbix pick the default interface of the matching type
+- `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well
 - `lifetime` (String) How long a discovered entity is kept after it stops being discovered, e.g. "30d". "0" deletes it immediately
 - `macro` (Block Set) LLD macro paths (unordered): extra discovery macros extracted from the rule's JSON output with a JSONPath expression, on top of whatever the rule discovers natively. (see [below for nested schema](#nestedblock--macro))
 - `password` (String, Sensitive) Authentication Password

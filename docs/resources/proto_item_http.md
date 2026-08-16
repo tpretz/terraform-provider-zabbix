@@ -53,7 +53,7 @@ resource "zabbix_proto_item_http" "endpoint_health" {
 - `follow_redirects` (Boolean) follow http redirects
 - `headers` (Map of String) HTTP headers to send with the request, as a name-to-value map. Zabbix replaces the whole header collection on update, so omitting a header removes it.
 - `history` (String) How long Zabbix keeps raw history for this item, as a time suffix string, e.g. "90d". "0" disables history
-- `interfaceid` (String) ID of the host interface to poll through. "0", the default, lets Zabbix pick the default interface of the matching type
+- `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well
 - `password` (String, Sensitive) Authentication Password
 - `post_type` (String) HTTP post type, one of: json, raw, xml
 - `posts` (String) POST data to send in request

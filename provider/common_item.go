@@ -307,7 +307,7 @@ var itemInterfaceSchema = map[string]*schema.Schema{
 	"interfaceid": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "ID of the host interface to poll through. \"0\", the default, lets Zabbix pick the default interface of the matching type",
+		Description: "ID of the host interface to poll through. \"0\", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects \"0\" there, and rejects the property being omitted as well",
 		Default:     "0",
 	},
 }

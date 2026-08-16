@@ -39,7 +39,7 @@ resource "zabbix_item_internal" "unsupported_items" {
 
 - `delay` (String) How often the item is polled, as a time suffix string, e.g. "1m". Supports Zabbix's flexible and scheduling interval syntax
 - `history` (String) How long Zabbix keeps raw history for this item, as a time suffix string, e.g. "90d". "0" disables history
-- `interfaceid` (String) ID of the host interface to poll through. "0", the default, lets Zabbix pick the default interface of the matching type
+- `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well
 - `preprocessor` (Block List) Preprocessing steps, applied in the order written. This is a list rather than a set precisely because that order is semantic: Zabbix feeds each step the output of the previous one. (see [below for nested schema](#nestedblock--preprocessor))
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `trends` (String) How long Zabbix keeps hourly trends for this item, e.g. "365d". "0" disables trends, and is the only valid value for text and log items. Defaults to "365d", or "0" for text and log
