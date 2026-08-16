@@ -1301,6 +1301,29 @@ resource "zabbix_item_agent" "testremtrends" {
 					"trends": "365d",
 				}),
 			},
+			{ // the sting in the tail, and the reason the derivation is
+				// re-run on every write rather than only on create: with no
+				// trends in the configuration, the stored value outlives the
+				// value type it was derived from. Sending "365d" alongside
+				// value_type 4 is rejected on every server from 7.0, so
+				// without that this step fails outright.
+				Config:           item("text", ``),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "trends", "0"),
+					testAccCheckServerAttrs(addr, serverItem, map[string]string{
+						"value_type": "4",
+						"trends":     "0",
+					}),
+				),
+			},
+			{ // and a text item that asks for trends anyway is told why it
+				// cannot have them, rather than being silently rewritten into
+				// a diff that never converges (6.0) or handed Zabbix's own
+				// message about a parameter the user never wrote (7.0+)
+				Config:      item("text", `	trends = "365d"`),
+				ExpectError: regexp.MustCompile(`trends must be "0" for a text item`),
+			},
 		},
 	})
 }

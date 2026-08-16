@@ -176,3 +176,27 @@ func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schem
 
 	return n
 }
+
+// configuredString reports the value the *configuration* gives a top-level
+// string attribute, and whether it gives one at all.
+//
+// d.Get cannot answer the second question for an Optional+Computed attribute:
+// when the configuration is silent it hands back the value in state, which is
+// exactly the case that has to be told apart. The raw configuration is the
+// only place the difference survives -- an attribute the user did not write is
+// null there whatever state holds.
+//
+// A value that is not yet known (an unresolved reference at plan time) counts
+// as "not given", because there is nothing to compare it against; the write
+// path is reached again at apply, when it is known.
+func configuredString(d *schema.ResourceData, key string) (string, bool) {
+	raw := d.GetRawConfig()
+	if raw.IsNull() || !raw.Type().IsObjectType() || !raw.Type().HasAttribute(key) {
+		return "", false
+	}
+	v := raw.GetAttr(key)
+	if v.IsNull() || !v.IsKnown() {
+		return "", false
+	}
+	return v.AsString(), true
+}

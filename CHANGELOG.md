@@ -206,6 +206,14 @@ Correctness:
 24. Host macros and host/item tags could not be removed, and `zabbix_host` deletion
     sent properties the API rejects. (Fixed on the development branch after
     `v0.17.0` and unreleased until now.)
+25. **Changing an item's `valuetype` to `text` or `log` failed on Zabbix 7.0 and
+    later** whenever `trends` was not written out in the configuration. `trends` is
+    computed from the value type, and the computed value survived a change of the
+    value type it was derived from, so the item was updated with a trends period
+    Zabbix refuses for those types (`Invalid parameter "/1/trends": value must be
+    0`). It is now re-derived on every write. A text or log item that asks for a
+    non-zero `trends` explicitly is refused with a message saying why, instead of
+    failing that way on 7.0+ and sitting in a diff that never converged on 6.0.
 
 Items 20 and 24 each group several instances of one root cause fixed together;
 counted individually the total is higher. One root cause dominates: `omitempty`

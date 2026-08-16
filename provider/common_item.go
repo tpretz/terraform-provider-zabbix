@@ -606,6 +606,36 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*
 		d.Set("trends", item.Trends)
 	}
 
+	// Text and log items keep no trends at all, and the value type is what
+	// decides that -- so the derived default above has to be re-derived on
+	// every write, not only on the create that first computed it. `trends` is
+	// Optional+Computed, so d.Get hands back the value in state whenever the
+	// configuration carries none, and that value outlives the value type it
+	// was derived from: changing valuetype to "text" or "log" on an item that
+	// already exists sent the stored "365d" and was rejected outright.
+	//
+	// Probed by calling item.update with value_type 4 and trends "30d":
+	//
+	//	6.0.48       accepted, and trends silently stored as 0
+	//	7.0.29       Invalid parameter "/1/trends": value must be 0.
+	//	7.4.13       same
+	//	8.0-trunk    same
+	//
+	// item.create behaves the same way, so a text item written with an
+	// explicit non-zero trends was a hard failure from 7.0 and a diff that
+	// never converged on 6.0 -- the server stored 0 and the read put 0 back.
+	// That one is the user's own value, so it is an error rather than an
+	// override: silently rewriting it would leave the same diff behind.
+	if item.ValueType == zabbix.Text || item.ValueType == zabbix.Log {
+		if v, ok := configuredString(d, "trends"); ok && v != "0" {
+			return nil, fmt.Errorf(
+				"trends must be \"0\" for a %s item, not %q: Zabbix keeps no trends for text and log values",
+				ITEM_VALUE_TYPES_REV[item.ValueType], v)
+		}
+		item.Trends = "0"
+		d.Set("trends", "0")
+	}
+
 	if prototype {
 		item.RuleID = d.Get("ruleid").(string)
 	}
