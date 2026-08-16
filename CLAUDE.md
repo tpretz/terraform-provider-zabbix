@@ -316,6 +316,51 @@ attribute added without update coverage fails the build. **Exempt by name with a
 reason, never by omission** — an attribute that quietly falls out of a list is exactly
 how `ruleid` stayed unnoticed.
 
+### `R1`–`R2`: an attribute is not covered until the line has been deleted
+
+This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of
+truth.
+
+`S9d` sets an attribute to an *empty value*. `R1`–`R2` **delete the line**, which is
+the edit a user actually makes after changing their mind. What that means turns
+entirely on one schema flag:
+
+| | Case | What it must do |
+|---|---|---|
+| R1 | **`Optional` with a `Default:`** | deleting the line plans a revert to the default and the provider must **send** it, asserted against a server re-read. The failure mode is the `omitempty` one: a plan showing the revert while the server keeps the old value, invisible in state because the provider's own read wrote it |
+| R2 | **`Optional + Computed`** | deleting the line produces **no diff at all** and the value sticks for ever. Whether that is right is a decision, and the decision — with what derives the value and what the user writes to get back — is the deliverable |
+
+69 declarations carry a `Default:` and 5 are `Optional + Computed`; both sets are
+enumerated from `Provider().ResourcesMap` and grouped by pointer identity, exactly as
+`U1`–`U4` are, so an attribute given either flag tomorrow fails
+`TestRemovalCoverageComplete` until it is covered or exempted **by name with a reason**.
+The guard also checks the *class* in both directions: adding a `Default:` to an
+`Optional + Computed` attribute, or dropping one, moves it between the two halves of
+the criterion and must not do so silently.
+
+R1 came back clean — every default reaches the server on all four versions — with two
+findings worth remembering:
+
+- **A default can be unreachable.** Item and LLD `interfaceid` default to `"0"`, which
+  means *no interface* and which no server accepts for an object on a host that has
+  interfaces (omitting the property fails too). Assert the failure rather than
+  exempting.
+- **The default and the stored value need not agree.** `zabbix_proxy` `address`/`port`
+  revert to *empty* server-side; the provider reports the defaults back so an active
+  proxy has no permanent diff. Assert the server against the server, the default
+  against state.
+
+All five R2 attributes were judged **intended** — `zabbix_host.name` and
+`zabbix_template.name` (Zabbix derives the visible name from `host`), `interface.port`
+(per-type default, and the one that *does* revert, because `hostInterfaceHash`
+normalises an absent port before hashing), item `trends` (derived from `valuetype`) and
+trigger `correlation_mode` (a `Default:` would break configurations predating it). None
+was converted. Making `name` revert would need a `CustomizeDiff` re-derivation, which
+would clobber the visible name of every host imported into a configuration that does
+not manage it — worse than the trap it removes.
+
+The tests are `provider/acc_removal_test.go` and `provider/acc_removal_host_test.go`.
+
 ### `C1`–`C7`: a collection attribute is not tested until it is tested plural
 
 This is the mirror of PLAN.md § "The unit of work"; PLAN.md remains the source of

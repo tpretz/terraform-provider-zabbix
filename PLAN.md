@@ -105,6 +105,7 @@ shape is defined once here, and Phase 4 lists the instances.
 | S8 | Docs + example | schema descriptions drive `tfplugindocs`; hand-written intro in `templates/`, runnable HCL in `examples/` |
 | S9 | Minimum and reverse | applied from its Required set alone, and every optional attribute that was set has been unset again — see `S9` below |
 | U1–U4 | Changed in life | every settable attribute changed on an existing resource and asserted against a server re-read; the step asserts it was an *update*, not a replace; every create-only attribute is `ForceNew`, and nothing else is — see `U1`–`U4` below |
+| R1–R2 | Removed from the configuration | every attribute with a `Default:` reverts to it, asserted against a server re-read; every `Optional + Computed` attribute has a recorded decision about the fact that it cannot be unset at all — see `R1`–`R2` below |
 
 **Definition of done for the minimum and the way back** (`S9`).
 
@@ -150,6 +151,45 @@ Two traps worth naming, because both hid a defect behind something that looked f
   optional attribute forbids the empty string outright. Before adding one, check that
   Zabbix agrees the value is invalid; four interface attributes carried it for values
   Zabbix accepts, so the plugin rejected a configuration the server would have taken.
+
+**Definition of done for taking the line out again** (`R1`–`R2`).
+
+`S9d` asks whether an attribute that was set can be set to an *empty value* again.
+This is the other half of the same question and it is the edit users actually make:
+**deleting the line**. Nobody writes `timeout = ""`; they delete the `timeout = "10s"`
+they no longer want. What deletion means turns entirely on one schema flag, and the
+two halves behave nothing alike.
+
+| | Case | What it must do |
+|---|---|---|
+| R1 | **`Optional` with a `Default:`** | deleting the line plans a change back to the default, and the provider has to *send* it. Asserted against a **server re-read**: the failure mode is the one the six `omitempty` bugs had, a plan that shows the revert while the server quietly keeps the old value, and state agrees with the server because the provider's own read wrote it |
+| R2 | **`Optional + Computed`** | deleting the line produces **no diff at all** — that is Terraform's contract for the flag — so the value sticks for ever and the user cannot unset it. Whether that is right is a decision, and the decision is the deliverable: recorded by name with its reason, said on the attribute so the generated page carries it, and asserted either way |
+
+R1 is mechanical and R2 is not. An `Optional + Computed` attribute is right when the
+value is genuinely derived — by the server, or by the provider from another attribute —
+and wrong when it merely traps the user; there is no way to tell which from the schema,
+which is why every one of them has to be named. An "intended" verdict has to say what
+derives the value *and* what the user writes to get back to it, because "you cannot
+unset this" is only acceptable when there is another way round.
+
+Both are enumerated from `Provider().ResourcesMap` rather than by hand, and grouped by
+pointer identity the way `U1`–`U4` are, so an attribute given a `Default:` tomorrow
+fails the guard until somebody covers it or writes down why it cannot be covered.
+Exemption is by name with a reason, never by omission.
+
+Two things `R1` turned up that are worth keeping, neither of them a bug:
+
+- **A default can be unreachable.** Item and LLD `interfaceid` default to `"0"`,
+  meaning *no interface*, which no supported server accepts for an object on a host
+  that has interfaces — and omitting the property fails too. Where that is so, assert
+  the failure: the user deleting the line should get a clear error, not an object
+  silently left where it was.
+- **The default and the stored value need not agree.** `zabbix_proxy` `address` and
+  `port` revert to *empty* on the server, because an active proxy has no endpoint, and
+  the provider reports the schema defaults back so that it does not sit in a permanent
+  diff. Assert the server side against the server and the default against state.
+
+The tests are `provider/acc_removal_test.go` and `provider/acc_removal_host_test.go`.
 
 **Definition of done for a collection attribute** (`C1`–`C7`).
 
