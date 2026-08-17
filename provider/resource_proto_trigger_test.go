@@ -16,6 +16,13 @@ import (
 // two further trigger prototypes on the same rule, and one plain trigger. A
 // trigger prototype may depend on either kind, so the set holds two different
 // species of id and can only tell them apart by content.
+//
+// The template carries a user macro and protoTriggerHCL's expressions compare
+// against it, so every step below -- the import included -- round trips an
+// expression holding an LLD macro and a user macro at once. Both used to be
+// read back wrong in different ways: trigger.get's "expandExpression" rendered
+// the user macro to its value while leaving {#FSNAME} alone, so the two could
+// not both survive.
 const protoTriggerFixtureHCL = `
 resource "zabbix_templategroup" "testtmplgrp" {
 	name = "test-template-group"
@@ -23,6 +30,11 @@ resource "zabbix_templategroup" "testtmplgrp" {
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_templategroup.testtmplgrp.id ]
 	host = "test-template"
+
+	macro {
+		name = "{$PROTO.LIMIT}"
+		value = "10"
+	}
 }
 resource "zabbix_lld_trapper" "testlld" {
 	hostid = zabbix_template.testtmpl.id
@@ -70,7 +82,7 @@ func protoTriggerHCL(body string) string {
 	return protoTriggerFixtureHCL + `
 resource "zabbix_proto_trigger" "testtrigger" {
 	name = "Proto Trigger Renamed {#FSNAME}"
-	expression = "last(/test-template/trapper[{#FSNAME}])>10"
+	expression = "last(/test-template/trapper[{#FSNAME}])>{$PROTO.LIMIT}"
 	recovery_expression = "last(/test-template/trapper[{#FSNAME}])<5"
 	comments = "proto trigger comment"
 	priority = "average"
@@ -127,7 +139,8 @@ resource "zabbix_proto_trigger" "testtrigger" {
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "name", "Proto Trigger Renamed {#FSNAME}"),
-					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "expression", "last(/test-template/trapper[{#FSNAME}])>10"),
+					// the LLD macro and the user macro both come back verbatim
+					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "expression", "last(/test-template/trapper[{#FSNAME}])>{$PROTO.LIMIT}"),
 					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "recovery_expression", "last(/test-template/trapper[{#FSNAME}])<5"),
 					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "comments", "proto trigger comment"),
 					resource.TestCheckResourceAttr("zabbix_proto_trigger.testtrigger", "priority", "average"),

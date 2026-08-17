@@ -17,7 +17,32 @@ the module major and the Registry version all read the same.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **A trigger expression containing a user macro never reached an empty plan.**
+  The read path asked `trigger.get` for `expandExpression`, which turns the
+  stored `{functionid}` tokens back into readable `/host/key` references — which
+  the provider needs — but also expands user macros to their *values*, which it
+  does not, and Zabbix offers no way to ask for one without the other. A
+  configuration saying
+
+  ```hcl
+  expression = "min(/Internal HTTPS service/net.tcp.service.perf[https,,443],5m)>{$HTTPS.RESPONSE.SLOW}"
+  ```
+
+  was read back as `...>5`, so it never matched the configuration: every plan
+  proposed rewriting the expression, applied, and proposed it again.
+
+  The provider now reconstructs the expression the user wrote from the
+  trigger's functions, items and hosts, which is what the Zabbix frontend does,
+  and no longer asks for `expandExpression` at all. Whitespace, quoting, LLD
+  macros and user macros — in the comparison and inside function parameters
+  alike — all survive the round trip unchanged. It applies to `zabbix_trigger`
+  and `zabbix_proto_trigger`, and to `recovery_expression` as well as
+  `expression`.
+
+  Nothing to change in your configuration. The first plan after upgrading is
+  empty where it used to propose a rewrite.
 
 ## [2.0.0] — UNRELEASED
 

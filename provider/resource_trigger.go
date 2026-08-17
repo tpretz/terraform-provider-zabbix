@@ -2,6 +2,7 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -287,9 +288,18 @@ func resourceTriggerRead(prototype bool) schema.ReadFunc {
 
 		log.Debug("Lookup of trigger with id %s", d.Id())
 
+		// "expandExpression" is deliberately not asked for. It would turn the
+		// stored {functionid} tokens back into /host/key references, which is
+		// what we want, but it also expands user macros to their values, which
+		// destroys the round trip: a configuration saying ">{$SLOW}" reads back
+		// as ">5" and every subsequent plan proposes rewriting it. Zabbix
+		// offers no way to separate the two, so the substitution is undone
+		// here instead -- see trigger_expression.go.
 		params := zabbix.Params{
 			"triggerids":         d.Id(),
-			"expandExpression":   "extend",
+			"selectFunctions":    "extend",
+			"selectItems":        []string{"itemid", "hostid", "key_"},
+			"selectHosts":        []string{"hostid", "host"},
 			"selectDependencies": "extend",
 			"selectTags":         "extend",
 		}
@@ -318,16 +328,28 @@ func resourceTriggerRead(prototype bool) schema.ReadFunc {
 
 		log.Debug("Got trigger: %+v", t)
 
+		// both expressions come back with item references stored as
+		// {functionid}; rebuild the source form the user wrote
+		resolver := newTriggerExpressionResolver(&t)
+		expression, err := resolver.source(t.Expression)
+		if err != nil {
+			return fmt.Errorf("trigger %s: %w", d.Id(), err)
+		}
+		recoveryExpression, err := resolver.source(t.RecoveryExpression)
+		if err != nil {
+			return fmt.Errorf("trigger %s recovery expression: %w", d.Id(), err)
+		}
+
 		d.Set("name", t.Description)
 		d.Set("event_name", t.EventName)
 		d.Set("opdata", t.Opdata)
-		d.Set("expression", t.Expression)
+		d.Set("expression", expression)
 		d.Set("comments", t.Comments)
 		d.Set("priority", TRIGGER_PRIORITY_REV[t.Priority])
 		d.Set("enabled", t.Status == 0)
 		d.Set("multiple", t.Type == 1)
 		d.Set("url", t.Url)
-		d.Set("recovery_expression", t.RecoveryExpression)
+		d.Set("recovery_expression", recoveryExpression)
 		d.Set("correlation_mode", TRIGGER_CORRELATION_REV[t.CorrelationMode])
 		d.Set("correlation_tag", t.CorrelationTag)
 		d.Set("manual_close", t.ManualClose == 1)

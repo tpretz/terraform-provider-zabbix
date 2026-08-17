@@ -180,6 +180,33 @@ is asked to delete and recreate an interface, which it refuses once items are bo
 **Sets cannot be indexed from HCL.** `zabbix_host.x.interface[0].id` no longer parses;
 use `one(...)`. This is the change most likely to break an existing config.
 
+### Trigger expressions are reconstructed, not read
+
+`trigger.get` stores an expression with every item reference replaced by a `{functionid}`
+token and *nothing else touched* — whitespace, quoting, operators, user macros and LLD
+macros all survive verbatim. `expandExpression` will undo the substitution, and that is
+what the provider used to ask for, but the same flag also renders user macros down to
+their **values** and Zabbix offers no way to separate the two. A config saying
+`>{$SLOW}` read back as `>5`, so it never matched and every plan proposed rewriting it.
+
+`provider/trigger_expression.go` rebuilds the source form instead, from
+`selectFunctions` + `selectItems` + `selectHosts`, by substituting `/host/key` for the
+`$` placeholder in each function's parameter list. It covers `expression` and
+`recovery_expression`, on `zabbix_trigger` and `zabbix_proto_trigger` alike. Three
+things measured on all four versions that are easy to get wrong:
+
+- **`selectItems` must supply the item→host mapping.** The trigger's own `hosts` array
+  has more than one entry as soon as an expression spans hosts and says nothing about
+  which item lives where. Resolve through each item's `hostid`.
+- **`selectFunctions` must be `"extend"`.** An explicit field list silently drops
+  `function` — the name — returning `functionid`/`itemid`/`parameter` and no error, on
+  6.0 through 8.0. Another instance of the `.get` silent-wrong-answer trap.
+- **The `$` placeholder keeps its surrounding whitespace.** `last( /host/key )` stores
+  the parameter as `" $ "`, so replace the `$` in place rather than rebuilding the list.
+
+Anything that cannot be reconstructed faithfully is an **error**, never a guess: writing
+a wrong expression into state without saying so is the defect the code exists to fix.
+
 ### Shared schema helpers & the lookup-table idiom
 
 - `common_tag.go` — shared `tagSetSchema` (a `TypeSet` of key/value) plus `tagGenerate`/`flattenTags`, reused by host, trigger, and item resources.

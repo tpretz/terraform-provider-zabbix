@@ -10,6 +10,13 @@ import (
 // item to write expressions against, and three further triggers to depend on.
 // Three, all of the same kind, because `dependencies` is a set of ids and
 // nothing but the id distinguishes one element from another.
+//
+// The template carries a user macro, and triggerHCL's expression compares
+// against it, so that every step below -- and the import in particular -- is
+// also a round trip of an expression containing a macro. That is the shape
+// trigger.get's "expandExpression" used to destroy: it rendered {$TRIGGER.LIMIT}
+// down to 1 and the plan then proposed rewriting the expression, for ever.
+// acc_trigger_expression_test.go covers the rest of the expression grammar.
 const triggerFixtureHCL = `
 resource "zabbix_templategroup" "testgrp" {
 	name = "test-group"
@@ -17,6 +24,11 @@ resource "zabbix_templategroup" "testgrp" {
 resource "zabbix_template" "testtmpl" {
 	groups = [ zabbix_templategroup.testgrp.id ]
 	host = "test-template"
+
+	macro {
+		name = "{$TRIGGER.LIMIT}"
+		value = "1"
+	}
 }
 resource "zabbix_item_trapper" "testitem" {
 	hostid = zabbix_template.testtmpl.id
@@ -50,7 +62,7 @@ func triggerHCL(body string) string {
 	return triggerFixtureHCL + `
 resource "zabbix_trigger" "testtrigger" {
 	name = "Test Trigger Renamed"
-	expression = "last(/test-template/trapper.test)=1"
+	expression = "last(/test-template/trapper.test)={$TRIGGER.LIMIT}"
 	comments = "test comment"
 	priority = "high"
 	enabled = false
@@ -121,7 +133,8 @@ resource "zabbix_trigger" "testtrigger" {
 `)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "name", "Test Trigger Renamed"),
-					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "expression", "last(/test-template/trapper.test)=1"),
+					// the macro comes back as the user wrote it, not as its value
+					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "expression", "last(/test-template/trapper.test)={$TRIGGER.LIMIT}"),
 					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "comments", "test comment"),
 					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "priority", "high"),
 					resource.TestCheckResourceAttr("zabbix_trigger.testtrigger", "enabled", "false"),
