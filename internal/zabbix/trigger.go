@@ -83,9 +83,14 @@ type Trigger struct {
 	// not: it is optional and "" is a value the user can go back to. With
 	// omitempty the clear was dropped, Zabbix kept the old link, and the read
 	// put it straight back into state.
-	Url                string `json:"url"`
-	RecoveryMode       int    `json:"recovery_mode,string"`
-	RecoveryExpression string `json:"recovery_expression,omitempty"`
+	Url          string `json:"url"`
+	RecoveryMode int    `json:"recovery_mode,string"`
+	// No omitempty, for the same reason as Comments, Url and Opdata. Clearing
+	// this happens to work today only because the provider always sets
+	// RecoveryMode explicitly and Zabbix empties the expression itself when the
+	// mode leaves 1 — so the drop is masked by someone else's behaviour rather
+	// than being safe. Sending "" is accepted on 6.0 through 8.0.
+	RecoveryExpression string `json:"recovery_expression"`
 	CorrelationMode    int    `json:"correlation_mode,string"`
 	CorrelationTag     string `json:"correlation_tag,omitempty"`
 	ManualClose        int    `json:"manual_close,string"`

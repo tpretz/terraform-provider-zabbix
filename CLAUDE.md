@@ -20,7 +20,7 @@ Summary of the decisions recorded there:
 
 ### Current state — measured, not guessed
 
-**The matrix is green on all four versions** — 173 tests, 143 of them acceptance, roughly
+**The matrix is green on all four versions** — 180 tests, 146 of them acceptance, roughly
 355-365s per version:
 
 | Version | Result |
@@ -257,7 +257,7 @@ Every `_ARR` is sorted at init (`TestEnumValueListsAreSorted`). This is not cosm
 
 `testAccPreCheck` (`provider/provider_test.go`) requires `ZABBIX_URL`, `ZABBIX_USER`, `ZABBIX_PASS`.
 
-Coverage is now **173 tests, 143 of them acceptance**, green on all four versions at roughly
+Coverage is now **180 tests, 146 of them acceptance**, green on all four versions at roughly
 355–365s each. Every registered resource and data source has a test with an import step and
 a `CheckDestroy`; there is one `ImportStateVerifyIgnore` suite-wide (proxy PSK, which
 `proxy.get` never returns). Drift, negative paths, `ForceNew`, provider configuration and
