@@ -161,8 +161,8 @@ identically.
 
 ## Current status
 
-**Green on all four versions.** 106 tests in `./provider`, 86 of them
-acceptance, roughly 205-215s per version:
+**Green on all four versions.** 173 tests in `./provider`, 143 of them
+acceptance, roughly 355-365s per version:
 
 | Version | Result | Skips |
 |---|---|---|
