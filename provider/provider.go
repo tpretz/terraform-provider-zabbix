@@ -48,10 +48,19 @@ func Provider() *schema.Provider {
 				Default:     false,
 			},
 			"serialize": &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Send API requests one at a time. Zabbix has races on concurrent writes to the same object; enable this if applies fail intermittently under parallelism",
+				Type:     schema.TypeBool,
+				Optional: true,
+				// On by default, and a workaround rather than a feature: Zabbix
+				// itself is not safe against concurrent writes. See the long
+				// note in internal/zabbix/base.go.
+				Default: true,
+				Description: "Send mutating API requests one at a time (default `true`). This is a workaround for concurrency bugs in Zabbix, not a tuning knob: " +
+					"template inheritance does read-modify-write against shared parent objects, and Terraform's default parallelism of 10 drives exactly that path " +
+					"whenever a configuration links several hosts to one template. The observed symptom is a host that ends up with a template's items and none of " +
+					"its triggers, silently, surfacing much later as an unrelated `Database error occurred`. Read requests are never serialized, so `plan` and " +
+					"`refresh` are unaffected. " +
+					"**This only protects a single `terraform apply`** — the lock lives in one provider process, so two concurrent applies, or Terraform racing a " +
+					"change made in the Zabbix UI, will still collide. Set to `false` only if you are confident your configuration cannot race and you need the speed.",
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{

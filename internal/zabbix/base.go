@@ -197,6 +197,17 @@ func (api *API) printf(format string, v ...interface{}) {
 	}
 }
 
+// isReadMethod reports whether a JSON-RPC method only reads.
+//
+// Every Zabbix read method is named "<object>.get", with apiinfo.version the
+// one exception. Everything else — create, update, delete, and the mass*
+// variants — mutates, and it is the mutating calls that Serialize exists to
+// hold apart. Matching on the suffix rather than a list means a method added
+// later is treated as a write, which is the safe way to be wrong.
+func isReadMethod(method string) bool {
+	return strings.HasSuffix(method, ".get") || strings.EqualFold(method, "apiinfo.version")
+}
+
 func (api *API) callBytes(method string, params interface{}) (b []byte, err error) {
 	id := atomic.AddInt32(&api.id, 1)
 
@@ -229,7 +240,19 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 		req.Header.Add("Authorization", "Bearer "+api.Auth)
 	}
 
-	if api.Config.Serialize {
+	// Serialize holds writes apart. Zabbix's template inheritance does
+	// read-modify-write against shared parent objects and is not safe against
+	// concurrent callers, and Terraform applies at parallelism 10 by default —
+	// the ordinary shape of a configuration, one template with many hosts
+	// linking it, drives exactly the racy path. Observed in the wild: a host
+	// linked to a template ended up with the template's items and none of its
+	// triggers, silently, and only surfaced weeks later when an unrelated
+	// dependency tripped over the gap.
+	//
+	// Reads are left concurrent. A ".get" cannot corrupt anything, and refresh
+	// and plan are almost entirely reads, so locking them would cost real time
+	// and buy no safety.
+	if api.Config.Serialize && !isReadMethod(method) {
 		api.ex.Lock()
 		defer api.ex.Unlock()
 	}

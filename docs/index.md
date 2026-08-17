@@ -104,7 +104,7 @@ provider "zabbix" {
 ### Optional
 
 - `password` (String) Zabbix API password. Falls back to $ZABBIX_PASS or $ZABBIX_PASSWORD
-- `serialize` (Boolean) Send API requests one at a time. Zabbix has races on concurrent writes to the same object; enable this if applies fail intermittently under parallelism
+- `serialize` (Boolean) Send mutating API requests one at a time (default `true`). This is a workaround for concurrency bugs in Zabbix, not a tuning knob: template inheritance does read-modify-write against shared parent objects, and Terraform's default parallelism of 10 drives exactly that path whenever a configuration links several hosts to one template. The observed symptom is a host that ends up with a template's items and none of its triggers, silently, surfacing much later as an unrelated `Database error occurred`. Read requests are never serialized, so `plan` and `refresh` are unaffected. **This only protects a single `terraform apply`** — the lock lives in one provider process, so two concurrent applies, or Terraform racing a change made in the Zabbix UI, will still collide. Set to `false` only if you are confident your configuration cannot race and you need the speed.
 - `tls_insecure` (Boolean) Skip TLS certificate verification when talking to the API. For testing only
 - `token` (String) Zabbix API token (Zabbix 5.4 and later). Used instead of username and password: the provider sends it directly and skips the login call. Falls back to $ZABBIX_TOKEN
 - `username` (String) Zabbix API username. Give either username and password, or token. Falls back to $ZABBIX_USER or $ZABBIX_USERNAME

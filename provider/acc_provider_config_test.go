@@ -28,8 +28,9 @@ import (
 //   - tls_insecure replaces the http.Client wholesale with one carrying a
 //     custom Transport, and every acceptance server in the matrix is plain
 //     HTTP, so nothing in the suite had ever constructed that client.
-//   - serialize takes a non-reentrant sync.Mutex around every request. The
-//     failure mode is not a wrong answer, it is a hang.
+//   - serialize takes a non-reentrant sync.Mutex around every *mutating*
+//     request. The failure mode is not a wrong answer, it is a hang. It is on
+//     by default, so this covers the explicit setting rather than an opt-in.
 
 // testAccAdminAPI builds an admin-authenticated client straight from the
 // environment, for the setup a test has to do before the provider exists.

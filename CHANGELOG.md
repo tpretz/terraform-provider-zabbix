@@ -73,6 +73,17 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
 
 ### Changed
 
+- **`serialize` now defaults to `true`**, and applies only to mutating requests.
+  Reads are never serialized, so `plan` and `refresh` are unchanged and a full
+  acceptance run costs about 3% more. This is a workaround for concurrency bugs in
+  Zabbix rather than a tuning default: template inheritance and internal id
+  allocation both race under Terraform's default parallelism of 10. Two failures
+  observed against real servers — a host that kept a template's items and silently
+  lost every one of its triggers, and a parallel destroy failing with
+  `duplicate key value violates unique constraint "ids_pkey"` on
+  `(housekeeper, housekeeperid)`. Note the lock is per provider process, so it
+  protects a single `terraform apply` and nothing wider. See MIGRATING.md § 9.
+
 - **Minimum Zabbix version is 6.0.** 4.0, 5.0 and 5.4 support was deleted, not
   merely left untested. See [MIGRATING.md §1](./MIGRATING.md#1-zabbix-60-is-now-the-minimum).
 - **`graph.item`, `zabbix_host.interface` and the LLD filter `condition` block are

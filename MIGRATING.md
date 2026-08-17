@@ -26,13 +26,16 @@ keeps running throughout.
 | 6 | `graph.item`, `host.interface`, LLD `condition` are **sets, not lists** | fix every `[0]` index |
 | 7 | Legacy SNMP item attributes removed | delete the attributes |
 | 8 | `preprocessor.type` takes a name, not a number | none now, edit at leisure |
+| 9 | `serialize` now defaults to `true` | none — a behaviour change, not a config one |
 
-Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
+Number 9 needs no action at all: applies get safer, and marginally slower, on
+their own. Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
 config and the provider quietly discards them from state. Number 8 is cheaper
 still — nothing to do at upgrade time. Number 6 is the one most likely to break
 a config that otherwise looks fine.
 
 ---
+
 
 ## Before you start
 
@@ -696,6 +699,43 @@ adding the empty third parameter is the fix.
 
 ---
 
+## 9. `serialize` now defaults to `true`
+
+`v0.17.0` sent API requests concurrently, following Terraform's parallelism. `v2.0.0`
+sends **mutating** requests one at a time by default. Reads are untouched, so `plan` and
+`refresh` are exactly as fast as before; a full acceptance run costs roughly 3% more.
+
+This is a workaround for concurrency bugs in Zabbix, not a tuning decision. Two distinct
+failures have been observed against real servers:
+
+- A host linked to a template kept the template's items and lost every one of its
+  triggers. Nothing reported an error. It surfaced weeks later, as
+  `Database error occurred` on an unrelated change that happened to depend on the
+  missing trigger.
+- A parallel `terraform destroy` failed with
+  `duplicate key value violates unique constraint "ids_pkey"` on
+  `(housekeeper, housekeeperid)`. Zabbix allocates internal ids with a
+  `SELECT ... FOR UPDATE` followed by an `INSERT`, which two concurrent transactions
+  can both reach.
+
+Both are Zabbix-side races that the provider cannot detect and cannot repair, and the
+first is silent — which is why the safe setting is the default one.
+
+**It only protects a single `terraform apply`.** The lock lives in one provider process.
+Two applies running at once, or Terraform racing a change someone makes in the Zabbix
+UI, will still collide.
+
+To restore the old behaviour:
+
+```hcl
+provider "zabbix" {
+  serialize = false
+}
+```
+
+Only do that if you are confident your configuration cannot race — in practice, that it
+does not link several hosts to one template.
+
 ## Checklist
 
 ```
@@ -713,6 +753,8 @@ adding the empty third parameter is the fix.
 [ ] legacy snmp_* attributes moved from items to host interfaces
 [ ] preprocessor { type = "<number>" } rewritten to the name (optional, but
     the numeric form goes away in the next major release)
+[ ] serialize left at its new default of true, unless you know you need
+    otherwise (nothing to change — noted so it is a decision, not a surprise)
 [ ] terraform plan is empty
 ```
 
