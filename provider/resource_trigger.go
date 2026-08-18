@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -133,7 +134,7 @@ var schemaTrigger = map[string]*schema.Schema{
 		// would put every such configuration into permanent drift.
 		Computed: true,
 		Description: "Event correlation mode, one of: " + strings.Join(TRIGGER_CORRELATION_ARR, ", ") +
-			". \"tag\" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Inferred from correlation_tag when omitted, so deleting the line once the mode has been set changes nothing -- Terraform keeps the last value it read. `correlation_mode = \"all\"` is how correlation is turned back off; there is no \"none\"",
+			". \"tag\" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Defaults to \"all\" on a new trigger, or to \"tag\" when correlation_tag is set and this is not -- the shape configurations written before this attribute existed use, and the default is shown in the plan rather than only after apply. On an existing trigger the mode is left as it is: deleting the line changes nothing, because Terraform keeps the last value it read, and `correlation_mode = \"all\"` is how correlation is turned back off. There is no \"none\"",
 		ValidateFunc: validation.StringInSlice(TRIGGER_CORRELATION_ARR, false),
 	},
 	"correlation_tag": &schema.Schema{
@@ -167,6 +168,9 @@ func resourceTrigger() *schema.Resource {
 		Read:        resourceTriggerRead(false),
 		Update:      resourceTriggerUpdate(false),
 		Delete:      resourceTriggerDelete(false),
+		// `correlation_mode` inferred at plan time on create; see
+		// triggerCorrelationCustomizeDiff
+		CustomizeDiff: triggerCorrelationCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -181,12 +185,49 @@ func resourceProtoTrigger() *schema.Resource {
 		Read:        resourceTriggerRead(true),
 		Update:      resourceTriggerUpdate(true),
 		Delete:      resourceTriggerDelete(true),
+		// `correlation_mode` inferred at plan time on create; see
+		// triggerCorrelationCustomizeDiff
+		CustomizeDiff: triggerCorrelationCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: schemaTrigger,
 	}
+}
+
+// triggerCorrelationCustomizeDiff puts the inferred `correlation_mode` into
+// the plan of a *new* trigger, so that a configuration which does not mention
+// it shows "all" (or "tag", where correlation_tag alone asks for correlation)
+// instead of "(known after apply)".
+//
+// The attribute is Optional+Computed rather than defaulted because a Default:
+// of "all" would break every configuration written before it existed, where
+// setting correlation_tag on its own was the only way to ask for tag
+// correlation: buildTriggerObject rejects a correlation_tag whose mode is not
+// "tag", so those configurations would be in permanent conflict. That
+// inference is what this mirrors, one step earlier.
+//
+// Create only. On an existing trigger the stored mode is the user's -- it may
+// have been set by an apply that has since dropped the line, or by an import
+// from a trigger configured in the frontend -- and re-deriving it on every
+// plan would turn correlation off behind their back. Deleting the line is
+// therefore still a no-op, which is R2's verdict and what
+// TestAccRemoveTriggerCorrelationMode holds to.
+func triggerCorrelationCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	if _, given := configuredString(d, "correlation_mode"); given {
+		return nil
+	}
+	if d.Id() != "" {
+		return nil
+	}
+	if !d.NewValueKnown("correlation_tag") {
+		return nil
+	}
+	if d.Get("correlation_tag").(string) != "" {
+		return d.SetNew("correlation_mode", "tag")
+	}
+	return d.SetNew("correlation_mode", "all")
 }
 
 // Build Trigger struct for create/modify

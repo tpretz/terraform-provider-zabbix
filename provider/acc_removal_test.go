@@ -219,8 +219,11 @@ var removalComputed = map[string]string{
 		"on create and on a valuetype change across the text/log boundary, so it is visible in the plan and no " +
 		"longer strands an ex-text item on \"0\". Write the value out to override it; TestAccRemoveItemTrends",
 	"zabbix_proto_trigger.correlation_mode": "intended: a Default: would break the configurations that predate the " +
-		"attribute and asked for tag correlation by setting correlation_tag alone. `correlation_mode = \"all\"` is " +
-		"the way back; TestAccRemoveTriggerCorrelationMode",
+		"attribute and asked for tag correlation by setting correlation_tag alone, which is why the inference from " +
+		"correlation_tag has to stay. triggerCorrelationCustomizeDiff now runs that inference at plan time on " +
+		"create, where there is no prior mode to overwrite; on an existing trigger the stored mode is left alone " +
+		"and `correlation_mode = \"all\"` is the way back; TestAccRemoveTriggerCorrelationMode, " +
+		"TestAccDerivedTriggerCorrelationMode",
 }
 
 // ---------------------------------------------------------------------------

@@ -111,7 +111,9 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   that nothing the user owns is overwritten: the two names on create and on a
   `host` rename *while the stored name is still the old `host`*, `trends` on
   create and on a `valuetype` change across the numeric boundary,
-  `correlation_mode` on create only. Deleting any of the four lines still changes
+  `correlation_mode` on create only (where it keeps inferring "tag" from a
+  `correlation_tag` written on its own, the shape configurations predating the
+  attribute use). Deleting any of the four lines still changes
   nothing, exactly as before. The one visible behaviour change: renaming `host` on
   a resource whose `name` was derived now moves the display name along with it,
   where it used to be left pointing at the old technical name for ever. A display

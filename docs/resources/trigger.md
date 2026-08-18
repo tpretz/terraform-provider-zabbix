@@ -52,7 +52,7 @@ resource "zabbix_trigger" "cpu_high" {
 ### Optional
 
 - `comments` (String) Free-text description of the trigger, shown with the problem
-- `correlation_mode` (String) Event correlation mode, one of: all, tag. "tag" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Inferred from correlation_tag when omitted, so deleting the line once the mode has been set changes nothing -- Terraform keeps the last value it read. `correlation_mode = "all"` is how correlation is turned back off; there is no "none"
+- `correlation_mode` (String) Event correlation mode, one of: all, tag. "tag" closes a problem only when the matching event carries the same correlation_tag value, and requires correlation_tag to be set. Defaults to "all" on a new trigger, or to "tag" when correlation_tag is set and this is not -- the shape configurations written before this attribute existed use, and the default is shown in the plan rather than only after apply. On an existing trigger the mode is left as it is: deleting the line changes nothing, because Terraform keeps the last value it read, and `correlation_mode = "all"` is how correlation is turned back off. There is no "none"
 - `correlation_tag` (String) Tag name used to match problem and recovery events when correlation_mode is "tag"
 - `dependencies` (Set of String) IDs of triggers this one depends on (unordered). While any of them is in a problem state, this trigger raises nothing
 - `enabled` (Boolean) Whether the trigger is evaluated. A disabled trigger keeps its configuration but raises nothing

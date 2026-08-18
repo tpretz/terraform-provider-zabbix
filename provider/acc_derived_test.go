@@ -153,6 +153,93 @@ resource "zabbix_host" "testderivnamehost" {
 	})
 }
 
+// derivedTemplateHCL owns the item the derived-trigger fixtures reference. A
+// template rather than a host: nothing here needs an interface.
+const derivedTemplateHCL = `
+resource "zabbix_templategroup" "testderivgrp" {
+	name = "test-derived-template-group"
+}
+resource "zabbix_template" "testderivtmpl" {
+	groups = [ zabbix_templategroup.testderivgrp.id ]
+	host   = "test-derived-template"
+}
+resource "zabbix_item_trapper" "testderivitem" {
+	hostid    = zabbix_template.testderivtmpl.id
+	key       = "test.derived.item"
+	name      = "Derived Item"
+	valuetype = "unsigned"
+}
+`
+
+// TestAccDerivedTriggerCorrelationMode -- `correlation_mode` is inferred from
+// `correlation_tag` on a new trigger, and both shapes are in this one
+// configuration: the trigger that mentions neither gets "all", the one that
+// sets only the tag gets "tag".
+//
+// That second shape is the reason the attribute is Optional+Computed rather
+// than defaulted -- a Default: of "all" would put every configuration written
+// before the attribute existed into permanent conflict with itself, because a
+// correlation_tag whose mode is not "tag" is refused. The inference already
+// happened on the write path; this puts it in the plan, where the user can see
+// what they are about to get.
+//
+// Create only, so there is nothing to clobber: on an existing trigger the
+// stored mode stays, which is R2's verdict and TestAccRemoveTriggerCorrelationMode's
+// subject.
+func TestAccDerivedTriggerCorrelationMode(t *testing.T) {
+	const (
+		plainAddr  = "zabbix_trigger.testderivcorrplain"
+		taggedAddr = "zabbix_trigger.testderivcorrtagged"
+	)
+
+	config := hcl(t, derivedTemplateHCL+`
+resource "zabbix_trigger" "testderivcorrplain" {
+	name       = "Derived Correlation Plain"
+	expression = "last(/test-derived-template/test.derived.item)=1"
+
+	depends_on = [ zabbix_item_trapper.testderivitem ]
+}
+resource "zabbix_trigger" "testderivcorrtagged" {
+	name       = "Derived Correlation Tagged"
+	expression = "last(/test-derived-template/test.derived.item)=2"
+
+	correlation_tag = "derivedtag"
+
+	depends_on = [ zabbix_item_trapper.testderivitem ]
+}
+`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue(plainAddr, tfjsonpath.New("correlation_mode"), knownvalue.StringExact("all")),
+						plancheck.ExpectKnownValue(taggedAddr, tfjsonpath.New("correlation_mode"), knownvalue.StringExact("tag")),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(plainAddr, "correlation_mode", "all"),
+					resource.TestCheckResourceAttr(taggedAddr, "correlation_mode", "tag"),
+					testAccCheckServerAttrs(plainAddr, serverTrigger, map[string]string{
+						"correlation_mode": "0",
+						"correlation_tag":  "",
+					}),
+					testAccCheckServerAttrs(taggedAddr, serverTrigger, map[string]string{
+						"correlation_mode": "1",
+						"correlation_tag":  "derivedtag",
+					}),
+				),
+			},
+			{Config: config, PlanOnly: true},
+		},
+	})
+}
+
 // TestAccDerivedTemplateName -- the same rule on the same underlying object; a
 // Zabbix template is a host with status 3. Covered separately because the two
 // resources declare `name` separately, and because the servers do not agree
