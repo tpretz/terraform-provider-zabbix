@@ -8,11 +8,12 @@ import (
 // terraform resource handler for item type
 func resourceItemSnmpTrap() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix SNMP trap item: a value taken from SNMP traps received for the host, rather than polled.",
-		Create:      itemGetCreateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
-		Read:        itemGetReadWrapper(itemSnmpTrapReadFunc),
-		Update:      itemGetUpdateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix SNMP trap item: a value taken from SNMP traps received for the host, rather than polled.",
+		Create:        itemGetCreateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
+		Read:          itemGetReadWrapper(itemSnmpTrapReadFunc),
+		Update:        itemGetUpdateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -22,11 +23,12 @@ func resourceItemSnmpTrap() *schema.Resource {
 }
 func resourceProtoItemSnmpTrap() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix SNMP trap item prototype. One SNMP trap item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
-		Read:        protoItemGetReadWrapper(itemSnmpTrapReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix SNMP trap item prototype. One SNMP trap item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
+		Read:          protoItemGetReadWrapper(itemSnmpTrapReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemSnmpTrapModFunc, itemSnmpTrapReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -275,7 +276,7 @@ var itemCommonSchema = map[string]*schema.Schema{
 	},
 	"trends": &schema.Schema{
 		Type:         schema.TypeString,
-		Description:  "How long Zabbix keeps hourly trends for this item, e.g. \"365d\". Defaults to \"365d\", or to \"0\" for text and log items, which is the only value Zabbix accepts for those -- so the default follows `valuetype` and is re-derived whenever it changes. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the default is to write it out",
+		Description:  "How long Zabbix keeps hourly trends for this item, as a time suffix string, e.g. \"365d\". \"0\" disables trends. Derived from `valuetype` when it is not given: \"0\" for the non-numeric types (character, log, text), which is the only value Zabbix accepts for those, and \"365d\" for float and unsigned. The derived value is shown in the plan rather than only after apply, and changing `valuetype` across that boundary re-derives it; changing it within a class (unsigned to float, text to log) leaves the stored value alone. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the derived default is to write it out",
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		//Default:      "365d",
 		Optional: true,
@@ -578,6 +579,108 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	return nil
 }
 
+// itemTrendless reports whether Zabbix keeps no trends at all for a value
+// type. Trends are hourly minimum/average/maximum, so only the two numeric
+// types have anything to put in them: character, log and text are all
+// trendless, and **character is the one this codebase had wrong**.
+//
+// Probed with item.create on all four servers, trends omitted and then "365d":
+//
+//	value type   omitted   "365d"
+//	float        365d      365d
+//	unsigned     365d      365d
+//	character    0         6.0 stores 0; 7.0/7.4/8.0 reject it
+//	log          0         same
+//	text         0         same
+//
+// Only text and log were treated as trendless before, so a character item
+// with no `trends` in the configuration had "365d" derived for it and
+// **could not be created at all from 7.0** -- Zabbix answered `Invalid
+// parameter "/1/trends": value must be 0` for an attribute the user had never
+// written. On 6.0 it was accepted and silently stored as 0. The suite missed
+// it because its one character-valued fixture inherits trends "0" from an
+// earlier step.
+func itemTrendless(vt zabbix.ValueType) bool {
+	return vt == zabbix.Character || vt == zabbix.Log || vt == zabbix.Text
+}
+
+// itemDerivedTrends is the `trends` a configuration that does not mention it
+// gets: Zabbix's own default of "365d", or "0" where the value type keeps no
+// trends. It is the provider's derivation rather than the server's, because
+// the server only applies it on create -- see itemTrendsCustomizeDiff.
+func itemDerivedTrends(vt zabbix.ValueType) string {
+	if itemTrendless(vt) {
+		return "0"
+	}
+	return "365d"
+}
+
+// itemTrendsCustomizeDiff puts the derived `trends` into the *plan*, so that a
+// configuration which does not mention the attribute shows what it is going to
+// get instead of "(known after apply)", and so that a value type change shows
+// the trends change it drags along with it.
+//
+// `trends` is Optional+Computed because its default follows `valuetype` and no
+// single Default: can express that (R2, acc_removal_test.go). The flag's
+// contract is "if the configuration is silent, keep what the provider last
+// returned", and for an attribute derived from *server* state that is exactly
+// right -- re-deriving would clobber a value the user owns. This one is
+// different: it is derived from another attribute of the same resource, one
+// the configuration itself supplies, so the derivation can be re-run without
+// consulting anything the user might have set behind Terraform's back.
+//
+// It fires in two cases only, and the narrowness is the point:
+//
+//   - on create, where there is no prior value to clobber;
+//   - on a `valuetype` change that crosses the numeric/non-numeric boundary,
+//     where the stored value was derived from a value type that is going away.
+//
+// Everything else is left alone. In particular a value type change *within* a
+// class -- unsigned to float, text to character -- keeps whatever trends the
+// item has, because a `trends` set in the Zabbix frontend and then imported into a
+// configuration that does not manage it is the user's, not ours.
+//
+// The boundary crossing is not symmetric, and both halves were broken:
+//
+//   - into a non-numeric type, the stored "365d" is *rejected* by item.update from
+//     7.0 (`Invalid parameter "/1/trends": value must be 0`) and silently
+//     rewritten to "0" on 6.0. buildItemObject already forced "0" here, so the
+//     apply worked -- but the plan had said nothing about trends changing,
+//     which the SDK's legacy type system downgrades from an error to a log
+//     line nobody reads. Now the plan says it.
+//   - out of one, nothing forced anything: the item kept trends "0"
+//     for ever, because the configuration was silent and Optional+Computed
+//     means keep. An item switched from text to unsigned quietly collected no
+//     trends at all. Verified against 6.0.48, 7.0.29, 7.4.13 and 8.0-trunk:
+//     item.update with a new value_type and no trends leaves the stored "0"
+//     exactly as it was, so the server will not do this for us.
+func itemTrendsCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	// the configuration owns the value; buildItemObject validates it
+	if _, given := configuredString(d, "trends"); given {
+		return nil
+	}
+	// an unresolved reference: nothing to derive from yet, and the write path
+	// derives again at apply
+	if !d.NewValueKnown("valuetype") {
+		return nil
+	}
+	newType, ok := ITEM_VALUE_TYPES[d.Get("valuetype").(string)]
+	if !ok {
+		return nil // rejected by the validator, with a better message than any we could add
+	}
+
+	if d.Id() == "" {
+		return d.SetNew("trends", itemDerivedTrends(newType))
+	}
+
+	old, _ := d.GetChange("valuetype")
+	oldType, ok := ITEM_VALUE_TYPES[old.(string)]
+	if !ok || itemTrendless(oldType) == itemTrendless(newType) {
+		return nil
+	}
+	return d.SetNew("trends", itemDerivedTrends(newType))
+}
+
 // Build the base Item Object
 func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*zabbix.Item, error) {
 	item := zabbix.Item{
@@ -595,24 +698,21 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*
 	item.Preprocessors = preprocessors
 	item.Tags = tagGenerate(d)
 
+	// itemTrendsCustomizeDiff has normally derived this already and it arrives
+	// here in the plan; this is the fallback for the case it steps aside from,
+	// a `valuetype` that was not yet known when the plan was made.
 	if v, ok := d.GetOk("trends"); ok {
 		item.Trends = v.(string)
 	} else {
-		if item.ValueType == zabbix.Text || item.ValueType == zabbix.Log {
-			item.Trends = "0"
-		} else {
-			item.Trends = "365d"
-		}
+		item.Trends = itemDerivedTrends(item.ValueType)
 		d.Set("trends", item.Trends)
 	}
 
 	// Text and log items keep no trends at all, and the value type is what
-	// decides that -- so the derived default above has to be re-derived on
-	// every write, not only on the create that first computed it. `trends` is
-	// Optional+Computed, so d.Get hands back the value in state whenever the
-	// configuration carries none, and that value outlives the value type it
-	// was derived from: changing valuetype to "text" or "log" on an item that
-	// already exists sent the stored "365d" and was rejected outright.
+	// decides that. itemTrendsCustomizeDiff plans "0" whenever the value type
+	// moves into that class with the configuration silent; this is the last
+	// word on the same rule, and it is what catches the configuration that
+	// *does* name a trends the value type cannot have.
 	//
 	// Probed by calling item.update with value_type 4 and trends "30d":
 	//
@@ -626,10 +726,10 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*
 	// never converged on 6.0 -- the server stored 0 and the read put 0 back.
 	// That one is the user's own value, so it is an error rather than an
 	// override: silently rewriting it would leave the same diff behind.
-	if item.ValueType == zabbix.Text || item.ValueType == zabbix.Log {
+	if itemTrendless(item.ValueType) {
 		if v, ok := configuredString(d, "trends"); ok && v != "0" {
 			return nil, fmt.Errorf(
-				"trends must be \"0\" for a %s item, not %q: Zabbix keeps no trends for text and log values",
+				"trends must be \"0\" for a %s item, not %q: Zabbix keeps trends only for numeric values",
 				ITEM_VALUE_TYPES_REV[item.ValueType], v)
 		}
 		item.Trends = "0"

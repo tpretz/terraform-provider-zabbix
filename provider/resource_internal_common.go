@@ -8,11 +8,12 @@ import (
 // terraform resource handler for item type
 func resourceItemInternal() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix internal item: a value about Zabbix itself -- queue length, cache usage, process busy time -- rather than about the monitored host.",
-		Create:      itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:        itemGetReadWrapper(itemInternalReadFunc),
-		Update:      itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix internal item: a value about Zabbix itself -- queue length, cache usage, process busy time -- rather than about the monitored host.",
+		Create:        itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Read:          itemGetReadWrapper(itemInternalReadFunc),
+		Update:        itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -22,11 +23,12 @@ func resourceItemInternal() *schema.Resource {
 }
 func resourceProtoItemInternal() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix internal item prototype. One internal item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:        protoItemGetReadWrapper(itemInternalReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix internal item prototype. One internal item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Read:          protoItemGetReadWrapper(itemInternalReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

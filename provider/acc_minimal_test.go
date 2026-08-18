@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -229,6 +230,72 @@ func TestAccMinimalItems(t *testing.T) {
 		CheckDestroy:      testAccCheckAllDestroyed,
 		Steps: []resource.TestStep{
 			{Config: config},
+			{Config: config, PlanOnly: true},
+		},
+	})
+}
+
+// TestAccMinimalItemValueTypes is minimalItemsHCL's blind spot: every item
+// there is "unsigned" or "text", and `trends` -- the one attribute the
+// provider derives from `valuetype` rather than defaulting -- has five value
+// types to derive from, not two.
+//
+// Writing it found a defect that had been in the provider since the attribute
+// was added. Trends are hourly min/avg/max, so Zabbix keeps them for the two
+// numeric types only; the derivation treated *text and log* as the trendless
+// pair and left character out. A character item with no `trends` in the
+// configuration therefore had "365d" derived for it, and from 7.0 could not be
+// created at all:
+//
+//	Invalid parameter "/1/trends": value must be 0.
+//
+// for an attribute the user never wrote. On 6.0 the create succeeded and the
+// server stored 0 regardless, so the same configuration was version-dependent
+// in the worst way -- it worked where it was written and failed on upgrade.
+//
+// The empty plan afterwards is the other half: it is what proves the derived
+// value is the one the server keeps, for every type.
+func TestAccMinimalItemValueTypes(t *testing.T) {
+	const hostidRef = "zabbix_template.testminimaltmpl.id"
+
+	var body string
+	for _, vt := range ITEM_VALUE_TYPES_ARR {
+		body += `
+resource "zabbix_item_trapper" "testvt` + vt + `" {
+	hostid    = ` + hostidRef + `
+	key       = "test.minimal.valuetype.` + vt + `"
+	name      = "Test Minimal Value Type ` + vt + `"
+	valuetype = "` + vt + `"
+}
+`
+	}
+	config := hcl(t, minimalTemplateHCL+body)
+
+	checks := []resource.TestCheckFunc{}
+	for _, vt := range ITEM_VALUE_TYPES_ARR {
+		addr := "zabbix_item_trapper.testvt" + vt
+		want := "365d"
+		if itemTrendless(ITEM_VALUE_TYPES[vt]) {
+			want = "0"
+		}
+		checks = append(checks,
+			resource.TestCheckResourceAttr(addr, "trends", want),
+			testAccCheckServerAttrs(addr, serverItem, map[string]string{
+				"value_type": fmt.Sprintf("%d", ITEM_VALUE_TYPES[vt]),
+				"trends":     want,
+			}),
+		)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
 			{Config: config, PlanOnly: true},
 		},
 	})

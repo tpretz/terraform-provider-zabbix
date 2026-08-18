@@ -8,11 +8,12 @@ import (
 // terraform resource handler for item type
 func resourceItemExternal() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix external check item: a value produced by a script the server or proxy executes from its ExternalScripts directory.",
-		Create:      itemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Read:        itemGetReadWrapper(itemExternalReadFunc),
-		Update:      itemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix external check item: a value produced by a script the server or proxy executes from its ExternalScripts directory.",
+		Create:        itemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Read:          itemGetReadWrapper(itemExternalReadFunc),
+		Update:        itemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -22,11 +23,12 @@ func resourceItemExternal() *schema.Resource {
 }
 func resourceProtoItemExternal() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix external check item prototype. One external check is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Read:        protoItemGetReadWrapper(itemExternalReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix external check item prototype. One external check is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Read:          protoItemGetReadWrapper(itemExternalReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemExternalModFunc, itemExternalReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

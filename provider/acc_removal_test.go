@@ -202,7 +202,10 @@ var removalComputed = map[string]string{
 		"back; TestAccRemoveTemplateName",
 	"zabbix_item_agent.trends": "intended: the default is derived from `valuetype` -- \"0\" for text and log, " +
 		"\"365d\" otherwise -- which no single Default: can express, and from 7.0 Zabbix rejects any other value " +
-		"for text and log outright; TestAccRemoveItemTrends",
+		"for text and log outright. The one of the five where a CustomizeDiff is safe, because the derivation " +
+		"reads another attribute of the same resource rather than server state: itemTrendsCustomizeDiff plans it " +
+		"on create and on a valuetype change across the text/log boundary, so it is visible in the plan and no " +
+		"longer strands an ex-text item on \"0\". Write the value out to override it; TestAccRemoveItemTrends",
 	"zabbix_proto_trigger.correlation_mode": "intended: a Default: would break the configurations that predate the " +
 		"attribute and asked for tag correlation by setting correlation_tag alone. `correlation_mode = \"all\"` is " +
 		"the way back; TestAccRemoveTriggerCorrelationMode",
@@ -1247,14 +1250,23 @@ resource "zabbix_host" "testremporthost" {
 
 // TestAccRemoveItemTrends -- `trends` is Optional+Computed because its default
 // is derived from `valuetype`: "0" for text and log, "365d" for everything
-// else, applied by buildItemObject. No single Default: can express that, and
-// the derivation is not cosmetic -- Zabbix keeps no trends at all for text and
-// log values. Probed on all four servers: 6.0.48 accepts trends "365d" on a
-// text item and silently stores "0", while 7.0.29, 7.4.13 and 8.0-trunk reject
-// it outright with `Invalid parameter "/1/trends": value must be 0`.
+// else. No single Default: can express that, and the derivation is not
+// cosmetic -- Zabbix keeps no trends at all for text and log values. Probed on
+// all four servers: 6.0.48 accepts trends "365d" on a text item and silently
+// stores "0", while 7.0.29, 7.4.13 and 8.0-trunk reject it outright with
+// `Invalid parameter "/1/trends": value must be 0`.
 //
-// So the flag stays. What the test asserts is the consequence: deleting the
-// line keeps the value, and the way back is to write the derived default out.
+// So the flag stays, and the derivation is planned rather than applied behind
+// the plan's back -- itemTrendsCustomizeDiff, which fires on create and on a
+// `valuetype` change that crosses the text/log boundary. This is the one of
+// the five Optional+Computed attributes where a CustomizeDiff is safe, and the
+// reason is that it derives from another attribute of the same resource rather
+// than from server state: nothing the user set outside Terraform can be
+// clobbered by re-running it.
+//
+// What the test asserts is the consequence: deleting the line keeps the value,
+// the way back is to write the derived default out, and a value type change
+// carries the derivation with it in *both* directions.
 func TestAccRemoveItemTrends(t *testing.T) {
 	const addr = "zabbix_item_agent.testremtrends"
 
@@ -1294,15 +1306,32 @@ resource "zabbix_item_agent" "testremtrends" {
 					}),
 				),
 			},
+			{ // a value type change *within* the class does not re-derive: the
+				// stored 30d is a value somebody chose, and unsigned to float
+				// is no reason to take it away
+				Config:           item("float", ``),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "trends", "30d"),
+					testAccCheckServerAttrs(addr, serverItem, map[string]string{
+						"value_type": "0",
+						"trends":     "30d",
+					}),
+				),
+			},
+			{
+				Config:   item("float", ``),
+				PlanOnly: true,
+			},
 			{ // the way back: the derived default, written out
-				Config:           item("unsigned", `	trends = "365d"`),
+				Config:           item("float", `	trends = "365d"`),
 				ConfigPlanChecks: expectUpdate(addr),
 				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
 					"trends": "365d",
 				}),
 			},
-			{ // the sting in the tail, and the reason the derivation is
-				// re-run on every write rather than only on create: with no
+			{ // the sting in the tail, and the reason the derivation is planned
+				// on a value type change rather than only on create: with no
 				// trends in the configuration, the stored value outlives the
 				// value type it was derived from. Sending "365d" alongside
 				// value_type 4 is rejected on every server from 7.0, so
@@ -1316,6 +1345,31 @@ resource "zabbix_item_agent" "testremtrends" {
 						"trends":     "0",
 					}),
 				),
+			},
+			{ // and the derivation settles: no second plan follows it
+				Config:   item("text", ``),
+				PlanOnly: true,
+			},
+			{ // the other half of the boundary, and the half that was broken:
+				// leaving text for a type that does keep trends has to give the
+				// derived default back. Nothing forced it before, so the item
+				// kept trends "0" for ever and quietly collected none -- and
+				// the server will not do it either, verified on all four
+				// versions: item.update with a new value_type and no trends
+				// leaves the stored "0" exactly as it was.
+				Config:           item("unsigned", ``),
+				ConfigPlanChecks: expectUpdate(addr),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "trends", "365d"),
+					testAccCheckServerAttrs(addr, serverItem, map[string]string{
+						"value_type": "3",
+						"trends":     "365d",
+					}),
+				),
+			},
+			{
+				Config:   item("unsigned", ``),
+				PlanOnly: true,
 			},
 			{ // and a text item that asks for trends anyway is told why it
 				// cannot have them, rather than being silently rewritten into

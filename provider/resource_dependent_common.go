@@ -18,11 +18,12 @@ var schemaDependent = map[string]*schema.Schema{
 // resourceItemDependent terraform resource for agent items
 func resourceItemDependent() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix dependent item: a value derived from a master item's raw value by preprocessing, so one collection feeds many items.",
-		Create:      itemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Read:        itemGetReadWrapper(itemDependentReadFunc),
-		Update:      itemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix dependent item: a value derived from a master item's raw value by preprocessing, so one collection feeds many items.",
+		Create:        itemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Read:          itemGetReadWrapper(itemDependentReadFunc),
+		Update:        itemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -31,11 +32,12 @@ func resourceItemDependent() *schema.Resource {
 }
 func resourceProtoItemDependent() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix dependent item prototype. One dependent item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Read:        protoItemGetReadWrapper(itemDependentReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix dependent item prototype. One dependent item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Read:          protoItemGetReadWrapper(itemDependentReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

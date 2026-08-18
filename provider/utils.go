@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
@@ -177,6 +178,13 @@ func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schem
 	return n
 }
 
+// rawConfigured is what configuredString needs, and both *schema.ResourceData
+// and *schema.ResourceDiff satisfy it -- the same question has to be asked on
+// the write path and in CustomizeDiff, and the two carry different types.
+type rawConfigured interface {
+	GetRawConfig() cty.Value
+}
+
 // configuredString reports the value the *configuration* gives a top-level
 // string attribute, and whether it gives one at all.
 //
@@ -189,7 +197,7 @@ func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schem
 // A value that is not yet known (an unresolved reference at plan time) counts
 // as "not given", because there is nothing to compare it against; the write
 // path is reached again at apply, when it is known.
-func configuredString(d *schema.ResourceData, key string) (string, bool) {
+func configuredString(d rawConfigured, key string) (string, bool) {
 	raw := d.GetRawConfig()
 	if raw.IsNull() || !raw.Type().IsObjectType() || !raw.Type().HasAttribute(key) {
 		return "", false

@@ -181,11 +181,12 @@ var schemaHttp = map[string]*schema.Schema{
 // resourceItemHttp Http item resource handler
 func resourceItemHttp() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix HTTP agent item: a value collected by making an HTTP request from the server or proxy.",
-		Create:      itemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Read:        itemGetReadWrapper(itemHttpReadFunc),
-		Update:      itemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix HTTP agent item: a value collected by making an HTTP request from the server or proxy.",
+		Create:        itemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Read:          itemGetReadWrapper(itemHttpReadFunc),
+		Update:        itemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -195,11 +196,12 @@ func resourceItemHttp() *schema.Resource {
 }
 func resourceProtoItemHttp() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix HTTP agent item prototype. One HTTP item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Read:        protoItemGetReadWrapper(itemHttpReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix HTTP agent item prototype. One HTTP item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Read:          protoItemGetReadWrapper(itemHttpReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemHttpModFunc, itemHttpReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

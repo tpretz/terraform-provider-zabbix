@@ -63,7 +63,7 @@ resource "zabbix_item_http" "healthcheck" {
 - `status_codes` (String) http status code
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `timeout` (String) http request timeout
-- `trends` (String) How long Zabbix keeps hourly trends for this item, e.g. "365d". Defaults to "365d", or to "0" for text and log items, which is the only value Zabbix accepts for those -- so the default follows `valuetype` and is re-derived whenever it changes. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the default is to write it out
+- `trends` (String) How long Zabbix keeps hourly trends for this item, as a time suffix string, e.g. "365d". "0" disables trends. Derived from `valuetype` when it is not given: "0" for the non-numeric types (character, log, text), which is the only value Zabbix accepts for those, and "365d" for float and unsigned. The derived value is shown in the plan rather than only after apply, and changing `valuetype` across that boundary re-derives it; changing it within a class (unsigned to float, text to log) leaves the stored value alone. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the derived default is to write it out
 - `username` (String) Authentication Username
 - `verify_host` (Boolean) https verify host
 - `verify_peer` (Boolean) https verify peer

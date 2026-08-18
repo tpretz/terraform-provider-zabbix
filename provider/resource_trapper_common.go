@@ -8,11 +8,12 @@ import (
 // terraform resource handler for item type
 func resourceItemTrapper() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix trapper item: a value pushed to the server by zabbix_sender or the API rather than polled.",
-		Create:      itemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Read:        itemGetReadWrapper(itemTrapperReadFunc),
-		Update:      itemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix trapper item: a value pushed to the server by zabbix_sender or the API rather than polled.",
+		Create:        itemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Read:          itemGetReadWrapper(itemTrapperReadFunc),
+		Update:        itemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -22,11 +23,12 @@ func resourceItemTrapper() *schema.Resource {
 }
 func resourceProtoItemTrapper() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix trapper item prototype. One trapper item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Read:        protoItemGetReadWrapper(itemTrapperReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix trapper item prototype. One trapper item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Read:          protoItemGetReadWrapper(itemTrapperReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

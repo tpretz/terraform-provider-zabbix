@@ -18,11 +18,12 @@ var schemaSnmp = map[string]*schema.Schema{
 // terraform resource handler for item type
 func resourceItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix SNMP item: a value read from an SNMP OID over the host's SNMP interface.",
-		Create:      itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:        itemGetReadWrapper(itemSnmpReadFunc),
-		Update:      itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix SNMP item: a value read from an SNMP OID over the host's SNMP interface.",
+		Create:        itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:          itemGetReadWrapper(itemSnmpReadFunc),
+		Update:        itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -31,11 +32,12 @@ func resourceItemSnmp() *schema.Resource {
 }
 func resourceProtoItemSnmp() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix SNMP item prototype. One SNMP item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:        protoItemGetReadWrapper(itemSnmpReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix SNMP item prototype. One SNMP item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Read:          protoItemGetReadWrapper(itemSnmpReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

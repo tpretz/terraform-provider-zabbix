@@ -8,11 +8,12 @@ import (
 // terraform resource handler for item type
 func resourceItemSimple() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix simple check item: an agentless check such as icmpping or net.tcp.service, performed by the server or proxy.",
-		Create:      itemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Read:        itemGetReadWrapper(itemSimpleReadFunc),
-		Update:      itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix simple check item: an agentless check such as icmpping or net.tcp.service, performed by the server or proxy.",
+		Create:        itemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Read:          itemGetReadWrapper(itemSimpleReadFunc),
+		Update:        itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -22,11 +23,12 @@ func resourceItemSimple() *schema.Resource {
 }
 func resourceProtoItemSimple() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix simple check item prototype. One simple check is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Read:        protoItemGetReadWrapper(itemSimpleReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix simple check item prototype. One simple check is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Read:          protoItemGetReadWrapper(itemSimpleReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

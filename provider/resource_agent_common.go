@@ -17,11 +17,12 @@ var schemaAgent = map[string]*schema.Schema{
 // resourceItemAgent terraform resource for agent items
 func resourceItemAgent() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix agent item: a value collected by polling the Zabbix agent running on the host.",
-		Create:      itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:        itemGetReadWrapper(itemAgentReadFunc),
-		Update:      itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Delete:      resourceItemDelete,
+		Description:   "Manages a Zabbix agent item: a value collected by polling the Zabbix agent running on the host.",
+		Create:        itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Read:          itemGetReadWrapper(itemAgentReadFunc),
+		Update:        itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Delete:        resourceItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -31,11 +32,12 @@ func resourceItemAgent() *schema.Resource {
 }
 func resourceProtoItemAgent() *schema.Resource {
 	return &schema.Resource{
-		Description: "Manages a Zabbix agent item prototype. One agent item is created from it for each entity its discovery rule finds.",
-		Create:      protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:        protoItemGetReadWrapper(itemAgentReadFunc),
-		Update:      protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Delete:      resourceProtoItemDelete,
+		Description:   "Manages a Zabbix agent item prototype. One agent item is created from it for each entity its discovery rule finds.",
+		Create:        protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Read:          protoItemGetReadWrapper(itemAgentReadFunc),
+		Update:        protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Delete:        resourceProtoItemDelete,
+		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

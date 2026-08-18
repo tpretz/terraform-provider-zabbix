@@ -255,6 +255,27 @@ collections in 20, plus 21 and 22), and is written up in
   Nothing to change in your configuration. The first plan after upgrading is
   empty where it used to propose a rewrite.
 
+27. **An item with `valuetype = "character"` and no `trends` could not be created
+  on Zabbix 7.0 and later.** Trends are hourly minimum/average/maximum, so Zabbix
+  keeps them for the two numeric value types only — but the provider's derivation
+  treated *text and log* as the non-numeric pair and left `character` out, so a
+  character item had `trends = "365d"` derived for it and the create was rejected
+  with `Invalid parameter "/1/trends": value must be 0` naming an attribute the
+  user had never written. Zabbix 6.0 accepted the same call and stored 0 anyway,
+  so the configuration worked where it was written and broke on upgrade. The
+  derivation now covers `character`, `log` and `text` alike.
+28. **An item that stopped being `text` kept `trends = "0"` for ever.** The
+  companion to 25, and the direction nothing had forced: with `trends` absent from
+  the configuration the stored value survives a `valuetype` change, and moving
+  *out* of a non-numeric type left the item with trends disabled and collecting
+  none — silently, because state agreed with the server. `trends` is now derived
+  in `CustomizeDiff`, so the value a silent configuration is going to get is in
+  the **plan** rather than only in the applied result, on create and on a
+  `valuetype` change that crosses the numeric boundary. A change *within* a class
+  (unsigned to float, text to character) still leaves the stored value alone: a
+  trends period set in the frontend and imported into a configuration that does
+  not manage it belongs to the user.
+
 ### Removed
 
 - **`zabbix_application` and `data.zabbix_application`**, and the `applications`
