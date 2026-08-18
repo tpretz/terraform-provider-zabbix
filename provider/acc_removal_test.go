@@ -85,6 +85,13 @@ import (
 //	zabbix_template.name             TestAccRemoveTemplateName
 //	item trends                      TestAccRemoveItemTrends
 //	trigger correlation_mode         TestAccRemoveTriggerCorrelationMode
+//
+// Removal is only half of what an Optional+Computed attribute needs deciding
+// about: the other half is where its value comes from when the configuration
+// never mentioned it, and whether the user can see that value before apply.
+// That is acc_derived_test.go, and the two files' verdicts have to agree --
+// the reason deletion cannot be made to revert is usually the same reason the
+// derivation has to be narrow.
 
 // ---------------------------------------------------------------------------
 // the registries
@@ -192,14 +199,19 @@ var removalExempt = map[string]string{
 // servers rather than by reading the schema -- the notes on each test say
 // what was probed.
 var removalComputed = map[string]string{
-	"zabbix_host.name": "intended: Zabbix derives the visible name from `host` and returns the derived value, " +
-		"so an absent `name` is the server's own default rather than the provider's. Write `name = <the host value>` " +
-		"to go back to it; TestAccRemoveHostName",
+	"zabbix_host.name": "intended: the visible name is derived from `host` -- by the server when it is absent, and " +
+		"by visibleNameCustomizeDiff at plan time so the derived value is visible before apply -- but a name the " +
+		"user has set is theirs, and deleting the line cannot be made to revert without overwriting the display " +
+		"name of every host imported into a configuration that does not manage it. The derivation follows a `host` " +
+		"rename only while the stored name still *is* the old `host`. Write `name = <the host value>` to go back to " +
+		"it; TestAccRemoveHostName, TestAccDerivedHostName",
 	"zabbix_host.interface.port": "intended: the default is per interface type (HOST_IFACE_PORTS), so no single " +
 		"Default: can express it. Removal does revert, because hostInterfacePort normalises an absent port to the " +
-		"type default before hashing; TestAccRemoveHostInterfacePort",
-	"zabbix_template.name": "intended: the same server-derived visible name as zabbix_host.name, and the same way " +
-		"back; TestAccRemoveTemplateName",
+		"type default before hashing. The one of the five that is *not* derived at plan time, and mechanically so: " +
+		"ResourceDiff.SetNew is top-level only and refuses a non-Computed key, so a set element's attribute cannot " +
+		"be planned at all -- see the note at the end of acc_derived_test.go; TestAccRemoveHostInterfacePort",
+	"zabbix_template.name": "intended: the same derived visible name as zabbix_host.name, the same plan-time " +
+		"derivation and the same way back; TestAccRemoveTemplateName, TestAccDerivedTemplateName",
 	"zabbix_item_agent.trends": "intended: the default is derived from `valuetype` -- \"0\" for text and log, " +
 		"\"365d\" otherwise -- which no single Default: can express, and from 7.0 Zabbix rejects any other value " +
 		"for text and log outright. The one of the five where a CustomizeDiff is safe, because the derivation " +
@@ -1052,6 +1064,13 @@ resource "zabbix_lld_agent" "testremifidlld" {
 // to be a genuine derived default -- see removalComputed above for the
 // verdicts. Nothing was converted.
 //
+// What did change is *when* the default is worked out. Four of the five are
+// now derived in CustomizeDiff, so the value a silent configuration is going
+// to get appears in the plan instead of "(known after apply)"; the firing
+// conditions are deliberately narrow, and acc_derived_test.go holds them.
+// None of that touches the verdicts here: deleting the line still changes
+// nothing, on all five.
+//
 // Each test asserts the verdict it claims: that removing the line really does
 // plan empty, and that the documented way back really does work. The empty
 // plan is asserted with a PlanOnly step rather than inferred from a passing
@@ -1070,10 +1089,16 @@ resource "zabbix_lld_agent" "testremifidlld" {
 // write the technical name out, and the last step is there to show that it
 // works and lands the same value the server would have derived.
 //
-// Left as Optional+Computed deliberately. Making deletion revert would mean
-// re-deriving the name in CustomizeDiff, and that would clobber the visible
-// name of every host imported into a configuration that does not manage it --
-// a far worse failure than the one it fixes.
+// Left as Optional+Computed deliberately. Making *deletion* revert would mean
+// re-deriving the name on every plan, and that would clobber the visible name
+// of every host imported into a configuration that does not manage it -- a far
+// worse failure than the one it fixes.
+//
+// What the provider does derive, and where the line is drawn, is
+// TestAccDerivedHostName: the name is derived at plan time on create, and a
+// `host` rename is followed only while the stored name still is the old
+// `host`. This test is the other side of that line -- a name the user set,
+// which nothing may touch.
 func TestAccRemoveHostName(t *testing.T) {
 	const addr = "zabbix_host.testremnamehost"
 
@@ -1130,8 +1155,9 @@ resource "zabbix_host" "testremnamehost" {
 
 // TestAccRemoveTemplateName -- zabbix_template.name is the same attribute on
 // the same underlying object; a Zabbix template is a host with status 3, and
-// template.update derives the visible name from `host` in exactly the same
+// template.create derives the visible name from `host` in exactly the same
 // way. Covered separately because the two resources declare it separately.
+// The derivation is TestAccDerivedTemplateName; this is its stickiness.
 //
 // zabbix_template.host is Required here and so is not R2 at all. It is
 // Optional+Computed only on the *data source*, where it is one of the two

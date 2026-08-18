@@ -101,6 +101,21 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   mechanically turned into a template group id, so anything that is not already a
   template group fails naming the offending ids and the fix. See
   [MIGRATING.md §5](./MIGRATING.md#5-zabbix_templategroups-now-means-template-groups).
+- **Defaults that are derived rather than fixed are now worked out at plan time.**
+  Four attributes have a default the schema cannot state as a constant, because it
+  follows another attribute: `zabbix_host.name` and `zabbix_template.name` (from
+  `host`), item `trends` (from `valuetype`) and trigger `correlation_mode` (from
+  `correlation_tag`). They used to be left to the apply, so the plan said
+  `(known after apply)` for a value written three lines further up. Each is now
+  derived in `CustomizeDiff`, and each firing condition is deliberately narrow so
+  that nothing the user owns is overwritten: the two names on create and on a
+  `host` rename *while the stored name is still the old `host`*, `trends` on
+  create and on a `valuetype` change across the numeric boundary,
+  `correlation_mode` on create only. Deleting any of the four lines still changes
+  nothing, exactly as before. The one visible behaviour change: renaming `host` on
+  a resource whose `name` was derived now moves the display name along with it,
+  where it used to be left pointing at the old technical name for ever. A display
+  name you set yourself is never touched.
 - `zabbix_host` macros are a set rather than a list.
 - The Zabbix API client is no longer the `github.com/tpretz/go-zabbix-api` git
   submodule; it lives in this repository as `internal/zabbix`, with its history

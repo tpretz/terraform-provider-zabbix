@@ -257,7 +257,7 @@ var hostSchemaBase = map[string]*schema.Schema{
 		Required:    false,
 		Optional:    true,
 		Computed:    true,
-		Description: "Zabbix host displayname. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it",
+		Description: "Host display name, as shown in the frontend. Defaults to `host`: leave it out and the provider derives it, in the plan rather than after apply, and keeps it in step with a later `host` rename for as long as the two are equal. Set it to anything else and it is yours -- a rename then leaves it alone, and so does deleting the line, which changes nothing at all because Terraform keeps the last value it read. Write `host`'s value out to go back to the derived name",
 	},
 	"host": &schema.Schema{
 		Type:         schema.TypeString,
@@ -492,7 +492,9 @@ func resourceHost() *schema.Resource {
 		Read:        resourceHostRead,
 		Update:      resourceHostUpdate,
 		Delete:      resourceHostDelete,
-		Schema:      hostResourceSchema(hostSchemaBase),
+		// `name` derived from `host` at plan time; see visibleNameCustomizeDiff
+		CustomizeDiff: visibleNameCustomizeDiff,
+		Schema:        hostResourceSchema(hostSchemaBase),
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

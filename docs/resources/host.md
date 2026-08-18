@@ -109,7 +109,7 @@ output "agent_interface_id" {
 - `ipmi_privilege` (String) IPMI privilege level, one of: admin, callback, oem, operator, user
 - `ipmi_username` (String) Username used for IPMI checks against this host
 - `macro` (Block Set) User macros defined on this object (unordered). Zabbix replaces the whole macro collection on update, so omitting a macro removes it. (see [below for nested schema](#nestedblock--macro))
-- `name` (String) Zabbix host displayname. Zabbix derives it from `host` when it is not given, and returns the derived value, so leaving it out is the server's own default. Deleting the line once a name has been set therefore changes nothing -- Terraform keeps the last value it read; write `host`'s value out to go back to it
+- `name` (String) Host display name, as shown in the frontend. Defaults to `host`: leave it out and the provider derives it, in the plan rather than after apply, and keeps it in step with a later `host` rename for as long as the two are equal. Set it to anything else and it is yours -- a rename then leaves it alone, and so does deleting the line, which changes nothing at all because Terraform keeps the last value it read. Write `host`'s value out to go back to the derived name
 - `proxyid` (String) ID of the proxy monitoring this host, or "0" for the Zabbix server itself. Sets `monitored_by` accordingly on Zabbix 7.0 and later
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `templates` (Set of String) Template IDs linked to this host. Removing a template here unlinks and clears it

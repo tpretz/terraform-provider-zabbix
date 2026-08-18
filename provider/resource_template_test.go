@@ -54,7 +54,12 @@ resource "zabbix_template" "testtmpl" {
 `),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "host", "test-template-renamed"),
-					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "test-template"),
+					// the display name was derived from `host` and the
+					// configuration still says nothing about it, so the rename
+					// takes it along -- see visibleNameCustomizeDiff and
+					// TestAccDerivedTemplateName. It used to be left behind
+					// pointing at a technical name the template no longer had.
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "name", "test-template-renamed"),
 				),
 			},
 			{ // friendly name, description and a macro

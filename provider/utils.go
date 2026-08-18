@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -176,6 +177,64 @@ func mergeSchemas(schemas ...map[string]*schema.Schema) map[string]*schema.Schem
 	}
 
 	return n
+}
+
+// visibleNameCustomizeDiff derives the display name of a host or a template
+// from its technical name, in the *plan*, for a configuration that does not
+// give one.
+//
+// Zabbix derives `name` from `host` when `name` is empty -- verified on
+// 6.0.48, 7.0.29, 7.4.13 and 8.0-trunk for host.create and template.create
+// alike -- which is why the attribute is Optional+Computed rather than
+// defaulted (R2, acc_removal_test.go). Left at that, the plan for a new host
+// says `name = (known after apply)` for a value that is sitting in the same
+// resource block, one line up.
+//
+// Deriving it costs nothing on create, where there is no prior value to
+// destroy. On an existing object it is a different question, and the answer
+// has to be no in the general case: a host imported into a configuration that
+// does not manage `name` has a display name somebody chose, and re-deriving
+// would silently overwrite it. That is the concrete harm R2 records against
+// re-deriving this attribute, and it is why the derivation is not simply run
+// on every plan.
+//
+// There is one case in between, and it is the one a user hits: renaming
+// `host`. Before this, the display name stayed at whatever the technical name
+// had been at create -- for ever, and invisibly, since the configuration says
+// nothing about it. So the rename is followed **only when the stored display
+// name is exactly the old technical name**, which is to say only when it holds
+// nothing the derivation did not put there. A display name that differs by so
+// much as a capital letter is left alone.
+//
+// Zabbix's own rule is looser than that: host.update with `host` and no `name`
+// overwrites the display name with the new technical name whatever it was,
+// which the provider has never triggered because it always sends `name` from
+// state. template.update does not do it at all. Mirroring either would mean
+// clobbering an imported display name on one resource and not the other, so
+// the provider applies the same conservative rule to both.
+func visibleNameCustomizeDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
+	// the configuration owns the value
+	if _, given := configuredString(d, "name"); given {
+		return nil
+	}
+	// an unresolved reference: nothing to derive from yet. The create path
+	// still sends "" and lets the server derive, as it always did
+	if !d.NewValueKnown("host") {
+		return nil
+	}
+	oldHost, newHost := d.GetChange("host")
+
+	if d.Id() == "" {
+		return d.SetNew("name", newHost)
+	}
+	if oldHost.(string) == newHost.(string) {
+		return nil
+	}
+	// a display name of its own is not ours to move
+	if d.Get("name").(string) != oldHost.(string) {
+		return nil
+	}
+	return d.SetNew("name", newHost)
 }
 
 // rawConfigured is what configuredString needs, and both *schema.ResourceData
