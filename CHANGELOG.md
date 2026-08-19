@@ -65,6 +65,17 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   than erroring.
 - `zabbix_trigger`: `event_name`, `opdata`, `manual_close`, `correlation_mode`,
   `correlation_tag` and `dependencies`.
+- `units` and `description` on every item and item prototype resource — all ten
+  `zabbix_item_*` and all ten `zabbix_proto_item_*`. Without `units` every item
+  rendered as a bare number in the frontend, which was the provider's most
+  conspicuous omission. `uptime` and `unixtime` get Zabbix's special formatting
+  and a leading `!` suppresses the automatic multiplier; both are documented on
+  the attribute. Note that from Zabbix 7.0 a non-empty `units` is rejected on a
+  character, log or text item — 6.0 accepts one on any value type.
+- `description` on every `zabbix_lld_*` discovery rule. `units` deliberately does
+  **not** appear there: `discoveryrule.get` returns the property on every version,
+  but `discoveryrule.create`/`.update` reject it from 7.0 with
+  `unexpected parameter "units"`.
 - Generated Registry documentation. `docs/` is now produced by `terraform-plugin-docs`
   from the schema, `templates/` and `examples/` — 42 pages, each with a runnable
   example and an import script, grouped into Registry subcategories. Every one of

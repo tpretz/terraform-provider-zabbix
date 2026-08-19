@@ -66,11 +66,12 @@ resource "zabbix_lld_agent" "testlld" {
 		Steps: []resource.TestStep{
 			{
 				Config: lld("10050", `
-	key      = "test.update.lld.a"
-	name     = "Update LLD A"
-	delay    = "1h"
-	lifetime = "30d"
-	evaltype = "andor"
+	key         = "test.update.lld.a"
+	name        = "Update LLD A"
+	delay       = "1h"
+	lifetime    = "30d"
+	evaltype    = "andor"
+	description = "Update LLD description A"
 	condition {
 		macro    = "{#AAA}"
 		value    = "one"
@@ -92,16 +93,18 @@ resource "zabbix_lld_agent" "testlld" {
 					"lifetime":        "30d",
 					"type":            "0", // passive agent
 					"filter.evaltype": "0",
+					"description":     "Update LLD description A",
 				}),
 			},
 			{ // every one of them changed, in life
 				Config: lld("10051", `
-	key      = "test.update.lld.b"
-	name     = "Update LLD B"
-	delay    = "2h"
-	lifetime = "45d"
-	evaltype = "custom"
-	formula  = "A and B"
+	key         = "test.update.lld.b"
+	name        = "Update LLD B"
+	delay       = "2h"
+	lifetime    = "45d"
+	evaltype    = "custom"
+	formula     = "A and B"
+	description = "Update LLD description B"
 	condition {
 		id       = "A"
 		macro    = "{#BBB}"
@@ -134,6 +137,7 @@ resource "zabbix_lld_agent" "testlld" {
 						"type":                "0", // passive agent: see the note above
 						"filter.evaltype":     "3",
 						"filter.eval_formula": "A and B",
+						"description":         "Update LLD description B",
 					}),
 					testAccCheckServerElem(addr, serverLLD, "filter.conditions", "macro", "{#BBB}", map[string]string{
 						"value":     "two",

@@ -35,8 +35,16 @@ resource "zabbix_template" "testtmpl" {
 `
 
 // TestAccUpdateItemAgent owns itemCommonSchema (key, name, valuetype,
-// history, trends), itemDelaySchema (delay), itemPreprocessorSchema, the
-// shared tagSetSchema, and the agent fragment's own "active".
+// history, trends, units, description), itemDelaySchema (delay),
+// itemPreprocessorSchema, the shared tagSetSchema, and the agent fragment's
+// own "active".
+//
+// Both value types the fixture moves between are numeric on purpose. From
+// Zabbix 7.0 a non-empty "units" is rejected outright on a character, log or
+// text item -- `Invalid parameter "/1/units": value must be empty.`, measured
+// on 7.0.29, 7.4.13 and 8.0-trunk, where 6.0.48 accepts and stores one on any
+// value type -- so units and a non-numeric valuetype cannot be exercised in
+// the same step.
 func TestAccUpdateItemAgent(t *testing.T) {
 	const addr = "zabbix_item_agent.testitem"
 
@@ -56,13 +64,15 @@ resource "zabbix_item_agent" "testitem" {
 		Steps: []resource.TestStep{
 			{
 				Config: item(`
-	key       = "test.update.item.a"
-	name      = "Update Item A"
-	valuetype = "unsigned"
-	history   = "90d"
-	trends    = "365d"
-	delay     = "1m"
-	active    = false
+	key         = "test.update.item.a"
+	name        = "Update Item A"
+	valuetype   = "unsigned"
+	history     = "90d"
+	trends      = "365d"
+	delay       = "1m"
+	active      = false
+	units       = "B"
+	description = "Update Item description A"
 	tag {
 		key   = "tag-a"
 		value = "value-a"
@@ -73,24 +83,28 @@ resource "zabbix_item_agent" "testitem" {
 	}
 `),
 				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
-					"key_":       "test.update.item.a",
-					"name":       "Update Item A",
-					"value_type": "3",
-					"history":    "90d",
-					"trends":     "365d",
-					"delay":      "1m",
-					"type":       "0", // passive agent
+					"key_":        "test.update.item.a",
+					"name":        "Update Item A",
+					"value_type":  "3",
+					"history":     "90d",
+					"trends":      "365d",
+					"delay":       "1m",
+					"type":        "0", // passive agent
+					"units":       "B",
+					"description": "Update Item description A",
 				}),
 			},
 			{ // every one of them changed, in life
 				Config: item(`
-	key       = "test.update.item.b"
-	name      = "Update Item B"
-	valuetype = "float"
-	history   = "30d"
-	trends    = "180d"
-	delay     = "45s"
-	active    = true
+	key         = "test.update.item.b"
+	name        = "Update Item B"
+	valuetype   = "float"
+	history     = "30d"
+	trends      = "180d"
+	delay       = "45s"
+	active      = true
+	units       = "bps"
+	description = "Update Item description B"
 	tag {
 		key   = "tag-b"
 		value = "value-b"
@@ -105,13 +119,15 @@ resource "zabbix_item_agent" "testitem" {
 				ConfigPlanChecks: expectUpdate(addr),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckServerAttrs(addr, serverItem, map[string]string{
-						"key_":       "test.update.item.b",
-						"name":       "Update Item B",
-						"value_type": "0",
-						"history":    "30d",
-						"trends":     "180d",
-						"delay":      "45s",
-						"type":       "7", // active agent
+						"key_":        "test.update.item.b",
+						"name":        "Update Item B",
+						"value_type":  "0",
+						"history":     "30d",
+						"trends":      "180d",
+						"delay":       "45s",
+						"type":        "7", // active agent
+						"units":       "bps",
+						"description": "Update Item description B",
 					}),
 					testAccCheckServerElem(addr, serverItem, "tags", "tag", "tag-b", map[string]string{
 						"value": "value-b",

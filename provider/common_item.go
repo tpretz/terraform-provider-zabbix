@@ -288,9 +288,34 @@ var itemCommonSchema = map[string]*schema.Schema{
 		Description:  "Type of the value Zabbix stores, one of: " + strings.Join(ITEM_VALUE_TYPES_ARR, ", ") + ". Changing it after data has been collected leaves the old history behind",
 		Required:     true,
 	},
+	"units": &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		// deliberately unvalidated. Zabbix accepts any string here -- it is a
+		// label, not an enum -- and StringIsNotWhiteSpace would forbid the
+		// empty string, which is both the default and the only way back.
+		Description: itemUnitsDescription,
+	},
+	"description": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Free-text description of the item, shown in the frontend. Has no effect on collection",
+	},
 	"preprocessor": itemPreprocessorSchema,
 	"tag":          tagSetSchema,
 }
+
+// itemUnitsDescription is worded once rather than inline because it is the
+// densest attribute description in the item schema and every clause in it was
+// measured. See the note on zabbix.Item.Units for the probe results.
+const itemUnitsDescription = "Unit symbol shown after the value in the frontend, e.g. `B`, `Bps`, " +
+	"`%`, `s`. Zabbix scales the number to the unit automatically -- 1048576 with `B` is displayed " +
+	"as \"1 MB\" -- and two units are special-cased rather than scaled: `unixtime` renders the value " +
+	"as a date and time, and `uptime` as a duration. A leading `!` suppresses the scaling and shows " +
+	"the raw number with the unit after it, so `!B` displays 1048576 as \"1048576 B\". " +
+	"Only numeric items may carry a unit: from Zabbix 7.0 the server rejects a non-empty `units` on " +
+	"a character, log or text item with `value must be empty`, while 6.0 accepts and stores one on " +
+	"any value type. Leave it empty for no unit"
 
 // Delay schema
 var itemDelaySchema = map[string]*schema.Schema{
@@ -566,6 +591,8 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	d.Set("history", item.History)
 	d.Set("trends", item.Trends)
 	d.Set("valuetype", ITEM_VALUE_TYPES_REV[item.ValueType])
+	d.Set("units", item.Units)
+	d.Set("description", item.Description)
 	d.Set("preprocessor", flattenItemPreprocessors(item))
 	if prototype && item.DiscoveryRule != nil {
 		d.Set("ruleid", item.DiscoveryRule.ItemID)
@@ -690,6 +717,12 @@ func buildItemObject(d *schema.ResourceData, api *zabbix.API, prototype bool) (*
 		History:   d.Get("history").(string),
 		Trends:    d.Get("trends").(string),
 		ValueType: ITEM_VALUE_TYPES[d.Get("valuetype").(string)],
+		// d.Get, not d.GetOk: "" is a value here rather than the absence of
+		// one, and GetOk reports it as unset, which is how the host inventory
+		// fields ended up unclearable. Neither field carries omitempty, so ""
+		// reaches the server as "" and the clear lands.
+		Units:       d.Get("units").(string),
+		Description: d.Get("description").(string),
 	}
 	preprocessors, err := itemGeneratePreprocessors(d, api)
 	if err != nil {

@@ -157,6 +157,17 @@ var lldCommonSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringIsNotWhiteSpace,
 		Required:     true,
 	},
+	// There is no "units" and no "valuemapid" here, and the omission is
+	// deliberate rather than an oversight. discoveryrule.get returns both on
+	// every supported version -- they are columns of the shared `items` table
+	// -- but discoveryrule.create and .update reject them from 7.0 with
+	// `unexpected parameter`. A discovery rule discovers entities; it has no
+	// value to put a unit on. See the note on zabbix.LLDRule.
+	"description": &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Free-text description of the discovery rule, shown in the frontend. Has no effect on discovery",
+	},
 	"preprocessor": lldPreprocessorSchema,
 	"condition":    lldFilterConditionSchema,
 	"macro":        lldMacroPathSchema,
@@ -440,6 +451,7 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	d.Set("name", lld.Name)
 	d.Set("delay", lld.Delay)
 	d.Set("lifetime", lld.LifeTime)
+	d.Set("description", lld.Description)
 	d.Set("evaltype", LLD_EVALTYPE_REV[lld.Filter.EvalType])
 	d.Set("formula", lld.Filter.Formula)
 	d.Set("condition", flattenlldConditions(lld))
@@ -494,6 +506,10 @@ func buildLLDObject(d *schema.ResourceData, api *zabbix.API) (*zabbix.LLDRule, e
 		Name:     d.Get("name").(string),
 		Delay:    d.Get("delay").(string),
 		LifeTime: d.Get("lifetime").(string),
+		// d.Get rather than d.GetOk, and Description carries no omitempty, so
+		// that clearing the attribute sends "" instead of omitting the key --
+		// which discoveryrule.update would read as "leave as is".
+		Description: d.Get("description").(string),
 	}
 
 	preprocessors, err := lldGeneratePreprocessors(d, api)

@@ -54,8 +54,16 @@ type LLDRule struct {
 	//	ValueType    ValueType `json:"value_type,string"`
 	//	DataType     DataType  `json:"data_type,string"`
 	//	Delta        DeltaType `json:"delta,string"`
-	AuthType     string `json:"authtype,omitempty"`
-	DelayFlex    string `json:"delay_flex,omitempty"`
+	AuthType  string `json:"authtype,omitempty"`
+	DelayFlex string `json:"delay_flex,omitempty"`
+	// Description is the one of the three item display properties a discovery
+	// rule shares with an item. There is deliberately no Units and no
+	// ValuemapID here: discoveryrule.get returns both -- they are columns of
+	// the shared `items` table and come back on every version -- but
+	// discoveryrule.create and .update reject them from 7.0 with `unexpected
+	// parameter "units"` / `"valuemapid"`, and 6.0 merely tolerates them.
+	// Reading a property the write path must never send is exactly the .get
+	// silent-wrong-answer trap, so the field is absent rather than ignored.
 	Description  string `json:"description"`
 	Error        string `json:"error,omitempty"`
 	IpmiSensor   string `json:"ipmi_sensor,omitempty"`

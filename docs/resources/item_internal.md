@@ -38,11 +38,13 @@ resource "zabbix_item_internal" "unsupported_items" {
 ### Optional
 
 - `delay` (String) How often the item is polled, as a time suffix string, e.g. "1m". Supports Zabbix's flexible and scheduling interval syntax
+- `description` (String) Free-text description of the item, shown in the frontend. Has no effect on collection
 - `history` (String) How long Zabbix keeps raw history for this item, as a time suffix string, e.g. "90d". "0" disables history
 - `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well
 - `preprocessor` (Block List) Preprocessing steps, applied in the order written. This is a list rather than a set precisely because that order is semantic: Zabbix feeds each step the output of the previous one. (see [below for nested schema](#nestedblock--preprocessor))
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `trends` (String) How long Zabbix keeps hourly trends for this item, as a time suffix string, e.g. "365d". "0" disables trends. Derived from `valuetype` when it is not given: "0" for the non-numeric types (character, log, text), which is the only value Zabbix accepts for those, and "365d" for float and unsigned. The derived value is shown in the plan rather than only after apply, and changing `valuetype` across that boundary re-derives it; changing it within a class (unsigned to float, text to log) leaves the stored value alone. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the derived default is to write it out
+- `units` (String) Unit symbol shown after the value in the frontend, e.g. `B`, `Bps`, `%`, `s`. Zabbix scales the number to the unit automatically -- 1048576 with `B` is displayed as "1 MB" -- and two units are special-cased rather than scaled: `unixtime` renders the value as a date and time, and `uptime` as a duration. A leading `!` suppresses the scaling and shows the raw number with the unit after it, so `!B` displays 1048576 as "1048576 B". Only numeric items may carry a unit: from Zabbix 7.0 the server rejects a non-empty `units` on a character, log or text item with `value must be empty`, while 6.0 accepts and stores one on any value type. Leave it empty for no unit
 
 ### Read-Only
 

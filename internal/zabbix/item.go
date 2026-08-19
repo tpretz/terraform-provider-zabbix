@@ -213,14 +213,31 @@ type Item struct {
 	// data_type and delta were dropped from the item object in Zabbix 3.4 and
 	// are rejected outright by item.create/update from 7.0 on, so they are not
 	// serialised at all.
-	DataType     DataType  `json:"-"`
-	Delta        DeltaType `json:"-"`
-	Description  string    `json:"description"`
-	Error        string    `json:"error,omitempty"`
-	History      string    `json:"history,omitempty"`
-	Trends       string    `json:"trends,omitempty"`
-	TrapperHosts string    `json:"trapper_hosts,omitempty"`
-	Params       string    `json:"params,omitempty"`
+	DataType    DataType  `json:"-"`
+	Delta       DeltaType `json:"-"`
+	Description string    `json:"description"`
+	// Units carries no omitempty, so that a unit the user has set can be
+	// cleared again -- an absent property means "leave as is" to item.update.
+	// That is safe on every backend type and every value type despite 7.0+
+	// rejecting properties that do not apply, because the value being sent is
+	// "" and "" is what those servers demand. Probed with item.create and
+	// item.update on 6.0.48, 7.0.29, 7.4.13 and 8.0-trunk against all five
+	// value types and every item type the provider exposes:
+	//
+	//	units=""    accepted everywhere, on create and update
+	//	units="B"   6.0 accepts it on any value type;
+	//	            7.0+ answer `Invalid parameter "/1/units": value must be
+	//	            empty.` for character, log and text
+	//
+	// itemprototype.create/update behave identically. discoveryrule has no
+	// units property at all from 7.0 -- see the note on LLDRule -- which is
+	// why this field is on Item only.
+	Units        string `json:"units"`
+	Error        string `json:"error,omitempty"`
+	History      string `json:"history,omitempty"`
+	Trends       string `json:"trends,omitempty"`
+	TrapperHosts string `json:"trapper_hosts,omitempty"`
+	Params       string `json:"params,omitempty"`
 
 	// read-only, only populated by selectHosts; omitempty keeps it off the
 	// write path, where 7.0+ rejects it as an unexpected property

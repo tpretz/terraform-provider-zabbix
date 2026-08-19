@@ -50,6 +50,7 @@ resource "zabbix_proto_item_http" "endpoint_health" {
 
 - `auth_type` (String) HTTP auth type, one of: basic, kerberos, none, ntlm
 - `delay` (String) How often the item is polled, as a time suffix string, e.g. "1m". Supports Zabbix's flexible and scheduling interval syntax
+- `description` (String) Free-text description of the item, shown in the frontend. Has no effect on collection
 - `follow_redirects` (Boolean) follow http redirects
 - `headers` (Map of String) HTTP headers to send with the request, as a name-to-value map. Zabbix replaces the whole header collection on update, so omitting a header removes it.
 - `history` (String) How long Zabbix keeps raw history for this item, as a time suffix string, e.g. "90d". "0" disables history
@@ -65,6 +66,7 @@ resource "zabbix_proto_item_http" "endpoint_health" {
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `timeout` (String) http request timeout
 - `trends` (String) How long Zabbix keeps hourly trends for this item, as a time suffix string, e.g. "365d". "0" disables trends. Derived from `valuetype` when it is not given: "0" for the non-numeric types (character, log, text), which is the only value Zabbix accepts for those, and "365d" for float and unsigned. The derived value is shown in the plan rather than only after apply, and changing `valuetype` across that boundary re-derives it; changing it within a class (unsigned to float, text to log) leaves the stored value alone. Deleting the line otherwise changes nothing: Terraform keeps the last value it read, and the way back to the derived default is to write it out
+- `units` (String) Unit symbol shown after the value in the frontend, e.g. `B`, `Bps`, `%`, `s`. Zabbix scales the number to the unit automatically -- 1048576 with `B` is displayed as "1 MB" -- and two units are special-cased rather than scaled: `unixtime` renders the value as a date and time, and `uptime` as a duration. A leading `!` suppresses the scaling and shows the raw number with the unit after it, so `!B` displays 1048576 as "1048576 B". Only numeric items may carry a unit: from Zabbix 7.0 the server rejects a non-empty `units` on a character, log or text item with `value must be empty`, while 6.0 accepts and stores one on any value type. Leave it empty for no unit
 - `username` (String) Authentication Username
 - `verify_host` (Boolean) https verify host
 - `verify_peer` (Boolean) https verify peer

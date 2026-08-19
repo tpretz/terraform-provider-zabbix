@@ -51,6 +51,7 @@ resource "zabbix_lld_simple" "vmware_vms" {
 
 - `condition` (Block Set) LLD filter conditions (unordered). With evaltype "custom", set `id` on each condition and reference those ids from `formula`. (see [below for nested schema](#nestedblock--condition))
 - `delay` (String) How often the discovery rule runs, as a time suffix string, e.g. "1h"
+- `description` (String) Free-text description of the discovery rule, shown in the frontend. Has no effect on discovery
 - `evaltype` (String) How the filter conditions combine, one of: and, andor, custom, or. "custom" evaluates the expression in `formula`
 - `formula` (String) Custom filter expression over the condition ids, e.g. "A or (B and C)". Only used when evaltype is "custom". Zabbix renumbers the ids into the order they first appear in the formula, so write it in that order or it will be read back rewritten.
 - `interfaceid` (String) ID of the host interface to poll through. "0", the default, means no interface: it is the only value a template accepts, and it is what item types Zabbix does not poll through an interface use. An item on a host that has interfaces must name one of them -- Zabbix rejects "0" there, and rejects the property being omitted as well

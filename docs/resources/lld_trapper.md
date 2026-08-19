@@ -52,6 +52,7 @@ resource "zabbix_lld_trapper" "pushed" {
 
 - `condition` (Block Set) LLD filter conditions (unordered). With evaltype "custom", set `id` on each condition and reference those ids from `formula`. (see [below for nested schema](#nestedblock--condition))
 - `delay` (String) How often the discovery rule runs. Must be "0" for this rule type: Zabbix does not poll it, so there is no interval to set
+- `description` (String) Free-text description of the discovery rule, shown in the frontend. Has no effect on discovery
 - `evaltype` (String) How the filter conditions combine, one of: and, andor, custom, or. "custom" evaluates the expression in `formula`
 - `formula` (String) Custom filter expression over the condition ids, e.g. "A or (B and C)". Only used when evaltype is "custom". Zabbix renumbers the ids into the order they first appear in the formula, so write it in that order or it will be read back rewritten.
 - `lifetime` (String) How long a discovered entity is kept after it stops being discovered, e.g. "30d". "0" deletes it immediately

@@ -10,6 +10,10 @@ resource "zabbix_item_snmp" "uptime" {
   valuetype = "unsigned"
   delay     = "1m"
 
+  # "uptime" is one of the two units Zabbix formats specially rather than
+  # scaling: the seconds below are rendered as "5d 04:31:22".
+  units = "uptime"
+
   # DISPLAY_STRING timeticks arrive in hundredths of a second
   preprocessor {
     type   = "multiplier"
