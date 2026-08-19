@@ -373,6 +373,142 @@ resource "zabbix_trigger" "testclear" {
 	})
 }
 
+// TestAccClearableItemUnitsAndDescription -- S9d for the two item display
+// properties added in this release. Neither has a `Default:`, so the empty
+// value is reachable by deleting the line as well as by writing `""`, and
+// both journeys are here: set, write the empty string, and then delete the
+// line entirely.
+//
+// The server re-read is the assertion that matters. Both attributes are
+// written back into state by the provider's own read, so a clear that never
+// left the provider still looks applied there -- which is exactly the shape
+// of the six omitempty defects this release fixed. zabbix.Item.Units and
+// .Description therefore carry no omitempty and the write path uses d.Get
+// rather than d.GetOk.
+//
+// The fixture is `unsigned` because from Zabbix 7.0 a non-empty `units` is
+// rejected outright on a character, log or text item; see the note on
+// TestAccUpdateItemAgent.
+func TestAccClearableItemUnitsAndDescription(t *testing.T) {
+	const addr = "zabbix_item_trapper.testclear"
+
+	item := func(body string) string {
+		return hcl(t, clearableTemplateHCL+`
+resource "zabbix_item_trapper" "testclear" {
+	hostid    = zabbix_template.testcleartmpl.id
+	key       = "test.clear.item.units"
+	name      = "Test Clearable Item Units"
+	valuetype = "unsigned"
+`+body+`
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{ // both set, so the clear has something to undo
+				Config: item(`
+	units       = "B"
+	description = "a description to clear"
+`),
+				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
+					"units":       "B",
+					"description": "a description to clear",
+				}),
+			},
+			{ // written out as empty strings
+				Config: item(`
+	units       = ""
+	description = ""
+`),
+				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
+					"units":       "",
+					"description": "",
+				}),
+			},
+			{ // set again, so that deleting the line is a real change rather
+				// than a no-op over the step above
+				Config: item(`
+	units       = "!B"
+	description = "set once more"
+`),
+				Check: testAccCheckServerAttrs(addr, serverItem, map[string]string{
+					"units":       "!B",
+					"description": "set once more",
+				}),
+			},
+			{ // and the lines deleted, which is the edit a user actually makes
+				Config: item(``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "units", ""),
+					resource.TestCheckResourceAttr(addr, "description", ""),
+					testAccCheckServerAttrs(addr, serverItem, map[string]string{
+						"units":       "",
+						"description": "",
+					}),
+				),
+			},
+		},
+	})
+}
+
+// TestAccClearableLLDDescription -- the discovery-rule half. common_lld.go is
+// a separate write path from common_item.go rather than a reuse of it, so
+// nothing above says anything about a discovery rule; the LLD HTTP fields
+// needed their own fix for precisely this reason.
+func TestAccClearableLLDDescription(t *testing.T) {
+	const addr = "zabbix_lld_trapper.testclear"
+
+	rule := func(body string) string {
+		return hcl(t, clearableTemplateHCL+`
+resource "zabbix_lld_trapper" "testclear" {
+	hostid = zabbix_template.testcleartmpl.id
+	key    = "test.clear.lld.description"
+	name   = "Test Clearable LLD Description"
+`+body+`
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: rule(`	description = "a rule description to clear"`),
+				Check: testAccCheckServerAttrs(addr, serverLLD, map[string]string{
+					"description": "a rule description to clear",
+				}),
+			},
+			{
+				Config: rule(`	description = ""`),
+				Check: testAccCheckServerAttrs(addr, serverLLD, map[string]string{
+					"description": "",
+				}),
+			},
+			{
+				Config: rule(`	description = "set once more"`),
+				Check: testAccCheckServerAttrs(addr, serverLLD, map[string]string{
+					"description": "set once more",
+				}),
+			},
+			{ // the line deleted
+				Config: rule(``),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "description", ""),
+					testAccCheckServerAttrs(addr, serverLLD, map[string]string{
+						"description": "",
+					}),
+				),
+			},
+		},
+	})
+}
+
 // TestAccClearableTagValue -- Tag.Value is `omitempty` and a tag value is
 // optional, so this looks like the same bug. It is not: tags are a collection
 // Zabbix replaces wholesale, so the tag object is rebuilt from scratch and an

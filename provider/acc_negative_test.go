@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
 // E2 -- negative paths (PLAN.md Phase 8).
@@ -525,6 +526,66 @@ resource "zabbix_proxy" "testproxy" {
 }
 `,
 				Check: resource.TestCheckResourceAttr("zabbix_proxy.testproxy", "operating_mode", "active"),
+			},
+		},
+	})
+}
+
+// TestAccNegativeItemUnitsValueType covers the one restriction `units` carries,
+// which is neither a schema validator nor provider logic but the server's --
+// and which is the reason the attribute has no ValidateFunc at all. Zabbix
+// accepts any string as a unit symbol; what it will not accept is a unit on an
+// item whose value is not numeric.
+//
+// The refusal arrived in 7.0 and the matrix disagrees, so this is a gated step
+// rather than a universal one. Probed with item.create and item.update on all
+// five value types:
+//
+//	6.0.48        accepted on every value type, and stored: an item with
+//	              value_type 4 and units "B" reads "B" back, so the
+//	              configuration converges and there is nothing to reject
+//	7.0.29        Invalid parameter "/1/units": value must be empty.
+//	7.4.13        same
+//	8.0-trunk     same
+//
+// itemprototype.create/update behave identically, and the restriction covers
+// character, log *and* text -- which is a different set from the one `trends`
+// is restricted by only in that trends also forbids character. It is not the
+// same rule as valuemapid's either: valuemapid is refused on log and text but
+// permitted on character.
+//
+// Left to the server rather than pre-empted in the provider, because 6.0's
+// acceptance is not a lie -- it stores the value and reads it back, so no diff
+// is stranded -- and the server's own message names the attribute the user
+// wrote.
+func TestAccNegativeItemUnitsValueType(t *testing.T) {
+	item := func(valuetype, units string) string {
+		return hcl(t, negTemplateHCL+`
+resource "zabbix_item_trapper" "testitem" {
+	hostid    = zabbix_template.testtmpl.id
+	key       = "negative.item.units"
+	name      = "Negative Item Units"
+	valuetype = "`+valuetype+`"
+	units     = "`+units+`"
+}
+`)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config:      item("text", "B"),
+				SkipFunc:    skipBelow(t, zabbix.V70),
+				ExpectError: regexp.MustCompile(`"/1/units": value must be empty`),
+			},
+			{ // and the same unit on a numeric item is fine on every version,
+				// so the refusal is about the value type and not about `units`
+				// having been wired up wrongly
+				Config: item("unsigned", "B"),
+				Check:  resource.TestCheckResourceAttr("zabbix_item_trapper.testitem", "units", "B"),
 			},
 		},
 	})
