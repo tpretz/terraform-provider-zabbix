@@ -382,11 +382,31 @@ All five R2 attributes were judged **intended** — `zabbix_host.name` and
 (per-type default, and the one that *does* revert, because `hostInterfaceHash`
 normalises an absent port before hashing), item `trends` (derived from `valuetype`) and
 trigger `correlation_mode` (a `Default:` would break configurations predating it). None
-was converted. Making `name` revert would need a `CustomizeDiff` re-derivation, which
-would clobber the visible name of every host imported into a configuration that does
-not manage it — worse than the trap it removes.
+was converted, and deleting any of the five lines still changes nothing.
 
-The tests are `provider/acc_removal_test.go` and `provider/acc_removal_host_test.go`.
+**Where the value comes from is a second question, and four of the five now answer it
+in the plan.** A derived default left to the apply shows as `(known after apply)` for a
+value written three lines up. Deriving it in `CustomizeDiff` fixes that — but a
+derivation that ignores what is stored overwrites the display name of every host
+imported into a configuration that does not manage `name`, which is the harm R2
+recorded. So the derivation is never "recompute on every plan"; the firing condition is
+the design:
+
+| Attribute | Derived when | Why nothing is clobbered |
+|---|---|---|
+| `zabbix_host.name`, `zabbix_template.name` | create; a `host` rename **while the stored name is still the old `host`** | the only value overwritten is one the derivation put there |
+| item `trends` | create; a `valuetype` change across the numeric/non-numeric boundary | derived from another *config* attribute, not from server state |
+| trigger `correlation_mode` | create only | no prior state to overwrite |
+| `interface.port` | **never** | `ResourceDiff.SetNew` is top-level only *and* refuses a non-Computed key, so a set element's attribute cannot be planned without making the whole `interface` set Computed — which would make a host's last interface unremovable (C1/C6) |
+
+Two things fell out of writing that. An item with `valuetype = "character"` could not be
+created at all from 7.0 with `trends` absent: trends are numeric-only and the derivation
+had `character` on the wrong side of the line. And an item that stopped being `text` kept
+`trends = "0"` for ever, collecting no trends, because the configuration was silent and
+`Optional + Computed` means keep — the server does not re-derive either.
+
+The tests are `provider/acc_removal_test.go`, `provider/acc_removal_host_test.go` and
+`provider/acc_derived_test.go`.
 
 ### `C1`–`C7`: a collection attribute is not tested until it is tested plural
 
