@@ -503,9 +503,9 @@ supported versions green.
 
 ## v2.0.0 — the breaking release  ⬅ **EXIT CRITERIA MET**
 
-Phases 0–3 are complete and the matrix is green on 6.0.48, 7.0.29, 7.4.13 and
-8.0-trunk with 61 acceptance tests. The only Phase 0 item still open is the deferred
-Go 1.25 / SDK 2.40.1 toolchain bump, which is not release-blocking.
+Every phase is complete. The matrix is green on 6.0.48, 7.0.29, 7.4.13 and 8.0-trunk
+with 185 tests, 153 of them acceptance, and 28 defects are recorded in the changelog.
+The Go 1.25 / SDK 2.40.1 toolchain bump that was deferred here has since landed.
 
 Cut from the `v2` branch.
 Everything breaking lands in this one release:

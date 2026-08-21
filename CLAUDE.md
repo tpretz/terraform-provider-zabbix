@@ -263,7 +263,7 @@ a `CheckDestroy`; there is one `ImportStateVerifyIgnore` suite-wide (proxy PSK, 
 `proxy.get` never returns). Drift, negative paths, `ForceNew`, provider configuration and
 scalar boundaries are covered — see PLAN.md § Phase 8.
 
-**Do not treat that as licence to add a resource without tests.** Of the 24 defects fixed in
+**Do not treat that as licence to add a resource without tests.** Of the 28 defects fixed in
 v2, most were found by a test written where coverage was absent, and every one had been
 invisible for years. `S1`–`S9` and `C1`–`C7` below are the bar.
 
