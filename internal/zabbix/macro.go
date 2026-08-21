@@ -54,7 +54,7 @@ func (api *API) MacrosCreate(macros Macros) error {
 	result := response.Result.(map[string]interface{})
 	macroids := result["hostmacroids"].([]interface{})
 	for i, id := range macroids {
-		macros[i].HostID = id.(string)
+		macros[i].MacroID = id.(string)
 	}
 	return nil
 }

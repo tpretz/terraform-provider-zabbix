@@ -562,3 +562,70 @@ resource "zabbix_host" "testclear" {
 		},
 	})
 }
+
+// TestAccMacroEmptyValue pins that a user macro may hold the empty string.
+// Zabbix accepts and stores one — verified on 7.4 — and placeholder macros left
+// empty are common in shipped templates. A StringIsNotWhiteSpace validator on
+// `value` made it unwritable, which also made any host or template carrying
+// such a macro impossible to import: flattenMacros put "" into state and no
+// configuration could match it. CLAUDE.md § S9 records the general trap.
+func TestAccMacroEmptyValue(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAllDestroyed,
+		Steps: []resource.TestStep{
+			{
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testtmpl" {
+	host   = "test-template"
+	groups = [zabbix_templategroup.testtmplgrp.id]
+
+	macro {
+		name  = "{$EMPTY}"
+		value = ""
+	}
+	macro {
+		name  = "{$SET}"
+		value = "v"
+	}
+}
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("zabbix_template.testtmpl", "macro.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs("zabbix_template.testtmpl", "macro.*",
+						map[string]string{"name": "{$EMPTY}", "value": ""}),
+				),
+			},
+			{ // and it is stable, not a perpetual diff
+				Config: hcl(t, `
+resource "zabbix_templategroup" "testtmplgrp" {
+	name = "test-template-group"
+}
+resource "zabbix_template" "testtmpl" {
+	host   = "test-template"
+	groups = [zabbix_templategroup.testtmplgrp.id]
+
+	macro {
+		name  = "{$EMPTY}"
+		value = ""
+	}
+	macro {
+		name  = "{$SET}"
+		value = "v"
+	}
+}
+`),
+				PlanOnly: true,
+			},
+			{
+				ResourceName:      "zabbix_template.testtmpl",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

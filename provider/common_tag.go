@@ -12,8 +12,13 @@ import (
 // elements whose codes match -- an attribute left out of the hash can never be
 // seen to change, and the edit is silently discarded. See CLAUDE.md.
 func tagHash(i interface{}) int {
-	m := i.(map[string]interface{})
-	return schema.HashString(m["key"].(string) + "V" + m["value"].(string))
+	// hashElementExcept, not a hand-rolled key+"V"+value: concatenation
+	// collides, so {key:"aV", value:"b"} and {key:"a", value:"Vb"} hashed
+	// alike. diffSet compares hash codes only, so an edit between two such
+	// tags was silently discarded — the exact failure CLAUDE.md § "A set's
+	// hash must cover every user-settable attribute" describes. There is no
+	// server-assigned id on a tag, so nothing is excluded.
+	return hashElementExcept(i)
 }
 
 var tagSetSchema = &schema.Schema{

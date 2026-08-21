@@ -39,10 +39,17 @@ var macroSetSchema = &schema.Schema{
 				Description:  "Macro name, in Zabbix's `{$NAME}` form",
 			},
 			"value": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotWhiteSpace,
-				Description:  "Macro value",
+				Type:     schema.TypeString,
+				Required: true,
+				// No StringIsNotWhiteSpace. Zabbix accepts and stores a macro
+				// with an empty value — verified on 7.4 — and placeholder macros
+				// left empty are common in shipped templates. The validator made
+				// `value = ""` unwritable, which also made any host or template
+				// carrying such a macro impossible to import: flattenMacros put
+				// "" into state and no configuration could match it.
+				// See CLAUDE.md § S9, "a ValidateFunc can make a legal value
+				// unreachable".
+				Description: "Macro value",
 			},
 		},
 	},
