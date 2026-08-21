@@ -45,6 +45,23 @@ func TestRedactBodyHidesSecrets(t *testing.T) {
 	}
 }
 
+// TestRedactCoversTerraformSpellings pins the gap an end-to-end check found:
+// the provider logs some maps keyed by Terraform schema names rather than
+// Zabbix wire names, and a passphrase escaped through the difference.
+func TestRedactCoversTerraformSpellings(t *testing.T) {
+	body := []byte(`{"snmp3_authpassphrase":"AUTHPW","snmp3_privpassphrase":"PRIVPW","snmp_community":"COMM","ip":"127.0.0.1"}`)
+
+	got := redactBody(body)
+	for _, secret := range []string{"AUTHPW", "PRIVPW", "COMM"} {
+		if strings.Contains(got, secret) {
+			t.Errorf("%q survived redaction: %s", secret, got)
+		}
+	}
+	if !strings.Contains(got, "127.0.0.1") {
+		t.Errorf("non-secret field was lost: %s", got)
+	}
+}
+
 // TestRedactBodyFailsClosed pins the property that matters most: an input the
 // redactor cannot parse must not be logged verbatim. The one case where
 // parsing fails is the one case where nobody has checked what the bytes hold.

@@ -32,11 +32,17 @@ var sensitiveKeys = map[string]bool{
 	"tls_psk_identity": true,
 	// host IPMI
 	"ipmi_password": true,
-	// SNMPv3, on the host interface details object
+	// SNMPv3, on the host interface details object. Both spellings are needed:
+	// the first pair are Zabbix's wire names, the second pair are the item-level
+	// property names, and the third are the Terraform schema's own names — the
+	// provider logs maps keyed either way, and an end-to-end check found a
+	// passphrase escaping through the Terraform-named one.
 	"authpassphrase":        true,
 	"privpassphrase":        true,
 	"snmpv3_authpassphrase": true,
 	"snmpv3_privpassphrase": true,
+	"snmp3_authpassphrase":  true,
+	"snmp3_privpassphrase":  true,
 	"snmp_community":        true,
 	// ssh/telnet item credentials, for when those backends land
 	"privatekey": true,
