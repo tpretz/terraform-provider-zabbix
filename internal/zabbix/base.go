@@ -227,7 +227,11 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	if err != nil {
 		return
 	}
-	api.printf("Request (POST): %s", b)
+	// redacted, not raw: this log is emitted at [DEBUG], TF_LOG_PATH writes it
+	// to disk, and the documentation tells users to paste it into bug reports.
+	// The request carries the provider password, the session token and every
+	// PSK, IPMI password and SNMPv3 passphrase the configuration sets.
+	api.printf("Request (POST): %s", redactBody(b))
 
 	req, err := http.NewRequest("POST", api.url, bytes.NewReader(b))
 	if err != nil {
@@ -265,7 +269,9 @@ func (api *API) callBytes(method string, params interface{}) (b []byte, err erro
 	defer res.Body.Close()
 
 	b, err = ioutil.ReadAll(res.Body)
-	api.printf("Response (%d): %s", res.StatusCode, b)
+	// user.login answers with the session token as its bare "result", so the
+	// method has to be passed in — a key name cannot express that one.
+	api.printf("Response (%d): %s", res.StatusCode, redactResponseBody(method, b))
 	return
 }
 
