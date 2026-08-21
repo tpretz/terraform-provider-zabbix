@@ -448,44 +448,49 @@ var preprocessorTypeDescription = "Preprocessing step type, one of: " +
 // Function signature for context manipulation
 type ItemHandler func(*schema.ResourceData, interface{}, *zabbix.Item)
 
+// The wrappers all take the set of Zabbix item types the resource represents,
+// and it is a required argument rather than an option: a resource wired up
+// without one does not compile. See item_backend.go for why the check exists
+// and what it costs to leave it out.
+
 // return a terraform CreateFunc
-func itemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
+func itemGetCreateWrapper(c ItemHandler, r ItemHandler, t itemTypeSet) schema.CreateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemCreate(d, m, c, r, false)
+		return resourceItemCreate(d, m, c, r, false, t)
 	}
 }
-func protoItemGetCreateWrapper(c ItemHandler, r ItemHandler) schema.CreateFunc {
+func protoItemGetCreateWrapper(c ItemHandler, r ItemHandler, t itemTypeSet) schema.CreateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemCreate(d, m, c, r, true)
+		return resourceItemCreate(d, m, c, r, true, t)
 	}
 }
 
 // return a terraform UpdateFunc
-func itemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
+func itemGetUpdateWrapper(c ItemHandler, r ItemHandler, t itemTypeSet) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemUpdate(d, m, c, r, false)
+		return resourceItemUpdate(d, m, c, r, false, t)
 	}
 }
-func protoItemGetUpdateWrapper(c ItemHandler, r ItemHandler) schema.UpdateFunc {
+func protoItemGetUpdateWrapper(c ItemHandler, r ItemHandler, t itemTypeSet) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemUpdate(d, m, c, r, true)
+		return resourceItemUpdate(d, m, c, r, true, t)
 	}
 }
 
 // return a terraform ReadFunc
-func itemGetReadWrapper(r ItemHandler) schema.ReadFunc {
+func itemGetReadWrapper(r ItemHandler, t itemTypeSet) schema.ReadFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemRead(d, m, r, false)
+		return resourceItemRead(d, m, r, false, t)
 	}
 }
-func protoItemGetReadWrapper(r ItemHandler) schema.ReadFunc {
+func protoItemGetReadWrapper(r ItemHandler, t itemTypeSet) schema.ReadFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceItemRead(d, m, r, true)
+		return resourceItemRead(d, m, r, true, t)
 	}
 }
 
 // Create Item Resource Handler
-func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
+func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	item, err := buildItemObject(d, api, prototype)
@@ -514,11 +519,11 @@ func resourceItemCreate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 
 	d.SetId(items[0].ItemID)
 
-	return resourceItemRead(d, m, r, prototype)
+	return resourceItemRead(d, m, r, prototype, t)
 }
 
 // Update Item Resource Handler
-func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool) error {
+func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r ItemHandler, prototype bool, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	item, err := buildItemObject(d, api, prototype)
@@ -544,11 +549,11 @@ func resourceItemUpdate(d *schema.ResourceData, m interface{}, c ItemHandler, r 
 		return err
 	}
 
-	return resourceItemRead(d, m, r, prototype)
+	return resourceItemRead(d, m, r, prototype, t)
 }
 
 // Read Item Resource Handler
-func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prototype bool) error {
+func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prototype bool, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of item with id %s", d.Id())
@@ -583,6 +588,18 @@ func resourceItemRead(d *schema.ResourceData, m interface{}, r ItemHandler, prot
 	item := items[0]
 
 	log.Debug("Got item: %+v", item)
+
+	// before anything is written to state: the backend type decides which
+	// resource this object belongs to, and reading it into the wrong one is
+	// how an item gets its type rewritten and stops collecting. See
+	// item_backend.go.
+	family := familyItem
+	if prototype {
+		family = familyProtoItem
+	}
+	if err := checkItemBackendType(item.ItemID, item.Type, t, family); err != nil {
+		return err
+	}
 
 	d.SetId(item.ItemID)
 	d.Set("hostid", item.HostID)

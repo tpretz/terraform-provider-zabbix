@@ -5,13 +5,17 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesTrapper is the Zabbix item type the trapper resources represent;
+// a read rejects anything else. See item_backend.go.
+var itemTypesTrapper = itemTypeSet{zabbix.ZabbixTrapper}
+
 // terraform resource handler for item type
 func resourceItemTrapper() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix trapper item: a value pushed to the server by zabbix_sender or the API rather than polled.",
-		Create:        itemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Read:          itemGetReadWrapper(itemTrapperReadFunc),
-		Update:        itemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Create:        itemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc, itemTypesTrapper),
+		Read:          itemGetReadWrapper(itemTrapperReadFunc, itemTypesTrapper),
+		Update:        itemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc, itemTypesTrapper),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -24,9 +28,9 @@ func resourceItemTrapper() *schema.Resource {
 func resourceProtoItemTrapper() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix trapper item prototype. One trapper item is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
-		Read:          protoItemGetReadWrapper(itemTrapperReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc),
+		Create:        protoItemGetCreateWrapper(itemTrapperModFunc, itemTrapperReadFunc, itemTypesTrapper),
+		Read:          protoItemGetReadWrapper(itemTrapperReadFunc, itemTypesTrapper),
+		Update:        protoItemGetUpdateWrapper(itemTrapperModFunc, itemTrapperReadFunc, itemTypesTrapper),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -42,9 +46,9 @@ func resourceLLDTrapper() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldZeroDelaySchema)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule fed by pushed data rather than polling. Zabbix requires `delay` to be \"0\" for this rule type.",
-		Create:      lldGetCreateWrapper(lldTrapperModFunc, lldTrapperReadFunc),
-		Read:        lldGetReadWrapper(lldTrapperReadFunc),
-		Update:      lldGetUpdateWrapper(lldTrapperModFunc, lldTrapperReadFunc),
+		Create:      lldGetCreateWrapper(lldTrapperModFunc, lldTrapperReadFunc, itemTypesTrapper),
+		Read:        lldGetReadWrapper(lldTrapperReadFunc, itemTypesTrapper),
+		Update:      lldGetUpdateWrapper(lldTrapperModFunc, lldTrapperReadFunc, itemTypesTrapper),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,

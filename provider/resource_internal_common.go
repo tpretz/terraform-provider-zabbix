@@ -5,13 +5,17 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesInternal is the Zabbix item type the internal-item resources
+// represent; a read rejects anything else. See item_backend.go.
+var itemTypesInternal = itemTypeSet{zabbix.ZabbixInternal}
+
 // terraform resource handler for item type
 func resourceItemInternal() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix internal item: a value about Zabbix itself -- queue length, cache usage, process busy time -- rather than about the monitored host.",
-		Create:        itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:          itemGetReadWrapper(itemInternalReadFunc),
-		Update:        itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Create:        itemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc, itemTypesInternal),
+		Read:          itemGetReadWrapper(itemInternalReadFunc, itemTypesInternal),
+		Update:        itemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc, itemTypesInternal),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -24,9 +28,9 @@ func resourceItemInternal() *schema.Resource {
 func resourceProtoItemInternal() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix internal item prototype. One internal item is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc),
-		Read:          protoItemGetReadWrapper(itemInternalReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc),
+		Create:        protoItemGetCreateWrapper(itemInternalModFunc, itemInternalReadFunc, itemTypesInternal),
+		Read:          protoItemGetReadWrapper(itemInternalReadFunc, itemTypesInternal),
+		Update:        protoItemGetUpdateWrapper(itemInternalModFunc, itemInternalReadFunc, itemTypesInternal),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -40,9 +44,9 @@ func resourceLLDInternal() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule backed by an internal item. Prototypes attached to it are instantiated for every entity it discovers.",
-		Create:      lldGetCreateWrapper(lldInternalModFunc, lldInternalReadFunc),
-		Read:        lldGetReadWrapper(lldInternalReadFunc),
-		Update:      lldGetUpdateWrapper(lldInternalModFunc, lldInternalReadFunc),
+		Create:      lldGetCreateWrapper(lldInternalModFunc, lldInternalReadFunc, itemTypesInternal),
+		Read:        lldGetReadWrapper(lldInternalReadFunc, itemTypesInternal),
+		Update:      lldGetUpdateWrapper(lldInternalModFunc, lldInternalReadFunc, itemTypesInternal),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,

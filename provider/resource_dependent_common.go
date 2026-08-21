@@ -6,6 +6,10 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesDependent is the Zabbix item type the dependent resources
+// represent; a read rejects anything else. See item_backend.go.
+var itemTypesDependent = itemTypeSet{zabbix.Dependent}
+
 var schemaDependent = map[string]*schema.Schema{
 	"master_itemid": &schema.Schema{
 		Type:         schema.TypeString,
@@ -19,9 +23,9 @@ var schemaDependent = map[string]*schema.Schema{
 func resourceItemDependent() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix dependent item: a value derived from a master item's raw value by preprocessing, so one collection feeds many items.",
-		Create:        itemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Read:          itemGetReadWrapper(itemDependentReadFunc),
-		Update:        itemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Create:        itemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc, itemTypesDependent),
+		Read:          itemGetReadWrapper(itemDependentReadFunc, itemTypesDependent),
+		Update:        itemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc, itemTypesDependent),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -33,9 +37,9 @@ func resourceItemDependent() *schema.Resource {
 func resourceProtoItemDependent() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix dependent item prototype. One dependent item is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc),
-		Read:          protoItemGetReadWrapper(itemDependentReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc),
+		Create:        protoItemGetCreateWrapper(itemDependentModFunc, itemDependentReadFunc, itemTypesDependent),
+		Read:          protoItemGetReadWrapper(itemDependentReadFunc, itemTypesDependent),
+		Update:        protoItemGetUpdateWrapper(itemDependentModFunc, itemDependentReadFunc, itemTypesDependent),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -48,9 +52,9 @@ func resourceLLDDependent() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldZeroDelaySchema, schemaDependent)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule driven by a master item rather than polled. Zabbix requires `delay` to be \"0\" for this rule type.",
-		Create:      lldGetCreateWrapper(lldDependentModFunc, lldDependentReadFunc),
-		Read:        lldGetReadWrapper(lldDependentReadFunc),
-		Update:      lldGetUpdateWrapper(lldDependentModFunc, lldDependentReadFunc),
+		Create:      lldGetCreateWrapper(lldDependentModFunc, lldDependentReadFunc, itemTypesDependent),
+		Read:        lldGetReadWrapper(lldDependentReadFunc, itemTypesDependent),
+		Update:      lldGetUpdateWrapper(lldDependentModFunc, lldDependentReadFunc, itemTypesDependent),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,

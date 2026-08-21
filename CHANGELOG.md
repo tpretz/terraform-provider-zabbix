@@ -303,6 +303,22 @@ collections in 20, plus 21 and 22), and is written up in
   (unsigned to float, text to character) still leaves the stored value alone: a
   trends period set in the frontend and imported into a configuration that does
   not manage it belongs to the user.
+29. **An item could be managed by the wrong resource, and the first edit stopped it
+  collecting data.** No `zabbix_item_*`, `zabbix_proto_item_*` or `zabbix_lld_*`
+  resource compared the object's backend type against the type it represents, so
+  `terraform import zabbix_item_agent.x <itemid-of-an-SNMP-item>` **succeeded**:
+  `snmp_oid` is simply not an attribute of the agent resource, nothing in state
+  recorded the type, and the next plan was empty. The item was then managed by the
+  wrong resource, and the first change to any unrelated attribute sent the agent
+  resource's own `type` along with it — Zabbix accepted the rewrite and the item
+  silently stopped collecting. The same hole made a type changed in the frontend
+  invisible: drift in the one property that decides what the object *is* was the
+  one property never compared. A read now refuses an object whose type the resource
+  does not represent, naming what it actually is and which resource takes it —
+  `item 12345 is a SNMP agent item, not a Zabbix agent or Zabbix agent (active)
+  item; import it as zabbix_item_snmp`. `zabbix_item_agent` and its two siblings
+  accept both the passive and active agent types, which is the `active` attribute's
+  whole job.
 
 ### Removed
 

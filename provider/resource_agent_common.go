@@ -5,6 +5,12 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesAgent is the pair of Zabbix item types the agent resources
+// represent. It is the only backend in the triad that covers more than one:
+// passive (0) and active (7) agent checks are one Terraform resource, told
+// apart by the `active` attribute, so both have to be accepted on read.
+var itemTypesAgent = itemTypeSet{zabbix.ZabbixAgent, zabbix.ZabbixAgentActive}
+
 var schemaAgent = map[string]*schema.Schema{
 	"active": &schema.Schema{
 		Type:        schema.TypeBool,
@@ -18,9 +24,9 @@ var schemaAgent = map[string]*schema.Schema{
 func resourceItemAgent() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix agent item: a value collected by polling the Zabbix agent running on the host.",
-		Create:        itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:          itemGetReadWrapper(itemAgentReadFunc),
-		Update:        itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Create:        itemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc, itemTypesAgent),
+		Read:          itemGetReadWrapper(itemAgentReadFunc, itemTypesAgent),
+		Update:        itemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc, itemTypesAgent),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -33,9 +39,9 @@ func resourceItemAgent() *schema.Resource {
 func resourceProtoItemAgent() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix agent item prototype. One agent item is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc),
-		Read:          protoItemGetReadWrapper(itemAgentReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc),
+		Create:        protoItemGetCreateWrapper(itemAgentModFunc, itemAgentReadFunc, itemTypesAgent),
+		Read:          protoItemGetReadWrapper(itemAgentReadFunc, itemTypesAgent),
+		Update:        protoItemGetUpdateWrapper(itemAgentModFunc, itemAgentReadFunc, itemTypesAgent),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -49,9 +55,9 @@ func resourceLLDAgent() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaAgent)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule backed by a Zabbix agent item. Item, trigger and graph prototypes attached to it are instantiated for every entity it discovers.",
-		Create:      lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc),
-		Read:        lldGetReadWrapper(lldAgentReadFunc),
-		Update:      lldGetUpdateWrapper(lldAgentModFunc, lldAgentReadFunc),
+		Create:      lldGetCreateWrapper(lldAgentModFunc, lldAgentReadFunc, itemTypesAgent),
+		Read:        lldGetReadWrapper(lldAgentReadFunc, itemTypesAgent),
+		Update:      lldGetUpdateWrapper(lldAgentModFunc, lldAgentReadFunc, itemTypesAgent),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,

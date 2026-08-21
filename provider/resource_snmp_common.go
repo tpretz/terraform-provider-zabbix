@@ -6,6 +6,11 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesSnmp is the Zabbix item type the SNMP resources represent; a read
+// rejects anything else, which is what stops an SNMP item being imported as
+// a zabbix_item_agent and silently rewritten. See item_backend.go.
+var itemTypesSnmp = itemTypeSet{zabbix.SNMPAgent}
+
 var schemaSnmp = map[string]*schema.Schema{
 	"snmp_oid": &schema.Schema{
 		Type:         schema.TypeString,
@@ -19,9 +24,9 @@ var schemaSnmp = map[string]*schema.Schema{
 func resourceItemSnmp() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix SNMP item: a value read from an SNMP OID over the host's SNMP interface.",
-		Create:        itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:          itemGetReadWrapper(itemSnmpReadFunc),
-		Update:        itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Create:        itemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc, itemTypesSnmp),
+		Read:          itemGetReadWrapper(itemSnmpReadFunc, itemTypesSnmp),
+		Update:        itemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc, itemTypesSnmp),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -33,9 +38,9 @@ func resourceItemSnmp() *schema.Resource {
 func resourceProtoItemSnmp() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix SNMP item prototype. One SNMP item is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
-		Read:          protoItemGetReadWrapper(itemSnmpReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc),
+		Create:        protoItemGetCreateWrapper(itemSnmpModFunc, itemSnmpReadFunc, itemTypesSnmp),
+		Read:          protoItemGetReadWrapper(itemSnmpReadFunc, itemTypesSnmp),
+		Update:        protoItemGetUpdateWrapper(itemSnmpModFunc, itemSnmpReadFunc, itemTypesSnmp),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -49,9 +54,9 @@ func resourceLLDSnmp() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, lldInterfaceSchema, schemaSnmp)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule backed by an SNMP item, typically walking a table such as ifTable. Prototypes attached to it are instantiated for every entity it discovers.",
-		Create:      lldGetCreateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
-		Read:        lldGetReadWrapper(lldSnmpReadFunc),
-		Update:      lldGetUpdateWrapper(lldSnmpModFunc, lldSnmpReadFunc),
+		Create:      lldGetCreateWrapper(lldSnmpModFunc, lldSnmpReadFunc, itemTypesSnmp),
+		Read:        lldGetReadWrapper(lldSnmpReadFunc, itemTypesSnmp),
+		Update:      lldGetUpdateWrapper(lldSnmpModFunc, lldSnmpReadFunc, itemTypesSnmp),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,

@@ -345,29 +345,33 @@ var lldFilterConditionSchema = &schema.Schema{
 // Function signature for context manipulation
 type LLDHandler func(*schema.ResourceData, interface{}, *zabbix.LLDRule)
 
+// The wrappers all take the set of Zabbix item types the discovery rule
+// represents, and it is a required argument rather than an option: a resource
+// wired up without one does not compile. See item_backend.go.
+
 // return a terraform CreateFunc
-func lldGetCreateWrapper(c LLDHandler, r LLDHandler) schema.CreateFunc {
+func lldGetCreateWrapper(c LLDHandler, r LLDHandler, t itemTypeSet) schema.CreateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceLLDCreate(d, m, c, r)
+		return resourceLLDCreate(d, m, c, r, t)
 	}
 }
 
 // return a terraform UpdateFunc
-func lldGetUpdateWrapper(c LLDHandler, r LLDHandler) schema.UpdateFunc {
+func lldGetUpdateWrapper(c LLDHandler, r LLDHandler, t itemTypeSet) schema.UpdateFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceLLDUpdate(d, m, c, r)
+		return resourceLLDUpdate(d, m, c, r, t)
 	}
 }
 
 // return a terraform ReadFunc
-func lldGetReadWrapper(r LLDHandler) schema.ReadFunc {
+func lldGetReadWrapper(r LLDHandler, t itemTypeSet) schema.ReadFunc {
 	return func(d *schema.ResourceData, m interface{}) error {
-		return resourceLLDRead(d, m, r)
+		return resourceLLDRead(d, m, r, t)
 	}
 }
 
 // Create lld Resource Handler
-func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler) error {
+func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	lld, err := buildLLDObject(d, api)
@@ -390,11 +394,11 @@ func resourceLLDCreate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 
 	d.SetId(llds[0].ItemID)
 
-	return resourceLLDRead(d, m, r)
+	return resourceLLDRead(d, m, r, t)
 }
 
 // Update lld Resource Handler
-func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler) error {
+func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LLDHandler, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	lld, err := buildLLDObject(d, api)
@@ -414,11 +418,11 @@ func resourceLLDUpdate(d *schema.ResourceData, m interface{}, c LLDHandler, r LL
 		return err
 	}
 
-	return resourceLLDRead(d, m, r)
+	return resourceLLDRead(d, m, r, t)
 }
 
 // Read lld Resource Handler
-func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error {
+func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler, t itemTypeSet) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of lld with id %s", d.Id())
@@ -444,6 +448,11 @@ func resourceLLDRead(d *schema.ResourceData, m interface{}, r LLDHandler) error 
 	lld := llds[0]
 
 	log.Debug("Got lld: %+v", lld)
+
+	// before anything is written to state -- see the note in resourceItemRead
+	if err := checkItemBackendType(lld.ItemID, lld.Type, t, familyLLD); err != nil {
+		return err
+	}
 
 	d.SetId(lld.ItemID)
 	d.Set("hostid", lld.HostID)

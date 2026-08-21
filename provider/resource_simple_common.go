@@ -5,13 +5,17 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// itemTypesSimple is the Zabbix item type the simple-check resources
+// represent; a read rejects anything else. See item_backend.go.
+var itemTypesSimple = itemTypeSet{zabbix.SimpleCheck}
+
 // terraform resource handler for item type
 func resourceItemSimple() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix simple check item: an agentless check such as icmpping or net.tcp.service, performed by the server or proxy.",
-		Create:        itemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Read:          itemGetReadWrapper(itemSimpleReadFunc),
-		Update:        itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Create:        itemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc, itemTypesSimple),
+		Read:          itemGetReadWrapper(itemSimpleReadFunc, itemTypesSimple),
+		Update:        itemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc, itemTypesSimple),
 		Delete:        resourceItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -24,9 +28,9 @@ func resourceItemSimple() *schema.Resource {
 func resourceProtoItemSimple() *schema.Resource {
 	return &schema.Resource{
 		Description:   "Manages a Zabbix simple check item prototype. One simple check is created from it for each entity its discovery rule finds.",
-		Create:        protoItemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
-		Read:          protoItemGetReadWrapper(itemSimpleReadFunc),
-		Update:        protoItemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc),
+		Create:        protoItemGetCreateWrapper(itemSimpleModFunc, itemSimpleReadFunc, itemTypesSimple),
+		Read:          protoItemGetReadWrapper(itemSimpleReadFunc, itemTypesSimple),
+		Update:        protoItemGetUpdateWrapper(itemSimpleModFunc, itemSimpleReadFunc, itemTypesSimple),
 		Delete:        resourceProtoItemDelete,
 		CustomizeDiff: itemTrendsCustomizeDiff,
 		Importer: &schema.ResourceImporter{
@@ -40,9 +44,9 @@ func resourceLLDSimple() *schema.Resource {
 	s := mergeSchemas(lldCommonSchema, lldDelaySchema, itemInterfaceSchema)
 	return &schema.Resource{
 		Description: "Manages a Zabbix low-level discovery rule backed by a simple check. Prototypes attached to it are instantiated for every entity it discovers.",
-		Create:      lldGetCreateWrapper(lldSimpleModFunc, lldSimpleReadFunc),
-		Read:        lldGetReadWrapper(lldSimpleReadFunc),
-		Update:      lldGetUpdateWrapper(lldSimpleModFunc, lldSimpleReadFunc),
+		Create:      lldGetCreateWrapper(lldSimpleModFunc, lldSimpleReadFunc, itemTypesSimple),
+		Read:        lldGetReadWrapper(lldSimpleReadFunc, itemTypesSimple),
+		Update:      lldGetUpdateWrapper(lldSimpleModFunc, lldSimpleReadFunc, itemTypesSimple),
 		Delete:      resourceLLDDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
