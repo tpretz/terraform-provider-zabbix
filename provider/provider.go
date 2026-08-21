@@ -23,6 +23,7 @@ func Provider() *schema.Provider {
 			"password": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
+				Sensitive:    true,
 				Description:  "Zabbix API password. Falls back to $ZABBIX_PASS or $ZABBIX_PASSWORD",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_PASS", "ZABBIX_PASSWORD"}, nil),
@@ -30,6 +31,7 @@ func Provider() *schema.Provider {
 			"token": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
+				Sensitive:    true,
 				Description:  "Zabbix API token (Zabbix 5.4 and later). Used instead of username and password: the provider sends it directly and skips the login call. Falls back to $ZABBIX_TOKEN",
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"ZABBIX_TOKEN"}, nil),

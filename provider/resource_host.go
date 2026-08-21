@@ -353,8 +353,13 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Default:      "{$SNMP_COMMUNITY}",
 				},
 				"snmp3_authpassphrase": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
+					Type:     schema.TypeString,
+					Optional: true,
+					// A credential. The default is a user-macro reference, which is
+					// the safe way to use it, but a literal is legal and would
+					// otherwise appear in every plan diff — and this value is read
+					// back from the server into state, unlike the PSKs.
+					Sensitive:   true,
 					Description: "SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
 					Default:     "{$SNMP3_AUTHPASSPHRASE}",
 				},
@@ -372,8 +377,13 @@ var hostSchemaBase = map[string]*schema.Schema{
 					Default:     "{$SNMP3_CONTEXTNAME}",
 				},
 				"snmp3_privpassphrase": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
+					Type:     schema.TypeString,
+					Optional: true,
+					// A credential. The default is a user-macro reference, which is
+					// the safe way to use it, but a literal is legal and would
+					// otherwise appear in every plan diff — and this value is read
+					// back from the server into state, unlike the PSKs.
+					Sensitive:   true,
 					Description: "SNMPv3 privacy passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
 					Default:     "{$SNMP3_PRIVPASSPHRASE}",
 				},
@@ -726,7 +736,7 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 			interfaces[i].InterfaceID = str
 		}
 
-		log.Debug("interface config abc: %+v", api.Config)
+		log.Debug("interface config: version %d", api.Config.Version)
 		if typeId == zabbix.SNMP {
 			details := zabbix.HostInterfaceDetail{}
 			details.Version = iface["snmp_version"].(string)
@@ -888,7 +898,7 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 		item.Inventory = nil
 	}
 
-	log.Trace("build host object: %#v", item)
+	log.Trace("build host object: %s", zabbix.RedactedJSON(item))
 
 	return &item, nil
 }
@@ -911,7 +921,7 @@ func resourceHostCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	log.Trace("created host: %+v", items[0])
+	log.Trace("created host: %s", zabbix.RedactedJSON(items[0]))
 
 	d.SetId(items[0].HostID)
 
@@ -995,7 +1005,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	}
 	host := hosts[0]
 
-	log.Debug("Got host: %+v", host)
+	log.Debug("Got host: %s", zabbix.RedactedJSON(host))
 
 	d.SetId(host.HostID)
 	d.Set("name", host.Name)
@@ -1090,7 +1100,7 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 
 		// need to handle detail
 		details := host.Interfaces[i].Details
-		log.Debug("got details: %+v", details)
+		log.Debug("got details: %s", zabbix.RedactedJSON(details))
 		if params["type"] == "snmp" && details != nil {
 			log.Debug("interface new logic")
 			params["snmp_version"] = details.Version
@@ -1109,7 +1119,7 @@ func flattenHostInterfaces(host zabbix.Host, d *schema.ResourceData, m interface
 			}
 		}
 
-		log.Debug("Got host interface: %+v", params)
+		log.Debug("Got host interface: %s", zabbix.RedactedJSON(params))
 		val[i] = params
 	}
 	return val

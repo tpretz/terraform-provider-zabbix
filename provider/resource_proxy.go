@@ -270,7 +270,7 @@ func resourceProxyCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	log.Trace("created proxy: %+v", items[0])
+	log.Trace("created proxy: %s", zabbix.RedactedJSON(items[0]))
 
 	d.SetId(items[0].ProxyID)
 
@@ -338,7 +338,7 @@ func proxyRead(d *schema.ResourceData, m interface{}, params zabbix.Params) erro
 	}
 	proxy := proxies[0]
 
-	log.Debug("Got proxy: %+v", proxy)
+	log.Debug("Got proxy: %s", zabbix.RedactedJSON(proxy))
 
 	d.SetId(proxy.ProxyID)
 	d.Set("name", proxy.Name)

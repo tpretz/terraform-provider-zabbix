@@ -107,3 +107,22 @@ func redactValue(v interface{}, inSensitive bool) interface{} {
 		return v
 	}
 }
+
+// RedactedJSON renders any value as JSON with sensitive properties hidden, for
+// callers outside this package that want to log a struct.
+//
+// The provider logs whole objects at [DEBUG] — `log.Trace("created host: %+v",
+// host)` and friends — and those structs carry TLSPSK, IPMIPassword and the
+// SNMPv3 passphrases as plain strings, so %+v prints them. Going through the
+// struct's own JSON tags means this shares one list of sensitive names with the
+// request logging rather than keeping a second one in step.
+//
+// Like redactBody it fails closed: a value that will not marshal returns a
+// placeholder, never the original.
+func RedactedJSON(v interface{}) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "<unloggable: value would not marshal>"
+	}
+	return redactBody(b)
+}
