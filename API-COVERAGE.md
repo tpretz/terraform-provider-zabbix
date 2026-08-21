@@ -1,7 +1,7 @@
 # Zabbix API coverage matrix
 
 Baseline: Zabbix 7.4 API reference (59 documented API objects).
-Provider state as of commit `88f2ff7` (phases 0-2 complete, phase 3 in progress).
+Provider state: all phases complete, v2.0.0 ready to cut.
 Verified against live 6.0.48 / 7.0.29 / 7.4.13 / 8.0-trunk servers.
 
 Target support floor is **Zabbix 6.0 LTS** (see [PLAN.md](./PLAN.md)) — anything marked
@@ -17,9 +17,9 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 | host | `zabbix_host` | `zabbix_host` | ✅ | 7.x fixed; 70 inventory fields, IPMI, TLS/PSK all covered |
 | hostgroup | `zabbix_hostgroup` | `zabbix_hostgroup` | ✅ | |
 | template | `zabbix_template` | `zabbix_template` | ✅ | 7.x fixed; template groups with state upgrader; `uuid`, `vendor_*` (6.4+), `readme`/`wizard_ready` (7.4+) |
-| item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types. **No `units`, `description` or `valuemapid`** — three fields on every Zabbix item, absent from all 20 item and prototype resources |
+| item | 10 of 17 types | ❌ | 🟡 | all tested; see §3 for missing backend types. `units` and `description` covered; `valuemapid` deferred until `zabbix_valuemap` exists — see below |
 | item prototype | 10 of 17 types | ❌ | 🟡 | all tested; see §3 |
-| LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3 |
+| LLD rule (`discoveryrule`) | 8 types | ❌ | 🟡 | see §3. `description` covered; `units`/`valuemapid` are **not applicable** — `discoveryrule.get` returns both (shared `items` table) but `.create` rejects them as unexpected parameters from 7.0 |
 | trigger | `zabbix_trigger` | ❌ | ✅ | field audit done: `event_name`, `opdata`, `manual_close`, correlation fields, dependencies |
 | trigger prototype | `zabbix_proto_trigger` | ❌ | ✅ | |
 | graph | `zabbix_graph` | ❌ | ✅ | |
@@ -106,33 +106,56 @@ Landed:
 - **`CheckDestroy`** on 17+ tests via a shared helper, verified to genuinely fail when a delete is broken
 - **Sweepers** for every object type with dependency ordering, plus `TestMain`
 
-**46 acceptance tests pass on every version.** The Phase 3 exit criterion is *almost*
-met: every registered resource and data source has an acceptance test, and all but one
-include an import step — **`zabbix_graph` has no `ImportState` step** (`zabbix_proto_graph`
-does). Tracked in Phase 7. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
+**185 tests, 153 of them acceptance, green on every version** at roughly 375–395s each.
+Every registered resource and data source has a test with an import step and a
+`CheckDestroy`. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
 `tls_psk_identity`/`tls_psk`, which `proxy.get` never returns on any version.
 
-Still open: the `terraform-plugin-testing` migration, and a `v0.17.0` state fixture for
-the template state upgrader.
+Beyond create/read/delete the suite also covers, each with a completeness guard that
+fails the build when a new attribute skips it:
 
-**One known failure on 8.0-trunk only** (non-blocking by policy): `TestAccResourceGraph`
-and `TestAccResourceProtoGraph`. `graph.get` returns `gitems` in a different order than
-6.0/7.x, and `item` is a `TypeList` whose order must match config. Sorting by `sortorder`
-is not the fix — it breaks 7.4, because config order need not match `sortorder`. Needs
-either a `TypeSet` migration or config-order matching on read. Must be resolved before
-8.0 becomes release-gating on GA.
+| | |
+|---|---|
+| `C1`–`C7` | every collection tested plural, reordered, edited, emptied and imported at full size |
+| `S9` | every resource applied from its `Required` set alone; every default probed against a live server; set-then-unset |
+| `U1`–`U4` | every settable attribute changed in life and asserted against a server re-read, asserting it was an *update* and not a silent replace |
+| `R1`–`R2` | every `Default:` reverts when the line is deleted; every `Optional + Computed` attribute has a recorded decision |
+| `E1`–`E6` | drift, negative paths, `ForceNew`, provider configuration, data-source not-found, scalar boundaries |
+
+The 8.0 graph-ordering failure recorded here previously is **fixed** — `graph.item`,
+`host.interface` and the LLD filter `condition` are now `TypeSet`, with state upgraders.
+The `terraform-plugin-testing` migration is done (v1.13.3 → v1.16.0).
 
 Preprocessing step types are `PREPROC_LOOKUP` (items) and `LLD_PREPROC_LOOKUP`
 (discovery rules). The two lists genuinely differ: `matches_regex` (14) is accepted on an
 item by 6.0 but rejected on a discovery rule until 7.0, so they carry separate gate maps
 rather than sharing one.
 
-Bugs found by writing these tests — five so far, all invisible behind missing coverage:
+A sample of the defects these tests found — the full list of 28 is in CHANGELOG.md, and every one had been invisible for years behind missing coverage:
 - **Every `zabbix_proto_item_*` was impossible to update on Zabbix 7.2+.** `itemprototype.update` was sent the create-only `ruleid`; 7.2 made unknown parameters a hard error, so any change to any item prototype failed. Item prototypes were effectively write-once on both current Zabbix releases.
 - **`post_type` defaulted to `"body"` across the whole http triad** — not a valid value (raw/json/xml); copied from `retrieve_mode` where `"body"` is valid. It mapped to `""`, Zabbix applied `raw`, and the item read back as `raw` against a config saying `body`: a permanent, unappliable diff on every http item.
 - **The `zabbix_template` data source panicked the provider on every read** — shared `templateRead` calls `d.Set("templates", ...)`, absent from the data source schema, and SDKv2 `Set` panics on an undeclared key.
 - `zabbix_lld_dependent` **could never be created** — `delay` defaulted to 3600, Zabbix requires 0
 - `templates_clear` could reference an already-deleted template; 6.0 tolerated it, 7.0+ rejects it
+
+### Deferred: item `valuemapid`
+
+Value maps are strictly **host- or template-local**, and linking a template neither
+shares nor copies them — after linking, `valuemap.get hostids=[host]` returns nothing,
+and an item may only reference a map defined on its own host or template
+(`cannot be a value map ID from another host or template` on 7.0+). So the same logical
+map on ten hosts has ten distinct ids.
+
+With no `zabbix_valuemap` resource **and no data source**, nothing in the provider can
+produce one. The attribute would be the only id in the schema with no way to derive it,
+usable only by pasting a number out of the frontend. It is a few lines to add once
+Phase 4 lands; shipping it now buys a documented-but-unusable attribute.
+
+Two things to remember when it is picked up: the clear is `valuemapid = "0"`, not `""`
+(7.0+ answers `a number is expected`), and a **nonexistent** id leaks a raw database
+error on 7.0+ — `SQL statement execution has failed "INSERT INTO items (...)"` — rather
+than a validation message. 6.0 reports it cleanly. That is an upstream defect, and a
+further argument against hand-copied ids.
 
 ## 5. Version-compatibility breakages — all resolved
 

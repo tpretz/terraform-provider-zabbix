@@ -567,7 +567,7 @@ script/browser.
 | action | `zabbix_action` | | 6.0 `update_operations` rename | XL — five action types, nested op/condition/filter blocks |
 | mediatype | `zabbix_mediatype` | | 7.2 dropped `content_type`/`exec_params`; 7.4 OAuth fields | L |
 | maintenance | `zabbix_maintenance` | | 7.2 removed `groupids`/`hostids` | L — timeperiod blocks |
-| valuemap | `zabbix_valuemap` | | host/template scoped since 5.4 | M |
+| valuemap | `zabbix_valuemap` **+ data source** | | host/template scoped since 5.4. Item `valuemapid` is blocked on this: maps are host-local, so nothing can produce an id today. The data source matters as much as the resource — a map created by a template import cannot otherwise be referenced at all | M |
 | hostprototype | `zabbix_host_prototype` | | | L — the significant remaining LLD gap |
 | httptest | `zabbix_web_scenario` | | | L — step blocks |
 | token | `zabbix_token` | | 5.4+ | S |
