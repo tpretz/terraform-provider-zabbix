@@ -44,10 +44,14 @@ func Provider() *schema.Provider {
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 			"tls_insecure": &schema.Schema{
-				Type:        schema.TypeBool,
-				Description: "Skip TLS certificate verification when talking to the API. For testing only",
-				Optional:    true,
-				Default:     false,
+				Type: schema.TypeBool,
+				Description: "Skip TLS certificate verification when talking to the API. **Testing only.** " +
+					"This disables both certificate *and* hostname verification, so the provider will hand its " +
+					"credentials — the password or API token, and every PSK, IPMI password and SNMPv3 passphrase " +
+					"in the configuration — to whatever answers on that address. There is deliberately no " +
+					"environment-variable fallback for this argument",
+				Optional: true,
+				Default:  false,
 			},
 			"serialize": &schema.Schema{
 				Type:     schema.TypeBool,

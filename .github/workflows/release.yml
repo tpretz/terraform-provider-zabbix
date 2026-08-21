@@ -84,7 +84,10 @@ jobs:
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
+          # Pinned, not "latest": whatever goreleaser publishes on release day
+          # would otherwise build the artifacts the Registry serves. Bump this
+          # deliberately, with a snapshot build to check it, per RELEASING.md.
+          version: '~> v2.17'
           args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}

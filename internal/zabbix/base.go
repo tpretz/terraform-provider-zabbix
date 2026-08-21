@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type (
@@ -152,22 +153,26 @@ func parseVersionString(vstr string) (version int64, err error) {
 // http://username:password@host/api_jsonrpc.php.
 func NewAPI(c Config) (api *API, err error) {
 	api = &API{
-		url:       c.Url,
-		c:         http.Client{},
+		url: c.Url,
+		// A timeout, so that a hung or black-holed endpoint fails an apply with a
+		// diagnostic instead of stalling it indefinitely. Generous rather than
+		// tight: a Zabbix server under load can take a while over a large
+		// host.massadd, and a false timeout mid-apply is worse than a slow one.
+		c:         http.Client{Timeout: 120 * time.Second},
 		UserAgent: "github.com/tpretz/terraform-provider-zabbix",
 		Logger:    c.Log,
 		Config:    c,
 	}
 
 	if c.TlsNoVerify {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
-		api.c = http.Client{
-			Transport: tr,
-		}
+		// Clone DefaultTransport rather than building a bare one. A zero-value
+		// http.Transport carries no Proxy function, so constructing one from
+		// scratch silently stops HTTPS_PROXY/HTTP_PROXY being honoured — an
+		// unrelated behaviour change nobody would predict from an argument
+		// called "tls_insecure".
+		tr := http.DefaultTransport.(*http.Transport).Clone()
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		api.c.Transport = tr
 		api.printf("TLS running in insecure mode, do not use this configuration in production")
 	}
 
