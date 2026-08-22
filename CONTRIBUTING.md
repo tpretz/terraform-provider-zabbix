@@ -14,9 +14,9 @@ For build, test and documentation mechanics, read
 
 - **All work happens on `v2`.** `master` and `testenv` are frozen: no commits,
   no backports, no re-tagging. The published `v0.x` releases stay as they are.
-- **One reviewed change per commit.** Thirty-five defects are listed in the v2.0.0 changelog, and they were found during the v2
-  revival and each landed on its own. A commit that fixes two things is two
-  commits.
+- **One reviewed change per commit.** The thirty-five defects listed in the
+  v2.0.0 changelog were found during the v2 revival, and each landed on its
+  own. A commit that fixes two things is two commits.
 - **Say what you measured.** This project's commit messages record what was run
   against which Zabbix version and what came back, because almost every
   assumption made about the Zabbix API during the revival turned out to be
@@ -259,10 +259,12 @@ therefore means the clear is never sent: the server keeps what it had, the next
 read puts it straight back into state, and the user gets a diff that reapplies
 forever and never converges.
 
-This produced **six** separate bugs in the v2 release — item `preprocessing`
-and `tag`, LLD `preprocessing`, trigger `dependencies` and `tag`, LLD
-`macro_path`, HTTP item `posts`/`proxy`, and trigger `url`. Every one of them
-was invisible to the tests because no test ever removed the last element.
+This produced **six** collections in the v2 release that could be added to but
+never emptied — item `preprocessing` and `tag`, LLD `preprocessing`, trigger
+`dependencies` and `tag`, and LLD `macro_path` — plus the same cause behind
+HTTP item `posts`/`proxy` and trigger `url`, which are counted separately in
+the changelog because their fix is different. Every one of them was invisible
+to the tests because no test ever removed the last element.
 
 The rule when adding a field to a struct in `internal/zabbix/`:
 
@@ -286,7 +288,7 @@ single call for years.
 
 ## Definitions of done
 
-### `S1`–`S8`: a new resource
+### `S1`–`S9`: a new resource
 
 The full text is in [PLAN.md § "The unit of work"](./PLAN.md#the-unit-of-work).
 Summary:
@@ -301,9 +303,42 @@ Summary:
 | S6 | acceptance test: create → update → re-read, an import step, a `SkipFunc` for version-bound behaviour, and `C1`–`C7` for every collection |
 | S7 | sweeper, so an aborted run self-cleans |
 | S8 | docs and a runnable example |
+| S9 | applied from its `Required` set alone, and every optional attribute that was set has been unset again |
 
 A partial resource is worse than none: it ships an attribute surface users
 build on and a maintenance burden nobody signed up for.
+
+**`S9` is the one that is skipped, and it found six defects on its own.** Every
+fixture in the suite was written by somebody who already knew the answer and
+set the attribute, so nothing exercised the two questions a user asks first:
+does it work when I set only what is `Required`, and can I unset what I set?
+That is where `zabbix_lld_trapper` being uncreatable without an explicit
+`delay = "0"` lived, and where `zabbix_host` refusing a host with no interface
+lived. The tests are `provider/acc_minimal_test.go` (S9a–S9c, the minimum) and
+`provider/acc_clearable_test.go` (S9d–S9e, the way back).
+
+### `U1`–`U4` and `R1`–`R2`: an attribute in life
+
+Create-and-destroy is two thirds of what a user does. The other third — editing
+a value on something that already exists, and deleting the line again — is the
+most common of the three.
+
+| | What it must do |
+|---|---|
+| U1 | every settable attribute changed on an existing resource, asserted against a **server re-read**, not merely Terraform state |
+| U2 | a `plancheck.ExpectResourceAction(...Update)` on the step, so a wrongly-`ForceNew` attribute cannot pass by being destroyed and recreated |
+| U3 | every attribute Zabbix refuses to update is `ForceNew`, asserting replacement |
+| U4 | nothing else is `ForceNew` — probed against live servers, never inferred. Replacing a Zabbix item **discards its history**, so a needless `ForceNew` is silent data loss |
+| R1 | an `Optional` attribute with a `Default:`: deleting the line plans a revert to the default, and the provider must **send** it |
+| R2 | an `Optional + Computed` attribute: deleting the line produces no diff at all and the value sticks for ever. Whether that is right is a decision, and the decision is the deliverable |
+
+The lists in `provider/acc_update_test.go` and `provider/acc_removal_test.go`
+are the enforcement: the coverage map, the `ForceNew` set and the exemptions are
+each checked against the live schema, so an attribute added without coverage
+fails the build. **Exempt by name with a reason, never by omission** — an
+attribute that quietly falls out of a list is exactly how prototype `ruleid`
+stayed unnoticed while it made every `zabbix_proto_item_*` resource
+un-updatable on current Zabbix.
 
 ### `C1`–`C7`: a collection attribute
 

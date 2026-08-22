@@ -136,6 +136,12 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   a resource whose `name` was derived now moves the display name along with it,
   where it used to be left pointing at the old technical name for ever. A display
   name you set yourself is never touched.
+- **`zabbix_host.interface` is `Optional` rather than `Required`.** Zabbix
+  accepts a host with no interfaces at all on every supported version — one
+  carrying only calculated, dependent, trapper or internal items, or existing
+  purely to hold templates, has nothing to attach an interface to. Nothing to
+  change in an existing configuration; it only stops the provider refusing a
+  host the server would have created.
 - The Zabbix API client is no longer the `github.com/tpretz/go-zabbix-api` git
   submodule; it lives in this repository as `internal/zabbix`, with its history
   preserved. Nothing about this is visible in a configuration.

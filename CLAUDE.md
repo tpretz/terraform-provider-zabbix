@@ -232,7 +232,7 @@ The `_REV`/`_ARR` are populated by a package-level `var _ = func() bool { ... }(
 
 ```bash
 make docs           # regenerate docs/
-make docs-check     # regenerate and fail if docs/ moved -- the CI gate
+make docs-check     # regenerate and fail if docs/ moved -- run before every commit
 make docs-validate  # check docs/ against the Terraform Registry's layout rules
 ```
 
