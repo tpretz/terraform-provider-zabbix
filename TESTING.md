@@ -162,7 +162,7 @@ identically.
 ## Current status
 
 **Green on all four versions.** 193 tests, 158 of them
-acceptance, roughly 355-365s per version:
+acceptance, roughly 375–395s per version:
 
 | Version | Result | Skips |
 |---|---|---|
@@ -171,8 +171,12 @@ acceptance, roughly 355-365s per version:
 | 7.4.13 | pass | 1 |
 | 8.0-trunk | pass | 1 |
 
-The remaining skip on every version is version-bound behaviour guarded by a
-`SkipFunc`, not a failure.
+The remaining skip on 7.0 and above is `TestAccResourceTemplategroupUnsupported`,
+which exists to prove the pre-6.2 rejection and has nothing to reject on a
+server that has template groups. Individual *steps* are also skipped by version
+throughout the suite — `SkipFunc: skipBelow(t, zabbix.V70)` and friends — and
+those do not show in the skip count, because the test they belong to still
+passes.
 
 Getting here was PLAN.md phases 0-3 plus phase 8. The baseline this file used to
 record — 7.4 and 8.0 failing wholesale on `Invalid parameter "/": unexpected
