@@ -303,7 +303,25 @@ collections in 20, plus 21 and 22), and is written up in
   (unsigned to float, text to character) still leaves the stored value alone: a
   trends period set in the frontend and imported into a configuration that does
   not manage it belongs to the user.
-29. **An item could be managed by the wrong resource, and the first edit stopped it
+29. **A user macro could not hold the empty string.** `value` carried a
+   `StringIsNotWhiteSpace` validator, but Zabbix accepts and stores an empty
+   macro value, and placeholder macros left empty are common in shipped
+   templates. Beyond making `value = ""` unwritable, it made any host or
+   template already carrying such a macro **impossible to import**: the read put
+   `""` into state and no configuration could match it.
+30. **A tag edit could be silently discarded.** `tagHash` hashed
+   `key + "V" + value`, so `{key = "aV", value = "b"}` and
+   `{key = "a", value = "Vb"}` hashed identically. `helper/schema`'s `diffSet`
+   compares hash codes only and never inspects elements whose codes match, so an
+   edit between two such tags produced no diff, no API call and no error.
+31. **Two stray `fmt.Printf` calls** wrote to the plugin's stdout on every host
+   update that touched a tag. The block they sat in was a no-op besides —
+   `tagGenerate` never returns nil and `prepHosts` marshals a non-nil `Tags` to
+   `[]` regardless — so it was removed entirely.
+32. **`MacrosCreate` wrote the new macro id into `HostID`** instead of `MacroID`.
+   Unreachable today, since macros are managed through `host.update` and
+   `template.update`, but a landmine for whoever wires it up.
+33. **An item could be managed by the wrong resource, and the first edit stopped it
   collecting data.** No `zabbix_item_*`, `zabbix_proto_item_*` or `zabbix_lld_*`
   resource compared the object's backend type against the type it represents, so
   `terraform import zabbix_item_agent.x <itemid-of-an-SNMP-item>` **succeeded**:
@@ -319,7 +337,7 @@ collections in 20, plus 21 and 22), and is written up in
   item; import it as zabbix_item_snmp`. `zabbix_item_agent` and its two siblings
   accept both the passive and active agent types, which is the `active` attribute's
   whole job.
-30. **`inventory_mode = "automatic"` destroyed the fields Zabbix populated itself.**
+34. **`inventory_mode = "automatic"` destroyed the fields Zabbix populated itself.**
   Under automatic mode Zabbix fills inventory fields in from any item carrying an
   `inventory_link`. The read copied every field the server returned into state,
   including those, and the write then sent `""` for anything state held that the
@@ -337,7 +355,7 @@ collections in 20, plus 21 and 22), and is written up in
   under automatic mode, write `""` to clear a field. Setting inventory fields under
   automatic mode is something Zabbix explicitly permits — probed, not assumed — so
   the provider does not invent a validation error for it.
-31. **An `inventory` block whose fields were all empty could never reach an empty
+35. **An `inventory` block whose fields were all empty could never reach an empty
   plan.** The read dropped an inventory object with nothing in it, leaving state at
   `inventory.# = 0` against a configuration holding one block, and no apply could
   close the gap. `inventory { location = "" }` on its own was enough to hit it on any

@@ -106,7 +106,7 @@ Landed:
 - **`CheckDestroy`** on 17+ tests via a shared helper, verified to genuinely fail when a delete is broken
 - **Sweepers** for every object type with dependency ordering, plus `TestMain`
 
-**185 tests, 153 of them acceptance, green on every version** at roughly 375–395s each.
+**193 tests, 158 of them acceptance, green on every version** at roughly 375–395s each.
 Every registered resource and data source has a test with an import step and a
 `CheckDestroy`. Suite-wide there is exactly one `ImportStateVerifyIgnore`: proxy
 `tls_psk_identity`/`tls_psk`, which `proxy.get` never returns on any version.
@@ -131,7 +131,7 @@ Preprocessing step types are `PREPROC_LOOKUP` (items) and `LLD_PREPROC_LOOKUP`
 item by 6.0 but rejected on a discovery rule until 7.0, so they carry separate gate maps
 rather than sharing one.
 
-A sample of the defects these tests found — the full list of 28 is in CHANGELOG.md, and every one had been invisible for years behind missing coverage:
+A sample of the defects these tests found — the full list of 35 is in CHANGELOG.md, and every one had been invisible for years behind missing coverage:
 - **Every `zabbix_proto_item_*` was impossible to update on Zabbix 7.2+.** `itemprototype.update` was sent the create-only `ruleid`; 7.2 made unknown parameters a hard error, so any change to any item prototype failed. Item prototypes were effectively write-once on both current Zabbix releases.
 - **`post_type` defaulted to `"body"` across the whole http triad** — not a valid value (raw/json/xml); copied from `retrieve_mode` where `"body"` is valid. It mapped to `""`, Zabbix applied `raw`, and the item read back as `raw` against a config saying `body`: a permanent, unappliable diff on every http item.
 - **The `zabbix_template` data source panicked the provider on every read** — shared `templateRead` calls `d.Set("templates", ...)`, absent from the data source schema, and SDKv2 `Set` panics on an undeclared key.

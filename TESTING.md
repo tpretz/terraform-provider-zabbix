@@ -161,7 +161,7 @@ identically.
 
 ## Current status
 
-**Green on all four versions.** 185 tests, 153 of them
+**Green on all four versions.** 193 tests, 158 of them
 acceptance, roughly 355-365s per version:
 
 | Version | Result | Skips |

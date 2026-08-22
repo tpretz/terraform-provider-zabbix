@@ -247,7 +247,7 @@ Fuller version, with the reasoning, in
 - `gofmt -l .` must print nothing before every commit.
 - `go build ./...`, `go vet ./...` and `go test ./provider/` must pass; the
   acceptance matrix must be green on 6.0, 7.0 and 7.4 before a release.
-- One reviewed change per fix. Twenty-eight defects are listed in the v2.0.0 changelog, and they were found during the v2 revival
+- One reviewed change per fix. Thirty-five defects are listed in the v2.0.0 changelog, and they were found during the v2 revival
   and each landed on its own.
 - User-visible changes get a [CHANGELOG.md](./CHANGELOG.md) entry under
   `## [Unreleased]`, in the same commit.
