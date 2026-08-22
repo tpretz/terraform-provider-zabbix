@@ -23,7 +23,7 @@ keeps running throughout.
 | 3 | `applications` removed from every item | delete the attribute |
 | 4 | `zabbix_item_aggregate` / `zabbix_proto_item_aggregate` removed | rewrite as calculated items + `terraform state rm` |
 | 5 | `zabbix_template.groups` takes **template** group ids on 6.2+ | edit + `terraform import` |
-| 6 | `graph.item`, `host.interface`, LLD `condition` are **sets, not lists** | fix every `[0]` index |
+| 6 | `graph.item`, `host.interface`, `macro`, LLD `condition` are **sets, not lists** | fix every `[0]` index |
 | 7 | Legacy SNMP item attributes removed | delete the attributes |
 | 8 | `preprocessor.type` takes a name, not a number | none now, edit at leisure |
 | 9 | `serialize` now defaults to `true` | none — a behaviour change, not a config one |
@@ -383,12 +383,13 @@ through unchanged. Revisit this section when you upgrade to 6.2+.
 ## 6. Sets, not lists — and sets cannot be indexed
 
 **This is the change most likely to break a configuration that otherwise looks
-fine.** Three collections that were `TypeList` are now `TypeSet`:
+fine.** Four collections that were `TypeList` are now `TypeSet`:
 
 | Resource | Block |
 |---|---|
 | `zabbix_graph`, `zabbix_proto_graph` | `item` |
 | `zabbix_host` | `interface` |
+| `zabbix_host`, `zabbix_template` (and both data sources) | `macro` |
 | every `zabbix_lld_*` | `condition` (the LLD filter) |
 
 The reason is that Zabbix does not return any of them in a stable order, and the
@@ -473,15 +474,30 @@ not by the order you wrote the blocks — so which interface you get is arbitrar
 and can change when an unrelated attribute changes. If your old `[0]` meant "the
 agent interface", say that.
 
-The same three fixes apply to `zabbix_graph.x.item[0]` and to
-`zabbix_lld_agent.x.condition[0]`.
+The same three fixes apply to `zabbix_graph.x.item[0]`, to
+`zabbix_lld_agent.x.condition[0]` and to `zabbix_host.x.macro[0]`.
+
+`macro` is the one most easily missed, because a configuration usually *writes*
+macros rather than reading them back. If you do read one — most often
+`zabbix_template.x.macro[0].id` — select it by name instead:
+
+```hcl
+# Before
+macro_id = zabbix_template.base.macro[0].id
+
+# After
+macro_id = one([
+  for m in zabbix_template.base.macro : m if m.name == "{$SNMP_COMMUNITY}"
+]).id
+```
 
 ### State
 
-Nothing to do. All three resources declare a state upgrader that reads your
-prior state in its old list shape and hands it to the new set schema, on both
-the modern JSON state format and the flatmap format written by Terraform 0.11.
-It is applied automatically on the first plan.
+Nothing to do. Every affected resource declares a state upgrader that carries
+your prior state into the new set schema, on both the modern JSON state format
+and the flatmap format written by Terraform 0.11. It is applied automatically
+on the first plan, and checked against real `v0.17.0` state fixtures in both
+encodings.
 
 ### While you are here: LLD filter formula ids
 

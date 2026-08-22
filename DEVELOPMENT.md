@@ -93,11 +93,17 @@ Three inputs feed a generated page:
 |---|---|
 | the schema `Description` on every attribute | the argument reference table |
 | `templates/resources/<name>.md.tmpl` | hand-written prose around it (optional) |
-| `examples/resources/<name>/resource.tf` | the "Example Usage" section |
-| `examples/resources/<name>/import.sh` | the "Import" section |
+| `examples/resources/zabbix_<name>/resource.tf` | the "Example Usage" section |
+| `examples/resources/zabbix_<name>/import.sh` | the "Import" section |
 
-Data sources use `templates/data-sources/` and
-`examples/data-sources/<name>/data-source.tf`.
+**The two directories are named differently and it is easy to get wrong.**
+`templates/` drops the `zabbix_` prefix (`templates/resources/host.md.tmpl`);
+`examples/` keeps it (`examples/resources/zabbix_host/resource.tf`). A
+misnamed example directory is not an error — the page simply generates without
+an "Example Usage" section.
+
+Data sources use `templates/data-sources/<name>.md.tmpl` and
+`examples/data-sources/zabbix_<name>/data-source.tf`.
 
 Without a template, `tfplugindocs` falls back to a default layout that still
 picks up the example and the import script. **A weak generated page almost
@@ -112,16 +118,22 @@ the description — build the list from the `_LOOKUP_ARR` so it cannot drift, an
 
 ## Adding a resource
 
-The definition of done is **S1–S8** in
+The definition of done is **S1–S9** in
 [PLAN.md § "The unit of work"](./PLAN.md#the-unit-of-work): client struct and
 CRUD, version gates, schema with a description on every field, CRUD funcs plus
 `ImportStatePassthrough` and registration in `provider/provider.go`, a data
 source where a lookup-by-name is useful, an acceptance test with an import step,
-a sweeper, and docs plus an example.
+a sweeper, docs plus an example, and — `S9` — the resource built from its
+`Required` set alone and every optional attribute set and then unset again.
 
 Collections have their own bar, **C1–C7**, in the same section: a collection
 attribute is not tested until it has been tested *plural*. Every collection bug
 found in this project so far hid behind a fixture with exactly one element.
+Attribute *updates* have **U1–U4** and attribute *removal* has **R1–R2**; both
+are enforced by lists in `provider/acc_update_test.go` and
+`provider/acc_removal_test.go` that are checked against the live schema, so an
+attribute added without coverage fails the build until it is covered or
+exempted by name.
 
 ### The item / prototype / LLD triad
 
@@ -247,7 +259,7 @@ Fuller version, with the reasoning, in
 - `gofmt -l .` must print nothing before every commit.
 - `go build ./...`, `go vet ./...` and `go test ./provider/` must pass; the
   acceptance matrix must be green on 6.0, 7.0 and 7.4 before a release.
-- One reviewed change per fix. Thirty-five defects are listed in the v2.0.0 changelog, and they were found during the v2 revival
-  and each landed on its own.
+- One reviewed change per fix. The thirty-five defects listed in the v2.0.0
+  changelog were found during the v2 revival, and each landed on its own.
 - User-visible changes get a [CHANGELOG.md](./CHANGELOG.md) entry under
   `## [Unreleased]`, in the same commit.

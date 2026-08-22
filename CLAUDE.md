@@ -51,7 +51,7 @@ The provider's Zabbix API client lives at **`internal/zabbix`**. It used to be a
 
 Because it is an `internal/` package it cannot be imported outside this module, which is intended — the provider is its only consumer. Edit it directly; there is nothing to re-tag.
 
-> The package has no tests of its own. Its original `TEST_ZABBIX_*` harness was deleted in v2 — it had not compiled since 2023, hidden from `./...` by the nested `go.mod`, and duplicated coverage the acceptance suite provides against four live servers. `go test ./...` is clean; the caveat about it hard-failing no longer applies.
+> The package's original `TEST_ZABBIX_*` harness was deleted in v2 — it had not compiled since 2023, hidden from `./...` by the nested `go.mod`, and duplicated coverage the acceptance suite provides against four live servers. What it has now is six unit tests covering the two things no live-server test can reach: log redaction (`redact_test.go`) and the read/write method split the serialization lock keys off (`serialize_test.go`). `go test ./...` is clean; the caveat about it hard-failing no longer applies.
 
 ## Build / test commands
 
@@ -259,8 +259,9 @@ Every `_ARR` is sorted at init (`TestEnumValueListsAreSorted`). This is not cosm
 
 Coverage is now **193 tests, 158 of them acceptance**, green on all four versions at roughly
 375–395s each. Every registered resource and data source has a test with an import step and
-a `CheckDestroy`; there is one `ImportStateVerifyIgnore` suite-wide (proxy PSK, which
-`proxy.get` never returns). Drift, negative paths, `ForceNew`, provider configuration and
+a `CheckDestroy`; the only `ImportStateVerifyIgnore` in the suite is the PSK pair
+(`tls_psk_identity`/`tls_psk`) on `zabbix_proxy` and `zabbix_host`, which `proxy.get` and
+`host.get` never return. Drift, negative paths, `ForceNew`, provider configuration and
 scalar boundaries are covered — see PLAN.md § Phase 8.
 
 **Do not treat that as licence to add a resource without tests.** Of the 35 defects fixed in

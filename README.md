@@ -8,9 +8,10 @@ Zabbix JSON-RPC API.
 
 > **Upgrading from `v0.17.0`? Read [MIGRATING.md](./MIGRATING.md) first.**
 > `v2.0.0` is deliberately a breaking release: the minimum Zabbix version moved
-> to 6.0, two resources were removed, and three collections became sets. Every
-> change is either an edit to your `.tf` files or a `terraform state` operation
-> — nothing needs your Zabbix objects to be recreated.
+> to 6.0, three resources and a data source were removed, and four collections
+> became sets. Every change is either an edit to your `.tf` files or a
+> `terraform state` operation — nothing needs your Zabbix objects to be
+> recreated.
 
 ## Documentation
 

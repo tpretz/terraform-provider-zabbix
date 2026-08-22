@@ -27,14 +27,14 @@ The first release since `v0.17.0` (2021), and deliberately a breaking one. Every
 breaking change in the v2 line is batched here.
 
 **Read [MIGRATING.md](./MIGRATING.md) before upgrading.** It is a section-by-section
-`v0.17.0 → v2.0.0` guide with before/after HCL for each of the seven breaking
+`v0.17.0 → v2.0.0` guide with before/after HCL for each of the ten breaking
 changes, and it ends in a checklist. No Zabbix object has to be recreated: every
 change is either an edit to your `.tf` files or a `terraform state` operation.
 
 Headline: **the provider could not talk to a Zabbix 7.2 or newer server at all**
 before this release — the auth token was sent as a JSON-RPC `auth` body property,
 which 7.2 removed and now rejects, so every single API call failed. That, and the
-rest of the two dozen defects fixed along the way, are listed under
+other thirty-four defects fixed along the way, are listed under
 [Fixed](#fixed) below.
 
 Supported Zabbix versions: **6.0 LTS, 7.0 LTS and 7.4** are release-gating; 8.0 is
@@ -63,8 +63,11 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
 - `zabbix_template`: `uuid` (computed), `vendor_name`/`vendor_version` (Zabbix 6.4+),
   `readme`/`wizard_ready` (7.4+). Below their gate the attributes are absent rather
   than erroring.
-- `zabbix_trigger`: `event_name`, `opdata`, `manual_close`, `correlation_mode`,
-  `correlation_tag` and `dependencies`.
+- `zabbix_trigger`: `event_name`, `opdata` and `correlation_mode`.
+  `correlation_mode` is now settable in its own right; `v0.17.0` inferred it
+  from a non-empty `correlation_tag` and offered no way to say "tag" without
+  one, or "disabled" with one. (`manual_close`, `correlation_tag`,
+  `dependencies` and `tag` already existed in `v0.17.0`.)
 - `units` and `description` on every item and item prototype resource — all ten
   `zabbix_item_*` and all ten `zabbix_proto_item_*`. Without `units` every item
   rendered as a bare number in the frontend, which was the provider's most
@@ -78,8 +81,9 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   `unexpected parameter "units"`.
 - Generated Registry documentation. `docs/` is now produced by `terraform-plugin-docs`
   from the schema, `templates/` and `examples/` — 42 pages, each with a runnable
-  example and an import script, grouped into Registry subcategories. Every one of
-  the 928 schema attributes now carries a description, enforced by a unit test.
+  example and an import script, grouped into seven Registry subcategories. Every
+  one of the 976 schema attributes now carries a description, enforced by a unit
+  test.
 - [MIGRATING.md](./MIGRATING.md), [TESTING.md](./TESTING.md),
   [DEVELOPMENT.md](./DEVELOPMENT.md), [CONTRIBUTING.md](./CONTRIBUTING.md),
   [RELEASING.md](./RELEASING.md) and [MAINTAINING.md](./MAINTAINING.md).
@@ -99,14 +103,17 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
 
 - **Minimum Zabbix version is 6.0.** 4.0, 5.0 and 5.4 support was deleted, not
   merely left untested. See [MIGRATING.md §1](./MIGRATING.md#1-zabbix-60-is-now-the-minimum).
-- **`graph.item`, `zabbix_host.interface` and the LLD filter `condition` block are
-  sets, not lists.** The server's return order for all three is an implementation
-  detail that changed between Zabbix versions. Sets cannot be indexed from HCL:
-  `zabbix_host.x.interface[0].id` no longer parses — use `one(...)`. This is the
-  change most likely to break a configuration that otherwise looks fine. See
+- **`graph.item`, `zabbix_host.interface`, the LLD filter `condition` block and
+  `macro` are sets, not lists.** The server's return order for all four is an
+  implementation detail that changed between Zabbix versions. Sets cannot be
+  indexed from HCL: `zabbix_host.x.interface[0].id` no longer parses — use
+  `one(...)`. This is the change most likely to break a configuration that
+  otherwise looks fine. See
   [MIGRATING.md §6](./MIGRATING.md#6-sets-not-lists--and-sets-cannot-be-indexed).
-  State upgraders are provided on all eleven affected resources; item and LLD
-  `preprocessing` deliberately stay lists, because their order is semantic.
+  `macro` is affected on `zabbix_host` and `zabbix_template` and on both data
+  sources. State upgraders are provided on all twelve affected resources; item
+  and LLD `preprocessing` deliberately stay lists, because their order is
+  semantic.
 - **`zabbix_template.groups` means *template* groups on Zabbix 6.2+.** A state
   upgrader verifies the ids rather than rewriting them: a host group id cannot be
   mechanically turned into a template group id, so anything that is not already a
@@ -129,7 +136,6 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   a resource whose `name` was derived now moves the display name along with it,
   where it used to be left pointing at the old technical name for ever. A display
   name you set yourself is never touched.
-- `zabbix_host` macros are a set rather than a list.
 - The Zabbix API client is no longer the `github.com/tpretz/go-zabbix-api` git
   submodule; it lives in this repository as `internal/zabbix`, with its history
   preserved. Nothing about this is visible in a configuration.

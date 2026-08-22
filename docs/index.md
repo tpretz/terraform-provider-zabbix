@@ -11,8 +11,10 @@ template groups, proxies, items, item prototypes, low-level discovery rules,
 triggers and graphs — over the Zabbix JSON-RPC API.
 
 ~> **Upgrading from `v0.17.0`?** `v2.0.0` is deliberately a breaking release:
-the minimum Zabbix version moved to 6.0, `zabbix_application` and
-`zabbix_item_aggregate` were removed, and three collections became sets. Read
+the minimum Zabbix version moved to 6.0, `zabbix_application` and the two
+aggregate item resources were removed, and four collections became sets —
+`graph.item`, `host.interface`, the LLD filter `condition`, and `macro` on
+hosts and templates, none of which can be indexed with `[0]` any more. Read
 the [upgrade guide](https://github.com/tpretz/terraform-provider-zabbix/blob/v2/MIGRATING.md)
 before you plan.
 
@@ -87,10 +89,12 @@ provider "zabbix" {
   # Skip TLS certificate verification. Testing only.
   tls_insecure = false
 
-  # Serialise API calls. Zabbix has known races on concurrent writes to the
-  # same object; enable this if you see intermittent API errors under
-  # parallelism.
-  serialize = false
+  # Send mutating API calls one at a time. Defaults to true and should stay
+  # there: Zabbix has races on concurrent writes, and one of them silently
+  # drops a template's triggers. Reads are never serialized, so plan and
+  # refresh are unaffected. Set this to false only if you are certain your
+  # configuration cannot race and you need the speed.
+  serialize = true
 }
 ```
 
