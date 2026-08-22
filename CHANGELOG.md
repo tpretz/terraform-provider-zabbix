@@ -319,6 +319,32 @@ collections in 20, plus 21 and 22), and is written up in
   item; import it as zabbix_item_snmp`. `zabbix_item_agent` and its two siblings
   accept both the passive and active agent types, which is the `active` attribute's
   whole job.
+30. **`inventory_mode = "automatic"` destroyed the fields Zabbix populated itself.**
+  Under automatic mode Zabbix fills inventory fields in from any item carrying an
+  `inventory_link`. The read copied every field the server returned into state,
+  including those, and the write then sent `""` for anything state held that the
+  configuration no longer named — which is exactly that set. Verified end to end on
+  8.0: a host with an `inventory` block naming `name`, the server having set `os`,
+  planned `- os = "Linux 6.1 (auto-discovered)" -> null` and the apply **wiped it on
+  the server**. Zabbix repopulated it and the next plan deleted it again: a permanent
+  fight with the discovered data as the casualty. Under automatic mode the provider
+  now sends exactly the fields the configuration names and reads back only those, so
+  a field Zabbix owns is neither reported in state nor deleted. **Manual mode is
+  unchanged** — there the configuration owns the whole inventory and deleting a line
+  still clears the field. The cost is one deliberate exception to a deleted line
+  reverting an attribute, and it is written on the attribute and in
+  [MIGRATING.md §10](./MIGRATING.md#10-inventory-under-inventory_mode--automatic-leaves-unnamed-fields-alone):
+  under automatic mode, write `""` to clear a field. Setting inventory fields under
+  automatic mode is something Zabbix explicitly permits — probed, not assumed — so
+  the provider does not invent a validation error for it.
+31. **An `inventory` block whose fields were all empty could never reach an empty
+  plan.** The read dropped an inventory object with nothing in it, leaving state at
+  `inventory.# = 0` against a configuration holding one block, and no apply could
+  close the gap. `inventory { location = "" }` on its own was enough to hit it on any
+  version; it became ordinary under automatic mode, where clearing a field is written
+  as `""`. A block the configuration holds is now reported back as a block. A host
+  with no block at all still reads back as none, which is the case the old behaviour
+  was protecting.
 
 ### Removed
 

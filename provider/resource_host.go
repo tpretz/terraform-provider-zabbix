@@ -190,9 +190,16 @@ var inventorySchema = &schema.Schema{
 	Type: schema.TypeList,
 	Description: "Host inventory fields. A single block, not a collection — the list type " +
 		"is how a lone optional nested block is expressed in SDKv2. Requires " +
-		"`inventory_mode` to be \"manual\" or \"automatic\"; under \"automatic\" Zabbix " +
-		"overwrites any field populated by an item, so managing those here will fight the " +
-		"server.",
+		"`inventory_mode` to be \"manual\" or \"automatic\", and the two modes differ in " +
+		"what the provider does with the fields you do not write. Under \"manual\" the " +
+		"configuration owns the whole inventory: deleting a line clears the field on the " +
+		"server. Under \"automatic\" Zabbix populates fields itself from any item carrying " +
+		"an `inventory_link`, so the provider sends only the fields this block names and " +
+		"leaves every other one alone — including the ones Zabbix filled in, which are " +
+		"neither reported in state nor deleted. The consequence, and it is the one " +
+		"exception in this provider to deleting a line reverting an attribute: under " +
+		"\"automatic\", removing a line leaves the field as it was. Write it as `\"\"` to " +
+		"clear it.",
 	Elem: &schema.Resource{
 		Schema: map[string]*schema.Schema{},
 	},
@@ -782,11 +789,50 @@ func hostGenerateInterfaces(d *schema.ResourceData, m interface{}) (interfaces z
 // wire. Sending all seventy keys unconditionally would be shorter but would
 // fight inventory_mode = "automatic", where Zabbix refuses a write to a field
 // an item is populating.
-func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
+//
+// Which of those two rules applies depends on the inventory mode, and getting
+// that wrong destroyed data. Under "automatic" Zabbix fills fields in itself
+// from any item carrying an inventory_link, and flattenInventory used to copy
+// every field the server returned into state -- including those. The clear
+// loop below then saw them as "fields the previous state held and the
+// configuration no longer sets" and sent "" for each. Verified end to end on
+// 8.0-trunk: a host with inventory_mode = "automatic" and an inventory block
+// naming `name`, the server having set `os` itself, planned
+// `- os = "Linux 6.1 (auto-discovered)" -> null` and the apply **wiped it on
+// the server**. With a live inventory_link item Zabbix repopulates and the
+// next plan deletes it again -- a permanent fight with the discovered data as
+// the casualty.
+//
+// So:
+//
+//	manual     unchanged. The configuration owns the inventory, a deleted
+//	           line still clears the field, and that is R1.
+//	automatic  exactly what the *configuration* names goes on the wire and
+//	           nothing else. A field written with a value is sent, a field
+//	           written as "" is sent as "" -- so clearing is still possible --
+//	           and a field the configuration does not mention is left alone.
+//
+// Zabbix does permit a client to set inventory fields under "automatic":
+// host.create with inventory_mode 1 and an inventory object is accepted and
+// both values are stored, probed rather than assumed. So this is not a
+// validation error, and the provider does not invent one -- being stricter
+// than the server is a defect this project has shipped four times.
+//
+// The trade-off, and it is deliberate: under "automatic", deleting a line from
+// the configuration no longer reverts the field, because the provider cannot
+// tell the field it set yesterday from the field an item populated this
+// morning without asking the server which items carry an inventory_link. Write
+// the field as "" to clear it. This is the one documented exception to R1;
+// it is recorded on the attribute description and in MIGRATING.md.
+func hostGenerateInventory(d *schema.ResourceData, mode zabbix.InventoryMode) (zabbix.Inventory, error) {
 
 	inventoryCount := d.Get("inventory.#").(int)
 	if inventoryCount > 1 {
 		return nil, errors.New("must be 0 or 1 instances of inventory block")
+	}
+
+	if mode == zabbix.InventoryAutomatic {
+		return hostConfiguredInventory(d)
 	}
 
 	inventory := zabbix.Inventory{}
@@ -818,6 +864,76 @@ func hostGenerateInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
 	}
 
 	return inventory, nil
+}
+
+// hostConfiguredInventory is the automatic-mode write path: the inventory
+// fields the configuration names, and only those.
+//
+// d.Get cannot answer this. Inside a nested block it hands back the merged
+// value -- state where the configuration is silent -- which is exactly the
+// distinction that has to survive, and it reports a field written as "" and a
+// field not written at all as the same thing. GetRawConfig is the only place
+// the difference is left: a field the user did not write is null there
+// whatever state holds. configuredString does the same job for a top-level
+// attribute; this is its nested-block sibling.
+func hostConfiguredInventory(d *schema.ResourceData) (zabbix.Inventory, error) {
+	declared, ok := configuredInventory(d)
+	if !ok {
+		// No raw configuration in this call. Every path that writes has one --
+		// ApplyResourceChange carries the config, ReadResource does not -- so
+		// this is unreachable from create or update. Sending nothing is the
+		// safe direction anyway: an absent property means "leave as is".
+		log.Debug("no raw configuration available for the inventory block; sending none")
+		return nil, nil
+	}
+	if len(declared) == 0 {
+		return nil, nil
+	}
+
+	inventory := zabbix.Inventory{}
+	for k, v := range declared {
+		inventory[k] = v
+	}
+	return inventory, nil
+}
+
+// configuredInventory reports the inventory fields the *configuration* names
+// and the value it gives each, plus whether the raw configuration was
+// available at all -- it is not during a refresh, where there is no config in
+// the request.
+//
+// A field whose value is not yet known (an unresolved reference at plan time)
+// is skipped; the write path is reached again at apply, when it is known.
+func configuredInventory(d rawConfigured) (map[string]string, bool) {
+	raw := d.GetRawConfig()
+	if raw.IsNull() || !raw.IsKnown() || !raw.Type().IsObjectType() || !raw.Type().HasAttribute("inventory") {
+		return nil, false
+	}
+
+	out := map[string]string{}
+
+	// TypeList of a single nested block: one element, or none
+	block := raw.GetAttr("inventory")
+	if block.IsNull() || !block.IsKnown() || !block.CanIterateElements() {
+		return out, true
+	}
+	for it := block.ElementIterator(); it.Next(); {
+		_, elem := it.Element()
+		if elem.IsNull() || !elem.IsKnown() || !elem.Type().IsObjectType() {
+			continue
+		}
+		for _, k := range INVENTORY_KEYS {
+			if !elem.Type().HasAttribute(k) {
+				continue
+			}
+			v := elem.GetAttr(k)
+			if v.IsNull() || !v.IsKnown() {
+				continue
+			}
+			out[k] = v.AsString()
+		}
+	}
+	return out, true
 }
 
 // hostPriorInventory reads the inventory block as it was before this plan.
@@ -880,7 +996,7 @@ func buildHostObject(d *schema.ResourceData, m interface{}) (*zabbix.Host, error
 	item.Interfaces = interfaces
 	item.UserMacros = macroGenerate(d)
 	item.Tags = tagGenerate(d)
-	item.Inventory, err = hostGenerateInventory(d)
+	item.Inventory, err = hostGenerateInventory(d, item.InventoryMode)
 
 	if err != nil {
 		return nil, err
@@ -963,7 +1079,7 @@ func dataHostRead(d *schema.ResourceData, m interface{}) error {
 	}
 	log.Debug("performing data lookup with params: %#v", params)
 
-	if err := hostRead(d, m, params); err != nil {
+	if err := hostRead(d, m, params, false); err != nil {
 		return err
 	}
 	return dataSourceFound(d, "host", lookups...)
@@ -981,11 +1097,14 @@ func resourceHostRead(d *schema.ResourceData, m interface{}) error {
 		"selectTags":            "extend",
 		"selectInventory":       "extend",
 		"hostids":               d.Id(),
-	})
+	}, true)
 }
 
-// hostRead common host read function
-func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error {
+// hostRead common host read function.
+//
+// owned distinguishes the managed resource from the data source; see
+// flattenInventory, which is the only thing that cares.
+func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params, owned bool) error {
 	api := m.(*zabbix.API)
 
 	log.Debug("Lookup of host with params %#v", params)
@@ -1030,7 +1149,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 
 	d.Set("interface", flattenHostInterfaces(host, d, m))
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
-	d.Set("inventory", flattenInventory(host))
+	d.Set("inventory", flattenInventory(host, d, owned))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
 	d.Set("macro", flattenMacros(host.UserMacros))
 	d.Set("tag", flattenTags(host.Tags))
@@ -1038,15 +1157,44 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params) error
 	return nil
 }
 
-// flattenInventory converts API response into terraform structs
-func flattenInventory(host zabbix.Host) []interface{} {
+// flattenInventory converts API response into terraform structs.
+//
+// `owned` says whether this is the managed resource reading its own host, as
+// opposed to the data source reporting on somebody else's. It decides what
+// happens under inventory_mode = "automatic", where Zabbix populates fields
+// itself from any item carrying an inventory_link:
+//
+//   - the data source reports everything the server holds, which is its job;
+//   - the resource narrows the block to the fields it manages, because a field
+//     it copies into state is a field it will later be asked to delete.
+//
+// Narrowing the write path alone would not have been enough. State is compared
+// against configuration to make a plan, so an auto-populated `os` sitting in
+// state that no configuration mentions produces `- os -> null` on every plan
+// for ever -- the apply would no longer wipe it, but the diff would never
+// clear either. The read is where that has to be stopped.
+//
+// "Fields it manages" is read out of d, which is the merged configuration
+// during create and update -- the two calls that put a field into state in the
+// first place -- and prior state during a refresh, which is what the last
+// create or update left there. Importing an automatic-mode host therefore
+// brings no inventory into state, and adding the block to the configuration
+// afterwards is an ordinary merge.
+func flattenInventory(host zabbix.Host, d *schema.ResourceData, owned bool) []interface{} {
 	if host.Inventory == nil {
 		return []interface{}{}
+	}
+	var managed map[string]bool
+	if owned && host.InventoryMode == zabbix.InventoryAutomatic {
+		managed = hostManagedInventoryKeys(d)
 	}
 	obj := map[string]interface{}{}
 	for k, v := range host.Inventory {
 		// handle legacy zabbix v4 values that may be in here
 		if k == "hostid" || k == "inventory_mode" {
+			continue
+		}
+		if managed != nil && !managed[k] {
 			continue
 		}
 		// Once inventory is enabled host.get returns all seventy fields,
@@ -1061,9 +1209,41 @@ func flattenInventory(host zabbix.Host) []interface{} {
 		obj[k] = v
 	}
 	if len(obj) == 0 {
+		// ...but a block whose fields all happen to be empty is still a
+		// block, and dropping it left state at `inventory.# = 0` against a
+		// configuration holding one -- a diff no apply could ever clear.
+		// Reachable on any version: `inventory { location = "" }` on its own
+		// was enough, and it became ordinary under automatic mode, where
+		// clearing a field is written as "" because deleting the line does not
+		// clear it. Only a d that already has a block gets one back, so a host
+		// with no block in the configuration still reads back as none, which
+		// is what the paragraph above is about.
+		if d.Get("inventory.#").(int) > 0 {
+			return []interface{}{map[string]interface{}{}}
+		}
 		return []interface{}{}
 	}
 	return []interface{}{obj}
+}
+
+// hostManagedInventoryKeys is the set of inventory fields this resource is
+// managing: the ones d holds a value for. During create and update that is the
+// merged configuration, during a refresh it is prior state.
+//
+// A field the configuration writes as "" is absent from the set, and rightly
+// so: the write path sends "" for it, so the server's value is "" too and
+// there is nothing to copy back.
+func hostManagedInventoryKeys(d *schema.ResourceData) map[string]bool {
+	keys := map[string]bool{}
+	if d.Get("inventory.#").(int) == 0 {
+		return keys
+	}
+	for _, k := range INVENTORY_KEYS {
+		if v, _ := d.Get("inventory.0." + k).(string); v != "" {
+			keys[k] = true
+		}
+	}
+	return keys
 }
 
 // flattenHostInterfaces convert API response into terraform structs

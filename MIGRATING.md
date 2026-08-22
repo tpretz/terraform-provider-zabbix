@@ -27,9 +27,11 @@ keeps running throughout.
 | 7 | Legacy SNMP item attributes removed | delete the attributes |
 | 8 | `preprocessor.type` takes a name, not a number | none now, edit at leisure |
 | 9 | `serialize` now defaults to `true` | none — a behaviour change, not a config one |
+| 10 | `inventory` under `inventory_mode = "automatic"` no longer clears fields you stop naming | none, unless you were relying on it |
 
-Number 9 needs no action at all: applies get safer, and marginally slower, on
-their own. Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
+Numbers 9 and 10 need no action at all: applies get safer, and marginally slower,
+on their own, and number 10 stops the provider deleting inventory data Zabbix
+collected for you. Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
 config and the provider quietly discards them from state. Number 8 is cheaper
 still — nothing to do at upgrade time. Number 6 is the one most likely to break
 a config that otherwise looks fine.
@@ -736,6 +738,54 @@ provider "zabbix" {
 Only do that if you are confident your configuration cannot race — in practice, that it
 does not link several hosts to one template.
 
+## 10. `inventory` under `inventory_mode = "automatic"` leaves unnamed fields alone
+
+Nothing to edit, and for most configurations nothing changes. It is listed because
+it changes what an apply *does not* do.
+
+Under `inventory_mode = "automatic"` Zabbix populates inventory fields itself, from
+any item carrying an `inventory_link`. `v0.17.0` through the v2 pre-release copied
+every field the server returned into state and then sent `""` for anything state
+held that the configuration no longer named — which is exactly the set Zabbix had
+filled in. The result, verified on 8.0:
+
+```
+  ~ inventory {
+      - os = "Linux 6.1 (auto-discovered)" -> null
+    }
+```
+
+and the apply wiped it on the server. Zabbix repopulated it, the next plan proposed
+the deletion again, and the discovered data was the casualty of a fight that never
+ended.
+
+From `v2.0.0`, under **automatic** mode the provider sends exactly the fields your
+`inventory` block names and leaves every other one alone:
+
+```hcl
+resource "zabbix_host" "example" {
+  # ...
+  inventory_mode = "automatic"
+
+  inventory {
+    name     = "example.internal"   # sent, and managed
+    location = ""                   # sent as "", so it is cleared
+    # os is not named, so Zabbix owns it: not read into state, never deleted
+  }
+}
+```
+
+**Manual mode is unchanged.** There the configuration owns the whole inventory, and
+deleting a line still clears the field on the server.
+
+The cost, and it is the only place in this provider where deleting a line does not
+revert an attribute: under automatic mode, **removing a line leaves the field as it
+was**. Write it as `""` to clear it. Do that while the field is still in your block —
+once you have deleted the line, the field has also left Terraform's state, so adding
+`name = ""` back is not a change Terraform can see and it clears nothing. Writing any
+other value works normally, and `inventory_mode = "manual"` gets you the old
+behaviour for the whole block.
+
 ## Checklist
 
 ```
@@ -755,6 +805,9 @@ does not link several hosts to one template.
     the numeric form goes away in the next major release)
 [ ] serialize left at its new default of true, unless you know you need
     otherwise (nothing to change — noted so it is a decision, not a surprise)
+[ ] inventory blocks under inventory_mode = "automatic" reviewed: a field you
+    want cleared is now written as "" rather than deleted (nothing to change
+    unless you were relying on deletion clearing it)
 [ ] terraform plan is empty
 ```
 

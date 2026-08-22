@@ -405,6 +405,25 @@ had `character` on the wrong side of the line. And an item that stopped being `t
 `trends = "0"` for ever, collecting no trends, because the configuration was silent and
 `Optional + Computed` means keep — the server does not re-derive either.
 
+**There is exactly one place where deleting a line does not revert an attribute, and
+it is not an `Optional + Computed` one.** Host `inventory` fields under
+`inventory_mode = "automatic"` are left alone when the configuration stops naming them.
+That is not laziness: under automatic mode Zabbix populates inventory fields itself
+from any item carrying an `inventory_link`, and the provider cannot tell a field it set
+yesterday from a field an item populated this morning without asking the server which
+items carry one. Clearing them all — which is what the R1 rule would do — **destroyed
+the discovered data**, permanently, because Zabbix repopulated and the next plan
+deleted it again. Under automatic mode the write path therefore sends exactly the
+fields the configuration names (`configuredInventory`, read out of `GetRawConfig`
+because `d.Get` cannot tell `""` from absent inside a nested block) and the read path
+reports back only those. Clearing is written as `""` rather than as a deleted line.
+**Manual mode is unchanged** and R1 applies there in full. The cost, documented on the
+attribute and in MIGRATING.md §10: once a line has been deleted the field has left
+state too, so putting it back as `""` is not a diff Terraform can see. The fields carry
+neither a `Default:` nor `Optional + Computed`, so `TestRemovalCoverageComplete` has
+nothing to say about them; `provider/acc_host_inventory_test.go` is where the decision
+is pinned.
+
 The tests are `provider/acc_removal_test.go`, `provider/acc_removal_host_test.go` and
 `provider/acc_derived_test.go`.
 
