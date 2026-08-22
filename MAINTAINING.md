@@ -14,13 +14,19 @@ made, [DEVELOPMENT.md](./DEVELOPMENT.md) for build and docs mechanics,
 
 | | What | State |
 |---|---|---|
-| `.github/workflows/ci.yml` | build, vet, unit tests, `gofmt`, toolchain pins, on push and PR | **disabled** until v2.0.0 — see RELEASING.md |
+| `.github/workflows/ci.yml` | build, vet, `go test ./provider/`, `gofmt`, toolchain pins, on push and PR | **disabled** until v2.0.0 — see RELEASING.md |
 | `.github/workflows/nightly.yml` | full acceptance matrix, 03:17 UTC, opens an issue on failure | **disabled** until v2.0.0 |
 | `.github/dependabot.yml` | weekly Go module and GitHub Actions updates | inert until `v2` is the default branch |
 | `.github/workflows/release.yml` | goreleaser on a `v2.*` tag | **disabled** until v2.0.0 |
 
 Everything is deliberately inert on the `v2` branch. Turning it on is a
 checklist in [RELEASING.md](./RELEASING.md), done once.
+
+Two things `ci.yml` does **not** do, and should: it runs `go test ./provider/`
+rather than `go test ./...`, so `internal/zabbix`'s credential-redaction tests
+never run in CI; and it does not run `make docs-check`, so a schema
+`Description` change can be merged with `docs/` left stale. Both are covered by
+the pre-flight checklist in RELEASING.md § 0 in the meantime.
 
 ### Reading a nightly failure
 

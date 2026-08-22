@@ -43,7 +43,11 @@ git status --porcelain                 # must print nothing
 gofmt -l .                             # must print nothing
 make check-toolchain
 make build vet test
-make docs-check                        # docs/ must be current with the schema
+go test ./...                          # `make test` covers ./provider only;
+                                       # internal/zabbix's redaction tests are
+                                       # not in it, and not in ci.yml either
+make docs-check                        # docs/ must be current with the schema;
+                                       # ci.yml does NOT run this, so it is on you
 make testacc                           # 6.0 + 7.0 + 7.4 — the release gate
 make testall                           # adds 8.0; read it, do not gate on it
 ```
@@ -251,9 +255,13 @@ gh release view v2.0.0 --json assets --jq '.assets[].name'
 ```
 
 Expected assets: eight `terraform-provider-zabbix_2.0.0_<os>_<arch>.zip`, plus
-`terraform-provider-zabbix_2.0.0_SHA256SUMS` and
-`…_SHA256SUMS.sig`. A missing `.sig` means the GPG step did not do its job —
-fix it and re-cut as `v2.0.1` rather than moving the tag.
+`terraform-provider-zabbix_2.0.0_SHA256SUMS`, `…_SHA256SUMS.sig` and
+`terraform-provider-zabbix_2.0.0_manifest.json`. A missing `.sig` means the GPG
+step did not do its job — fix it and re-cut as `v2.0.1` rather than moving the
+tag. A missing `manifest.json` means `.goreleaser.yml`'s `release.extra_files`
+did not fire; the Registry then assumes protocol 5.0, which is right today and
+silently stops being right if this provider ever moves to
+`terraform-plugin-framework`.
 
 `.goreleaser.yml` sets `changelog: disable: true`, so the GitHub release body is
 empty by design. Paste the `2.0.0` section of `CHANGELOG.md` into it, or at
