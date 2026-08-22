@@ -109,9 +109,9 @@ With the 6.0 floor, the gates that **survive** are:
 |---|---|
 | `>= 60200` | template groups split from host groups |
 | `>= 60400` | bearer auth; template `vendor_name`/`vendor_version`; `snmp_walk_value` and `snmp_walk_to_json` preprocessing |
-| `>= 70000` | proxy model rewrite, `monitored_by`, LLD header arrays, browser items; `snmp_get_value` preprocessing, and `matches_regex` on discovery rules |
+| `>= 70000` | proxy model rewrite, `monitored_by`, LLD/item HTTP header arrays, `hostid` becoming create-only on item and LLD updates, mandatory `params` on preprocessing step 26; `snmp_get_value` preprocessing, and `matches_regex` on discovery rules |
 | `>= 70200` | `selectHostGroups`/`selectTemplateGroups` replacing `selectGroups` |
-| `>= 70400` | LLD rule prototypes |
+| `>= 70400` | template `readme` / `wizard_ready`. (The constant's own comment says "LLD rule prototypes"; that feature is *not* implemented — it is Phase 4 work — and `V74`'s only use in the tree today is `resource_template.go`.) |
 
 Everything gated below `60000` is dead and is being deleted (Phase 2b) — the legacy SNMP v1/v2/v3 item types, applications, aggregate items, the v4 inventory/tag fallbacks, and roughly 30 comparison sites across provider and tests. **Do not add new gates below `60200`.** New gates should use named constants (`zabbix.V62`, `V64`, `V70`, `V72`, `V74`) rather than bare integers.
 

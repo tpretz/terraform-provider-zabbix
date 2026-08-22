@@ -163,9 +163,9 @@ integers or a version string:
 |---|---|---|
 | `zabbix.V62` | 6.2 | template groups split from host groups |
 | `zabbix.V64` | 6.4 | bearer auth; template vendor fields |
-| `zabbix.V70` | 7.0 | proxy model rewrite, `monitored_by`, LLD header arrays |
+| `zabbix.V70` | 7.0 | proxy model rewrite, `monitored_by`, HTTP header arrays, `hostid` create-only on item/LLD update |
 | `zabbix.V72` | 7.2 | `selectHostGroups`/`selectTemplateGroups` replace `selectGroups` |
-| `zabbix.V74` | 7.4 | LLD rule prototypes, template `readme`/`wizard_ready` |
+| `zabbix.V74` | 7.4 | template `readme`/`wizard_ready` — its only use in the tree today |
 
 6.0 is the floor, so **no gate below `V62` is meaningful** — do not add one.
 
