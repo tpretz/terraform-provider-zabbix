@@ -112,15 +112,29 @@ Two attributes cannot be imported, because the Zabbix API never returns them:
 `zabbix_proxy.tls_psk_identity` / `.tls_psk`, and the same pair on
 `zabbix_host`. They are write-only on the server.
 
-## Status
+## Scope — read this before adopting
 
-The provider is feature-complete for the objects listed in
-[`docs/resources/`](./docs/resources) and is tested against live 6.0, 7.0, 7.4
-and 8.0 servers on every change. It does **not** yet cover users, user groups,
-roles, actions, media types, maintenance windows, value maps, host prototypes,
-web scenarios, services, SLAs, network discovery, or dashboards — that backlog
-is enumerated in [PLAN.md § Phase 4](./PLAN.md#phase-4--feature-completeness)
-and [API-COVERAGE.md](./API-COVERAGE.md).
+Everything in [`docs/resources/`](./docs/resources) works, is current with
+Zabbix 6.0 through 8.0, and is tested against all four on every change. What is
+covered is covered properly.
+
+**It does not manage alerting.** Hosts, templates, items, triggers, graphs,
+discovery rules and proxies are all here — but `action`, `mediatype`,
+`usergroup` and `user` are not. A stock Zabbix ships five actions, all disabled,
+and forty media types, none enabled, so nothing is sent when a trigger fires
+until something enables them. With this provider you can define your monitoring
+as code and still have to wire up who gets told, by hand, in the frontend.
+
+That is the next release's target, as one set — see
+[PLAN.md § "The v2.1 target"](./PLAN.md). If managing the alerting pipeline as
+code is why you are here, wait for v2.1.
+
+Also not yet covered: roles, maintenance windows, value maps, host prototypes,
+web scenarios, services, SLAs, network discovery, and dashboards. Seven of
+Zabbix's eighteen item types are missing, of which `db_monitor`, `script` and
+`jmx` are the ones most likely to matter. The full picture, object by object, is
+in [API-COVERAGE.md](./API-COVERAGE.md); the ordered backlog is
+[PLAN.md § Phase 4](./PLAN.md#phase-4--feature-completeness).
 
 ## Contributing
 

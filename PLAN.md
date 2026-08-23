@@ -533,6 +533,54 @@ Ordered by user value; see [API-COVERAGE.md §2](./API-COVERAGE.md) for the full
 This is the post-2.0 backlog — additive, parallelisable, no longer on the critical path,
 and shipped as ordinary `v2.x` minor releases.
 
+### The v2.1 target: make the provider able to tell someone
+
+**A user can configure perfect monitoring with v2.0.0 and never be notified of anything.**
+That is the single real gap in the coverage, and it is worth stating before the long list
+below, because nothing else on it is load-bearing in the same way.
+
+Measured on a stock Zabbix 7.4, not assumed:
+
+```
+actions shipped:  5   — all disabled
+media types:     40   — none enabled
+```
+
+So out of the box Zabbix does nothing when a trigger fires. Something has to create or
+enable an action, and enable a media type, before a problem reaches a human. None of
+that is manageable today, so the alerting half of a Zabbix deployment stays hand-made
+while the monitoring half is code — which is the worst of both, because the two drift.
+
+**v2.1 is therefore one coherent unit, not four independent resources:**
+
+| Resource | Why it is in the set |
+|---|---|
+| `zabbix_action` | what happens when a trigger fires: conditions, operations, escalations |
+| `zabbix_mediatype` | how the message leaves Zabbix; 40 ship, all disabled |
+| `zabbix_usergroup` (+ DS) | actions notify *groups*; host-group permissions are also granted per group, so this is "who can see what" as well |
+| `zabbix_user` (+ DS) | members of the above, and their media assignments |
+
+Half the set buys nothing: an action with no media type sends nowhere, a media type with
+no action is never invoked, and both need a user group to aim at. Ship them together or
+not at all.
+
+Two things to settle early, because they shape the schemas:
+
+- **`action` is the largest object in the API this provider will model.** Five source
+  types (trigger, service, discovery, autoregistration, internal), each with its own
+  legal condition and operation set, plus nested escalation steps. Expect it to need the
+  `C1`–`C7` collection treatment throughout, and expect the 6.0 `update_operations`
+  rename to be the first of several version gates.
+- **`user` holds credentials.** `passwd` on create, and Zabbix will not return it. That
+  is the `tls_psk` write-only shape again — decide up front whether the provider manages
+  passwords at all, or only usernames, roles and group membership, and leave
+  authentication to the directory. Managing a password Terraform cannot read back is a
+  standing source of spurious diffs.
+
+Everything after this section is the remaining backlog, unranked against v2.1.
+
+---
+
 Each row below is one work item following S1–S9 from "The unit of work". Columns flag the
 steps that carry unusual cost: **DS** = data source also needed, **VG** = version-gated
 behaviour, **∼** = relative size.
@@ -559,18 +607,28 @@ script/browser.
 
 ### 4b — tier 1 objects
 
+Split by whether the provider is *unable to do the job* without them, which is a
+different question from how often they are used.
+
+**v2.1 — the alerting set.** Ship together; see "The v2.1 target" above.
+
 | Object | Resource | DS | VG | ∼ |
 |---|---|---|---|---|
-| user | `zabbix_user` | ✔ | 7.4 strict `user.get` validation | L |
-| usergroup | `zabbix_usergroup` | ✔ | 7.2 removed `rights`/`userids`/`selectRights` | L |
-| role | `zabbix_role` | | 6.0+ | M |
-| action | `zabbix_action` | | 6.0 `update_operations` rename | XL — five action types, nested op/condition/filter blocks |
+| action | `zabbix_action` | | 6.0 `update_operations` rename | XL — five source types, nested condition/operation/escalation blocks |
 | mediatype | `zabbix_mediatype` | | 7.2 dropped `content_type`/`exec_params`; 7.4 OAuth fields | L |
+| usergroup | `zabbix_usergroup` | ✔ | 7.2 removed `rights`/`userids`/`selectRights` | L |
+| user | `zabbix_user` | ✔ | 7.4 strict `user.get` validation | L — settle the password question first |
+| role | `zabbix_role` | | 6.0+ | M — usergroups reference it, so it comes along |
+
+**v2.2 and after — operationally significant, but workable without.**
+
+| Object | Resource | DS | VG | ∼ |
+|---|---|---|---|---|
+| hostprototype | `zabbix_host_prototype` | | | L — the one remaining LLD gap; everything else in LLD is covered |
 | maintenance | `zabbix_maintenance` | | 7.2 removed `groupids`/`hostids` | L — timeperiod blocks |
 | valuemap | `zabbix_valuemap` **+ data source** | | host/template scoped since 5.4. Item `valuemapid` is blocked on this: maps are host-local, so nothing can produce an id today. The data source matters as much as the resource — a map created by a template import cannot otherwise be referenced at all | M |
-| hostprototype | `zabbix_host_prototype` | | | L — the significant remaining LLD gap |
+| token | `zabbix_token` | | 5.4+ | S — note the bootstrapping problem: you need auth to create auth |
 | httptest | `zabbix_web_scenario` | | | L — step blocks |
-| token | `zabbix_token` | | 5.4+ | S |
 | proxygroup | `zabbix_proxygroup` | ✔ | 7.0+ only | M |
 | usermacro (global) | `zabbix_global_macro` | | | S |
 

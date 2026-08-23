@@ -33,6 +33,17 @@ Legend: ✅ full · 🟡 partial · ❌ none · 💀 dead (API removed upstream)
 
 Grouped by value for a Terraform user.
 
+> **The alerting pipeline is the one gap that stops the provider doing its job.**
+> Measured on a stock Zabbix 7.4: **5 actions ship, all disabled; 40 media types ship,
+> none enabled.** So Zabbix does nothing when a trigger fires until something creates or
+> enables an action and enables a media type — and neither is manageable here. A user can
+> define perfect monitoring with v2.0.0 and never be told when it breaks.
+>
+> `action`, `mediatype`, `usergroup` and `user` are therefore one unit, not four items:
+> an action with no media type sends nowhere, a media type with no action is never
+> invoked, and both need a group to aim at. They are the v2.1 target — see
+> [PLAN.md § "The v2.1 target"](./PLAN.md).
+
 ### Tier 1 — commonly managed as code, high demand
 | API object | Proposed resource |
 |---|---|
