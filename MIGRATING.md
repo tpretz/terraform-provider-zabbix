@@ -28,10 +28,13 @@ keeps running throughout.
 | 8 | `preprocessor.type` takes a name, not a number | none now, edit at leisure |
 | 9 | `serialize` now defaults to `true` | none — a behaviour change, not a config one |
 | 10 | `inventory` under `inventory_mode = "automatic"` no longer clears fields you stop naming | none, unless you were relying on it |
+| 11 | renaming `host` now moves the derived display `name` with it | none, unless you were relying on it |
+| 12 | `interface` no longer required; `data.zabbix_proxy.host` deprecated | none |
 
-Numbers 9 and 10 need no action at all: applies get safer, and marginally slower,
-on their own, and number 10 stops the provider deleting inventory data Zabbix
-collected for you. Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
+Numbers 9 to 12 need no action at all: applies get safer, and marginally slower,
+on their own; number 10 stops the provider deleting inventory data Zabbix
+collected for you; number 11 stops a display name being stranded on a technical
+name that no longer exists. Numbers 3 and 7 are the cheapest: the attributes are simply deleted from your
 config and the provider quietly discards them from state. Number 8 is cheaper
 still — nothing to do at upgrade time. Number 6 is the one most likely to break
 a config that otherwise looks fine.
@@ -802,6 +805,67 @@ once you have deleted the line, the field has also left Terraform's state, so ad
 other value works normally, and `inventory_mode = "manual"` gets you the old
 behaviour for the whole block.
 
+## 11. Renaming `host` now moves the display name with it
+
+Nothing to edit. Listed because it changes what an apply *does*, on a resource
+you may already have.
+
+`zabbix_host.name` and `zabbix_template.name` are the **display** name, and
+Zabbix derives them from the technical name (`host`) when you do not give one.
+`v0.17.0` derived it once, at create, and never again — so renaming `host` on a
+resource whose `name` you had never written left the display name pointing at
+the *old* technical name, permanently and invisibly:
+
+```hcl
+resource "zabbix_host" "web" {
+  host = "web01.example.com"   # display name also becomes web01.example.com
+  # ...
+}
+```
+
+Change that `host` to `web01.prod.example.com` under `v0.17.0` and the frontend
+kept showing `web01.example.com` for ever. Under `v2.0.0` the display name moves
+too, and the plan says so before you apply it:
+
+```
+  ~ resource "zabbix_host" "web" {
+      ~ host = "web01.example.com" -> "web01.prod.example.com"
+      ~ name = "web01.example.com" -> "web01.prod.example.com"
+    }
+```
+
+**A display name you set yourself is never touched.** The derivation fires only
+on create, and on a `host` rename *while the stored name is still the old
+`host`* — so writing `name` explicitly opts out completely:
+
+```hcl
+resource "zabbix_host" "web" {
+  host = "web01.prod.example.com"
+  name = "Production web 01"     # yours; renaming `host` will not move it
+}
+```
+
+If you were relying on the old behaviour — a display name that came from an
+earlier technical name and that you want to keep — write it out as `name`
+before you apply. The plan will show the move first either way.
+
+The same applies to `zabbix_template`. Two other derived defaults changed at the
+same time and need no thought at all: item `trends` (derived from `valuetype`)
+and trigger `correlation_mode` (from `correlation_tag`) are now worked out at
+**plan** time rather than left to the apply, so the plan no longer says
+`(known after apply)` for a value written three lines further up.
+
+## 12. Smaller changes that need no action
+
+- **`zabbix_host.interface` is no longer required.** Zabbix accepts a host with
+  no interfaces on every supported version — one holding only calculated,
+  dependent, trapper or internal items, or existing purely to carry templates.
+  The provider used to refuse. Nothing to change; it only stops rejecting a
+  configuration Zabbix would have accepted.
+- **`data.zabbix_proxy`'s `host` argument is deprecated** in favour of `name`,
+  which is what Zabbix has called the property since 7.0. Both still work and
+  both are still reported, but `host` warns on every plan. Rename it at leisure.
+
 ## Checklist
 
 ```
@@ -824,6 +888,9 @@ behaviour for the whole block.
 [ ] inventory blocks under inventory_mode = "automatic" reviewed: a field you
     want cleared is now written as "" rather than deleted (nothing to change
     unless you were relying on deletion clearing it)
+[ ] any zabbix_host / zabbix_template whose display name should NOT follow a
+    future `host` rename has that name written out explicitly
+[ ] data.zabbix_proxy: `host` renamed to `name` (optional; `host` warns)
 [ ] terraform plan is empty
 ```
 

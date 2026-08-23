@@ -27,8 +27,9 @@ The first release since `v0.17.0` (2021), and deliberately a breaking one. Every
 breaking change in the v2 line is batched here.
 
 **Read [MIGRATING.md](./MIGRATING.md) before upgrading.** It is a section-by-section
-`v0.17.0 → v2.0.0` guide with before/after HCL for each of the ten breaking
-changes, and it ends in a checklist. No Zabbix object has to be recreated: every
+`v0.17.0 → v2.0.0` guide with before/after HCL for each of its twelve numbered
+sections — eight that need an edit, four that only change what an apply does —
+and it ends in a checklist. No Zabbix object has to be recreated: every
 change is either an edit to your `.tf` files or a `terraform state` operation.
 
 Headline: **the provider could not talk to a Zabbix 7.2 or newer server at all**
@@ -135,13 +136,15 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
   nothing, exactly as before. The one visible behaviour change: renaming `host` on
   a resource whose `name` was derived now moves the display name along with it,
   where it used to be left pointing at the old technical name for ever. A display
-  name you set yourself is never touched.
+  name you set yourself is never touched. See
+  [MIGRATING.md §11](./MIGRATING.md#11-renaming-host-now-moves-the-display-name-with-it).
 - **`zabbix_host.interface` is `Optional` rather than `Required`.** Zabbix
   accepts a host with no interfaces at all on every supported version — one
   carrying only calculated, dependent, trapper or internal items, or existing
   purely to hold templates, has nothing to attach an interface to. Nothing to
   change in an existing configuration; it only stops the provider refusing a
-  host the server would have created.
+  host the server would have created. See
+  [MIGRATING.md §12](./MIGRATING.md#12-smaller-changes-that-need-no-action).
 - The Zabbix API client is no longer the `github.com/tpretz/go-zabbix-api` git
   submodule; it lives in this repository as `internal/zabbix`, with its history
   preserved. Nothing about this is visible in a configuration.
