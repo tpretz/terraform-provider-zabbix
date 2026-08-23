@@ -133,10 +133,10 @@ Optional:
 - `ip` (String) IP address Zabbix connects to. Takes precedence over `dns` when both are set
 - `main` (Boolean) Whether this is the default interface for its type. Exactly one interface of each type must be the primary
 - `port` (Number) Port Zabbix connects to. Defaults to the standard port for the interface type: agent 10050, snmp 161, ipmi 623, jmx 8686. Deleting the line returns the interface to that default
-- `snmp3_authpassphrase` (String, Sensitive) SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level "noauthnopriv" needs
+- `snmp3_authpassphrase` (String) SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level "noauthnopriv" needs
 - `snmp3_authprotocol` (String) Authentication Protocol (v3 only), one of: md5, sha
 - `snmp3_contextname` (String) SNMPv3 context name (v3 only). Empty is valid and is what security level "noauthnopriv" needs
-- `snmp3_privpassphrase` (String, Sensitive) SNMPv3 privacy passphrase (v3 only). Empty is valid and is what security level "noauthnopriv" needs
+- `snmp3_privpassphrase` (String) SNMPv3 privacy passphrase (v3 only). Empty is valid and is what security level "noauthnopriv" needs
 - `snmp3_privprotocol` (String) Priv Protocol (v3 only), one of: aes, des
 - `snmp3_securitylevel` (String) Security Level (v3 only), one of: authnopriv, authpriv, noauthnopriv
 - `snmp3_securityname` (String) SNMPv3 security name (v3 only). Empty is valid and is what security level "noauthnopriv" needs

@@ -31,6 +31,12 @@ Worth knowing before you file, because two of these look like bugs and are not:
   tokens, PSKs, IPMI passwords and SNMPv3 passphrases are replaced with
   `***REDACTED***` in `TF_LOG` output. If you find a credential in a log, that is a
   vulnerability — please report it.
+- **SNMPv3 passphrases are not marked sensitive, on purpose.** Terraform
+  propagates sensitivity to everything derived from the containing block, so
+  marking them taints every expression over `interface` — including the
+  interface `id`, which carries no secret and which every agent or SNMP item
+  needs. The schema defaults them to user-macro references, which is the right
+  way to hold them; a literal in the configuration will appear in plan output.
 - **`tls_insecure` disables certificate *and* hostname verification**, which means the
   provider will send its credentials to whatever answers on that address. It exists for
   testing against a self-signed lab server. There is deliberately no environment-variable

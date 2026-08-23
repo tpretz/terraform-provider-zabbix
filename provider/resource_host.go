@@ -362,11 +362,19 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_authpassphrase": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
-					// A credential. The default is a user-macro reference, which is
-					// the safe way to use it, but a literal is legal and would
-					// otherwise appear in every plan diff — and this value is read
-					// back from the server into state, unlike the PSKs.
-					Sensitive:   true,
+					// Deliberately NOT Sensitive, though it is a credential.
+					// Terraform propagates sensitivity to anything derived from the
+					// containing block, so marking it taints every expression over
+					// `interface` — including `i.id`, which carries no secret and
+					// which users need constantly, because an agent or SNMP item
+					// requires an interfaceid. Marking it broke the documented
+					// example in docs/resources/host.md outright.
+					//
+					// The exposure it would have covered is a literal passphrase in
+					// the configuration; the default steers to a user macro instead,
+					// which is the right answer anyway. ipmi_password, tls_psk and
+					// tls_psk_identity are top-level host attributes, taint nothing,
+					// and stay marked.
 					Description: "SNMPv3 authentication passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
 					Default:     "{$SNMP3_AUTHPASSPHRASE}",
 				},
@@ -386,11 +394,19 @@ var hostSchemaBase = map[string]*schema.Schema{
 				"snmp3_privpassphrase": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
-					// A credential. The default is a user-macro reference, which is
-					// the safe way to use it, but a literal is legal and would
-					// otherwise appear in every plan diff — and this value is read
-					// back from the server into state, unlike the PSKs.
-					Sensitive:   true,
+					// Deliberately NOT Sensitive, though it is a credential.
+					// Terraform propagates sensitivity to anything derived from the
+					// containing block, so marking it taints every expression over
+					// `interface` — including `i.id`, which carries no secret and
+					// which users need constantly, because an agent or SNMP item
+					// requires an interfaceid. Marking it broke the documented
+					// example in docs/resources/host.md outright.
+					//
+					// The exposure it would have covered is a literal passphrase in
+					// the configuration; the default steers to a user macro instead,
+					// which is the right answer anyway. ipmi_password, tls_psk and
+					// tls_psk_identity are top-level host attributes, taint nothing,
+					// and stay marked.
 					Description: "SNMPv3 privacy passphrase (v3 only). Empty is valid and is what security level \"noauthnopriv\" needs",
 					Default:     "{$SNMP3_PRIVPASSPHRASE}",
 				},
