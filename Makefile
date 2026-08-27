@@ -205,6 +205,61 @@ testenv-verify: ## Ask every running stack for its apiinfo.version
 
 # --- acceptance tests -------------------------------------------------------
 
+.PHONY: sweep
+sweep: ## Delete leftover test-* objects from every stack (recovers an aborted run)
+	@rc=0; for v in $(VERSIONS); do \
+		printf '==> sweeping zabbix %-4s ' "$$v"; \
+		ZABBIX_URL=$$($(MAKE) -s print-url-$$v) \
+			go test ./provider/ -sweep=all >/dev/null 2>&1 \
+			&& echo ok || { echo FAILED; rc=1; }; \
+	done; exit $$rc
+
+# --- the release gate -------------------------------------------------------
+#
+# One target for RELEASING.md step 0, so a full check is one command and one
+# walk-away rather than a dozen prompts. Takes roughly 30 minutes: the local
+# checks are seconds, the four acceptance runs are ~6.5 minutes each.
+#
+# Sweeps before each version rather than once at the start, because a failure
+# part-way through leaves objects behind that would fail the next version with
+# "already exists" and send you hunting a bug that is not there.
+#
+# 8.0 runs but never gates, matching the support policy. Its result is printed
+# at the end either way.
+.PHONY: release-gate
+release-gate: ## Everything RELEASING.md step 0 checks, in one run (~30 min)
+	@echo "=== local checks ==="
+	@$(MAKE) --no-print-directory check-toolchain
+	@$(MAKE) --no-print-directory build
+	@$(MAKE) --no-print-directory vet
+	@out=$$(gofmt -l .); test -z "$$out" || { echo "gofmt: $$out"; exit 1; }; echo "gofmt: clean"
+	@go test ./... -count=1 || exit 1
+	@$(MAKE) --no-print-directory docs-check
+	@echo
+	@echo "=== acceptance matrix ==="
+	@rc=0; fail=""; \
+	for v in $(GATED); do \
+		ZABBIX_URL=$$($(MAKE) -s print-url-$$v) go test ./provider/ -sweep=all >/dev/null 2>&1; \
+		if $(MAKE) --no-print-directory test$$v >/dev/null 2>&1; then \
+			echo "zabbix $$v: PASS"; \
+		else \
+			echo "zabbix $$v: FAIL  (see provider/acc-$$v.log)"; rc=1; fail="$$fail $$v"; \
+		fi; \
+	done; \
+	ZABBIX_URL=$$($(MAKE) -s print-url-80) go test ./provider/ -sweep=all >/dev/null 2>&1; \
+	if $(MAKE) --no-print-directory test80 >/dev/null 2>&1; then \
+		echo "zabbix 80: PASS  (non-gating)"; \
+	else \
+		echo "zabbix 80: FAIL  (non-gating - investigate, do not block on it)"; \
+	fi; \
+	echo; \
+	if [ $$rc -eq 0 ]; then \
+		echo "RELEASE GATE: PASS - gating versions $(GATED) all green"; \
+	else \
+		echo "RELEASE GATE: FAIL -$$fail"; \
+	fi; \
+	exit $$rc
+
 .PHONY: testacc
 testacc: ## Acceptance tests on the release-gating versions (6.0/7.0/7.4)
 	@rc=0; for v in $(GATED); do $(MAKE) test$$v || rc=1; done; exit $$rc
