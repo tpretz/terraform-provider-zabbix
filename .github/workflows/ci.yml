@@ -1,43 +1,13 @@
-# ============================================================================
-# DISABLED ON THE v2 BRANCH — see PLAN.md (Phase 0)
-#
-# Nothing in this workflow may execute while the v2 line is under
-# development. GitHub Actions is also disabled repository-wide at the
-# moment; this file's own guards are the belt to that braces, and are what
-# keeps this workflow inert even after Actions is re-enabled.
-#
-# Two independent guards, either of which is sufficient:
-#
-#   1. No automatic trigger. There is no `push` or `pull_request` trigger —
-#      only manual `workflow_dispatch`. Nothing on this branch starts this
-#      workflow by itself.
-#   2. A job-level branch guard. The job refuses to run when dispatched
-#      from `refs/heads/v2`.
-#
-# Intended triggers once re-enabled (see below): `push` and `pull_request`
-# against the branches this line builds from.
-#
-# TO RE-ENABLE (Phase 0 completion task): restore the `push`/`pull_request`
-# triggers and drop the `if:` guard below.
-#
-# ----------------------------------------------------------------------------
-# Intended triggers, for restoration:
-#
-#   on:
-#     push:
-#       branches: [v2]
-#     pull_request:
-# ============================================================================
-name: ci (disabled on v2)
+name: ci
 on:
-  # Guard 1: manual only. No push/pull_request trigger exists on this branch.
+  push:
+    branches: [v2]
+  pull_request:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Guard 2: never from the v2 branch.
-    if: github.ref != 'refs/heads/v2'
     steps:
       -
         name: Checkout
