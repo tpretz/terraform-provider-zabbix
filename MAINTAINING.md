@@ -49,6 +49,31 @@ make testenv-up-74 && make test74
 make test-one TEST=TestAccResourceHost VER=74     # then narrow
 ```
 
+### Known upkeep: the Node 20 action deprecation
+
+Every CI run currently prints:
+
+> Node.js 20 is deprecated. The following actions target Node.js 20 but are being
+> forced to run on Node.js 24: `actions/checkout@v4`, `actions/setup-go@v5`
+
+A warning, not a failure — GitHub is running them on Node 24 regardless, and the
+first v2.0.0 CI run was green with it. The fix is a major bump on both, across all
+three workflows:
+
+| Action | Now | Used by |
+|---|---|---|
+| `actions/checkout` | `@v4` | ci, release, nightly |
+| `actions/setup-go` | `@v5` | ci, release, nightly |
+
+Do it as one change and let CI prove it, rather than during a release — `release.yml`
+is the one workflow with no cheap way to rehearse, so a broken bump there is found by
+a failed publish. `actions/upload-artifact@v4` in the nightly is unaffected;
+`crazy-max/ghaction-import-gpg@v6` and `goreleaser/goreleaser-action@v6` are current.
+
+Dependabot is configured for `github-actions` (see below), so it will raise these
+itself once it starts running — which is only after `v2` becomes the default branch,
+since Dependabot reads its config from there.
+
 ### Reviewing a Dependabot pull request
 
 Two ecosystems, both weekly and grouped, so a routine week is one or two pull
