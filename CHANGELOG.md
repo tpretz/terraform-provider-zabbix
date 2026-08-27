@@ -21,7 +21,7 @@ Nothing yet.
 
 ---
 
-## [2.0.0] — UNRELEASED
+## [2.0.0] — 2026-08-23
 
 The first release since `v0.17.0` (2021), and deliberately a breaking one. Every
 breaking change in the v2 line is batched here.
