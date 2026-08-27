@@ -27,6 +27,11 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "run the provider with support for debuggers like delve")
 	flag.Parse()
 
+	// Hand the version to the provider so it reaches Zabbix in the User-Agent.
+	// This is also what keeps the linker from eliminating the variable: -X can
+	// only write into a symbol something actually reads.
+	provider.Version = version
+
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: provider.Provider,
 		ProviderAddr: "registry.terraform.io/tpretz/zabbix",

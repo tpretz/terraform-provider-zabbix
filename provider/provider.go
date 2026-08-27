@@ -9,6 +9,15 @@ import (
 	"github.com/tpretz/terraform-provider-zabbix/internal/zabbix"
 )
 
+// Version is the provider's own version, set by main from the linker's -X
+// flags at release time and left as "dev" for a local build. It reaches Zabbix
+// in the User-Agent header, so a server's access log records which provider
+// build made a call.
+//
+// It exists here rather than being passed down because providerConfigure is
+// reached through schema.Provider's ConfigureFunc, which takes no room for it.
+var Version = "dev"
+
 // Provider definition
 func Provider() *schema.Provider {
 	return &schema.Provider{
@@ -148,6 +157,7 @@ func providerConfigure(d *schema.ResourceData) (meta interface{}, err error) {
 		TlsNoVerify: d.Get("tls_insecure").(bool),
 		Log:         l,
 		Serialize:   d.Get("serialize").(bool),
+		UserAgent:   "terraform-provider-zabbix/" + Version,
 	})
 	if apierr != nil {
 		return nil, apierr

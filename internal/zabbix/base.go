@@ -108,12 +108,26 @@ type API struct {
 	Config    Config
 }
 
+// userAgent falls back to the bare module path when the caller supplies
+// nothing, so the client stays usable on its own terms.
+func userAgent(s string) string {
+	if s == "" {
+		return "github.com/tpretz/terraform-provider-zabbix"
+	}
+	return s
+}
+
 type Config struct {
 	Url         string
 	TlsNoVerify bool
 	Log         *log.Logger
 	Serialize   bool
-	Version     int
+	// UserAgent identifies the caller to Zabbix. The provider sets this to
+	// include its own version, so a Zabbix access log or audit trail says which
+	// provider build made a call — which is the first thing you want when a
+	// report says "it broke after upgrading".
+	UserAgent string
+	Version   int
 }
 
 func parseVersionString(vstr string) (version int64, err error) {
@@ -159,7 +173,7 @@ func NewAPI(c Config) (api *API, err error) {
 		// tight: a Zabbix server under load can take a while over a large
 		// host.massadd, and a false timeout mid-apply is worse than a slow one.
 		c:         http.Client{Timeout: 120 * time.Second},
-		UserAgent: "github.com/tpretz/terraform-provider-zabbix",
+		UserAgent: userAgent(c.UserAgent),
 		Logger:    c.Log,
 		Config:    c,
 	}

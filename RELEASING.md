@@ -91,10 +91,7 @@ Two known, harmless things you will see:
 
 - The snapshot version is derived from the last reachable tag (`0.15.0-SNAPSHOT-<sha>`
   on this branch). Snapshot versions are not real; ignore it.
-- `.goreleaser.yml` passes `-X main.version=… -X main.commit=…`, but `main.go`
-  declares neither variable. The linker ignores `-X` for symbols that do not
-  exist, so the flags are a silent no-op. Not worth fixing during a release;
-  either add the variables or drop the flags afterwards.
+- The snapshot's `main.commit` is the commit being built, not the tag.
 
 Optionally, smoke-test the built binary against a real Terraform run using a
 `dev_overrides` block in `~/.terraformrc` pointing at `dist/<target>/`, with one
