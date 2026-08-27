@@ -233,7 +233,7 @@ release-gate: ## Everything RELEASING.md step 0 checks, in one run (~30 min)
 	@$(MAKE) --no-print-directory build
 	@$(MAKE) --no-print-directory vet
 	@out=$$(gofmt -l .); test -z "$$out" || { echo "gofmt: $$out"; exit 1; }; echo "gofmt: clean"
-	@go test ./... -count=1 || exit 1
+	@TF_ACC= go test ./... -count=1 || exit 1   # TF_ACC= or this runs the acceptance suite
 	@$(MAKE) --no-print-directory docs-check
 	@echo
 	@echo "=== acceptance matrix ==="
