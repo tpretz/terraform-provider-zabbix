@@ -78,6 +78,26 @@ goreleaser build --snapshot --clean    # all eight platform binaries, no publish
 ls dist/*/
 ```
 
+Then check the checksum file lists **every** asset, the manifest included:
+
+```bash
+goreleaser release --snapshot --clean --skip=sign,publish,validate
+cat dist/*SHA256SUMS
+```
+
+Nine lines: eight zips and `..._manifest.json`. If the manifest is absent the
+GitHub release will still look perfectly complete and the Terraform Registry
+will refuse the whole thing, reporting
+
+```
+Could not find all required assets for this release yet (2.0.0)
+missing SHA256 checksum for ["terraform-provider-zabbix_2.0.0_manifest.json"]
+```
+
+only in its publishing log — nothing in the GitHub release or the Registry's
+public API shows it. `release.extra_files` uploads a file; `checksum.extra_files`
+puts it in SHA256SUMS. Both are needed and it is easy to add only the first.
+
 Expected: eight targets (freebsd/windows/linux/darwin × amd64/arm64), each
 containing a binary named **`terraform-provider-zabbix_v<version>`**. That name
 is not cosmetic — the Terraform Registry requires exactly

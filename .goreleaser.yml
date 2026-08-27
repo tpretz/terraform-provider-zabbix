@@ -37,6 +37,19 @@ archives:
   formats: [zip]
   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 checksum:
+  # The manifest has to be listed here as well as under `release:`. These are
+  # two different things and it is not obvious: `release.extra_files` uploads a
+  # file, `checksum.extra_files` includes it in SHA256SUMS. Uploading it without
+  # checksumming it makes the Registry refuse the whole release with
+  #
+  #   Could not find all required assets for this release yet (2.0.0)
+  #   missing SHA256 checksum for ["terraform-provider-zabbix_2.0.0_manifest.json"]
+  #
+  # which it reports only in the publishing log, not through its public API —
+  # the GitHub release itself looks complete.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 signs:
