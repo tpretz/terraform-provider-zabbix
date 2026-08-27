@@ -1,62 +1,17 @@
-# ============================================================================
-# DISABLED ON THE v2 BRANCH — see PLAN.md (Phase 6) and RELEASING.md
-#
-# Nightly acceptance run against every supported Zabbix version. Created
-# disabled, in the same pattern as ci.yml and release.yml: GitHub Actions is
-# off repository-wide, and this file carries its own guards so it stays inert
-# even after Actions is re-enabled.
-#
-# Two independent guards, either of which is sufficient:
-#
-#   1. No automatic trigger. There is no `schedule` trigger — only manual
-#      `workflow_dispatch`. Nothing starts this workflow by itself.
-#   2. A job-level branch guard. The jobs refuse to run when dispatched from
-#      `refs/heads/v2`.
-#
-# TO ENABLE (a step in RELEASING.md, after v2 becomes the default branch):
-# restore the `schedule` trigger below and drop the two `if:` guards.
-#
-# ----------------------------------------------------------------------------
-# Intended trigger, for restoration:
-#
-#   on:
-#     schedule:
-#       # 03:17 UTC daily. Off the hour on purpose — Actions queues are
-#       # heaviest exactly on it, and a nightly has no reason to compete.
-#       - cron: '17 3 * * *'
-#     workflow_dispatch:
-#
-# Cost: the four versions run as parallel matrix jobs, each roughly 4-6
-# minutes — about 215s of acceptance tests plus stack boot and build. Wall
-# clock is therefore one job, not four; the ~15 minutes a serial run would
-# take is what the matrix buys back. Keep it a matrix rather than a loop for
-# that reason, and because a failure names its version in the job list.
-#
-# BEFORE THE FIRST REAL RUN: the report job needs a `nightly-failure` label.
-# It creates one if it is missing, which needs `issues: write` — already
-# granted below.
-# ============================================================================
-name: nightly acceptance (disabled on v2)
+name: nightly acceptance
 on:
-  # Guard 1: manual only. No schedule trigger exists on this branch.
+  schedule:
+    # 03:17 UTC. Off the hour on purpose: scheduled workflows queue against
+    # everyone else's, and the top of the hour is the worst time to ask for
+    # four Zabbix stacks' worth of runner.
+    - cron: '17 3 * * *'
   workflow_dispatch:
-
-# One nightly at a time. A run that overlaps its predecessor would fight it
-# for the published ports on a shared runner and produce a false failure.
-concurrency:
-  group: nightly-acceptance
-  cancel-in-progress: false
-
-permissions:
-  contents: read
-  issues: write
 
 jobs:
   acceptance:
     name: zabbix ${{ matrix.version }}
     runs-on: ubuntu-latest
     # Guard 2: never from the v2 branch.
-    if: github.ref != 'refs/heads/v2'
     timeout-minutes: 45
     strategy:
       # Every version reports. Stopping at the first failure would hide
@@ -146,7 +101,7 @@ jobs:
     # Guard 2 again, plus: only when a *gating* version failed. A matrix job
     # with continue-on-error that fails does not fail its dependents, so 8.0
     # breaking on trunk deliberately opens nothing.
-    if: always() && github.ref != 'refs/heads/v2' && needs.acceptance.result == 'failure'
+    if: always() && needs.acceptance.result == 'failure'
     steps:
       -
         name: Open or update the failure issue
