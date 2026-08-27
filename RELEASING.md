@@ -195,6 +195,19 @@ missing, stop.
   the same clause from the `report` job's condition — keeping
   `always() && needs.acceptance.result == 'failure'`
 
+**Make `v2` the default branch first — step 10 has to move up to here.**
+GitHub only offers `workflow_dispatch` for workflows that exist on the *default*
+branch, and `nightly.yml` and `ci.yml` live only on `v2`. While `master` is still
+default the nightly cannot be dispatched at all, from the UI or the API. (This does
+not affect `push` triggers, which is why CI runs on a push to `v2` regardless — a
+push uses that branch's copy of the file.)
+
+Switching the default early publishes nothing: `release.yml` triggers only on a
+`v2.*` tag and none exists yet. What it does change is that Dependabot starts
+reading its config and new pull requests default to `v2`, both of which you want
+anyway. The alternative — cherry-picking `nightly.yml` onto `master` to make it
+dispatchable — would break the "master is frozen" rule for the sake of a button.
+
 Then dispatch it once by hand and let it finish, before tagging:
 
 ```bash
@@ -303,6 +316,10 @@ index and that the sidebar shows the seven subcategories; if a page is missing,
 prevent.
 
 ### 10. Make `v2` the default branch, and leave `master` as an archive
+
+**If you followed step 6, this is already done** — the nightly cannot be dispatched
+until it is. Kept here for the `master` archiving half, and for the ordering to make
+sense read end to end.
 
 ```bash
 gh repo edit tpretz/terraform-provider-zabbix --default-branch v2
