@@ -66,7 +66,7 @@ var schemaTrigger = map[string]*schema.Schema{
 	"expression": &schema.Schema{
 		Type:         schema.TypeString,
 		ValidateFunc: validation.StringIsNotWhiteSpace,
-		Description:  "Problem expression, e.g. `last(/host/key)>10`. Zabbix 5.4 and later use the `/host/key` syntax",
+		Description:  "Problem expression, e.g. `last(/host/key)>10`. Build the `/host/key` reference by interpolating the host and item resources rather than writing them as literals — `last(/${zabbix_host.web.host}/${zabbix_item_agent.cpu.key})>10` — so Terraform orders the trigger after the item it reads without a `depends_on`, and renaming either updates the expression. Address the host by `host`, its technical name, not by `name`",
 		Required:     true,
 	},
 	"comments": &schema.Schema{
@@ -114,7 +114,7 @@ var schemaTrigger = map[string]*schema.Schema{
 	"recovery_expression": &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
-		Description: "Separate expression that closes the problem. Leave empty to close when the problem expression stops being true; requires recovery_none to be false",
+		Description: "Separate expression that closes the problem. Leave empty to close when the problem expression stops being true; requires recovery_none to be false. Built from interpolated resource references exactly as `expression` is",
 	},
 	"event_name": &schema.Schema{
 		Type:        schema.TypeString,

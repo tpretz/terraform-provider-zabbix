@@ -61,7 +61,7 @@ resource "zabbix_trigger" "cpu_high_with_recovery" {
 
 ### Required
 
-- `expression` (String) Problem expression, e.g. `last(/host/key)>10`. Zabbix 5.4 and later use the `/host/key` syntax
+- `expression` (String) Problem expression, e.g. `last(/host/key)>10`. Build the `/host/key` reference by interpolating the host and item resources rather than writing them as literals — `last(/${zabbix_host.web.host}/${zabbix_item_agent.cpu.key})>10` — so Terraform orders the trigger after the item it reads without a `depends_on`, and renaming either updates the expression. Address the host by `host`, its technical name, not by `name`
 - `name` (String) Trigger name, as shown in the frontend. Zabbix calls this "description" in the API
 
 ### Optional
@@ -76,7 +76,7 @@ resource "zabbix_trigger" "cpu_high_with_recovery" {
 - `multiple` (Boolean) Raise a new problem event every time the expression evaluates true, instead of only on the transition into the problem state
 - `opdata` (String) Operational data shown alongside the problem, may contain item value macros
 - `priority` (String) Severity of problems this trigger raises, one of: not_classified, info, warn, average, high, disaster (listed lowest first)
-- `recovery_expression` (String) Separate expression that closes the problem. Leave empty to close when the problem expression stops being true; requires recovery_none to be false
+- `recovery_expression` (String) Separate expression that closes the problem. Leave empty to close when the problem expression stops being true; requires recovery_none to be false. Built from interpolated resource references exactly as `expression` is
 - `recovery_none` (Boolean) Never close the problem automatically. Mutually exclusive with recovery_expression
 - `tag` (Block Set) Tags applied to this object (unordered). Tags are how Zabbix 5.4 and later group and filter objects; they replaced applications. Zabbix replaces the whole tag collection on update, so omitting a tag removes it. (see [below for nested schema](#nestedblock--tag))
 - `url` (String) URL shown with the problem, e.g. a runbook. Must be http or https, or empty
