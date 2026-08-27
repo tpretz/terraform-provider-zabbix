@@ -31,12 +31,17 @@ resource "zabbix_proto_item_agent" "if_errors" {
   valuetype = "unsigned"
 }
 
+# Build the expression from references rather than repeating the host and key as
+# literals. Terraform sees zabbix_proto_item_agent.if_errors in the interpolation
+# and orders the trigger prototype after the item prototype on its own, so no
+# depends_on is needed.
+#
+# The {#IFNAME} macro is part of the item prototype's key, so referencing the key
+# carries it across -- there is nothing to keep in step by hand.
 resource "zabbix_proto_trigger" "if_errors" {
   name       = "Errors on interface {#IFNAME}"
-  expression = "last(/server-1.example.com/net.if.in.errors[{#IFNAME}])>0"
+  expression = "last(/${data.zabbix_host.example.host}/${zabbix_proto_item_agent.if_errors.key})>0"
   priority   = "warn"
-
-  depends_on = [zabbix_proto_item_agent.if_errors]
 }
 ```
 
