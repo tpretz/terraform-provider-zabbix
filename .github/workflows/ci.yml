@@ -11,7 +11,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       -
         # Runs before Go is installed on purpose: it needs no toolchain, and a
         # dependency bump that raises go.mod's directive past the .tool-versions
@@ -24,7 +24,7 @@ jobs:
         # Go version in CI. A literal here would be a fourth pin with nothing
         # checking it, and a dependency bot would never keep it in step.
         name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       -
