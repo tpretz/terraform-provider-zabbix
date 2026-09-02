@@ -16,7 +16,7 @@ Credentials for every stack: `Admin` / `zabbix`.
 ## Prerequisites
 
 - Docker with Compose v2 (`docker compose`, not `docker-compose`)
-- Go — `.tool-versions` pins **golang 1.25.12**
+- Go — `.tool-versions` pins **golang 1.25.13**
 - **A `terraform` binary.** The acceptance-test driver shells out to it.
   `.tool-versions` pins **terraform 1.8.5**, and the `Makefile` resolves the
   absolute path itself (`asdf which terraform`, falling back to `command -v

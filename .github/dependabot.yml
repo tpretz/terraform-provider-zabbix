@@ -17,7 +17,7 @@
 #
 # THE TOOLCHAIN PINS. The Go version lives in three places:
 #
-#   go.mod `go 1.25.8`        the floor we advertise
+#   go.mod `go 1.25.13`       the floor we advertise
 #   .tool-versions `golang`   what we build and test with (>= the directive)
 #   ci.yml / nightly.yml      `go-version-file: go.mod` — derived, never edited
 #

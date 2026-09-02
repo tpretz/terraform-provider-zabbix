@@ -17,7 +17,27 @@ the module major and the Registry version all read the same.
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- Go directive raised to **1.25.13** (from 1.25.8), and the `.tool-versions`
+  pin with it. `release.yml` compiles with `go-version-file: go.mod`, so the
+  directive is what decides the toolchain behind the published binaries: the
+  `v2.0.0` artefacts were built against a standard library carrying four
+  reachable vulnerabilities — quadratic `resolvePath` in `net/url`, unbounded
+  post-handshake messages in `crypto/tls`, unbounded recursion in
+  `encoding/asn1`, and `net/http`. None had a Dependabot alert, which reads
+  manifests and has no view of the toolchain. **Building from source now needs
+  Go 1.25.13 or later.**
+- Transitive dependencies bumped past their advisories: `golang.org/x/crypto`
+  v0.50.0 → v0.55.0, `golang.org/x/net` v0.52.0 → v0.58.0, `golang.org/x/text`
+  v0.36.0 → v0.41.0, `google.golang.org/grpc` v1.79.3 → v1.83.2. This clears
+  all sixteen open alerts, of which only the two against gRPC — the plugin
+  protocol transport — were reachable from the provider binary at all; the
+  thirteen `x/crypto` ones, including five rated critical, are `crypto/ssh`
+  issues in a package the provider never links. `govulncheck` is clean.
+  `x/crypto` stops at v0.55.0 deliberately: v0.56.0 requires Go 1.26.
+
+  No user-facing behaviour changes, and no `.tf` file needs an edit.
 
 ---
 

@@ -90,7 +90,32 @@ requests. What to check:
 3. **No Go version was written into a workflow file.** Workflows read
    `go-version-file: go.mod`. A literal there is a pin nothing checks.
 4. **Add a `CHANGELOG.md` entry** only when the bump is user-visible — an SDK
-   minor that changes protocol behaviour is; a transitive patch is not.
+   minor that changes protocol behaviour is; a transitive patch is not. A
+   directive bump made for a stdlib fix is, because it raises the floor for
+   anyone building from source.
+
+**Dependabot is not the whole picture, and a green alert list is not an
+all-clear.** It reads manifests, so it sees module versions and nothing else:
+it has no view of the Go standard library, and it scores by advisory severity
+rather than by whether the vulnerable code is in the build graph. Both halves
+of that bit in September 2026 — thirteen alerts against `golang.org/x/crypto`,
+five of them critical, were all `crypto/ssh` and linked into nothing (the
+module reaches the *test* binary only, via `hc-install`'s release-signature
+check), while four genuinely reachable stdlib vulnerabilities in the shipped
+`v2.0.0` binaries had no alert at all.
+
+Run the reachability check instead of reading severities:
+
+```bash
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+```
+
+It reports at symbol level and covers the toolchain, so it answers both
+questions Dependabot cannot: is the vulnerable function actually called, and is
+the standard library behind. Run it before a release, and on any alert before
+deciding it is urgent. `go list -deps .` settles the narrower question of
+whether a package reaches the shipped binary at all — the test binary pulls in
+a good deal more than the provider does.
 
 ### The toolchain pins
 
@@ -98,14 +123,22 @@ The Go version is pinned in three places and they must stay consistent:
 
 | Where | What it means | Who moves it |
 |---|---|---|
-| `go.mod` — `go 1.25.8` | the floor advertised to anyone building from source; must be ≥ every dependency's own directive | a dependency bump, often automatically |
-| `.tool-versions` — `golang 1.25.12` | what we actually build, test and generate docs with; must be ≥ the directive | a human |
+| `go.mod` — `go 1.25.13` | the floor advertised to anyone building from source; must be ≥ every dependency's own directive | a dependency bump, often automatically |
+| `.tool-versions` — `golang 1.25.13` | what we actually build, test and generate docs with; must be ≥ the directive | a human |
 | `ci.yml`, `nightly.yml` | `go-version-file: go.mod` — derived, never edited | nobody |
 
 `make check-toolchain` fails when the directive overtakes the pin, and CI runs
 it before it even installs Go. Without it the failure is silent: with
 `GOTOOLCHAIN=auto`, Go downloads whatever the directive asks for and the
 `.tool-versions` pin stops describing anything.
+
+**The directive is also the lever for a Go standard-library CVE, and it is the
+only one.** `release.yml` builds with `go-version-file: go.mod`, so the
+directive decides which toolchain compiles the binaries the Registry serves. A
+`crypto/tls` or `net/http` fix therefore reaches users by raising the directive
+past the SDK's floor and nothing else — see the note in
+[reviewing a Dependabot pull request](#reviewing-a-dependabot-pull-request)
+about why nothing will tell you to.
 
 Terraform is pinned once, in `.tool-versions`. The `Makefile` resolves the
 binary and hands it to the harness as `TF_ACC_TERRAFORM_PATH`; the nightly reads

@@ -15,7 +15,7 @@ multi-version acceptance harness, [MAINTAINING.md](./MAINTAINING.md) and
 
 | | |
 |---|---|
-| Go | 1.25.12 |
+| Go | 1.25.13 |
 | Terraform | 1.8.5 — the acceptance harness shells out to it |
 | Docker | Compose v2, for the Zabbix test stacks |
 | Python 3 | not required; nothing in the build or test path uses it |

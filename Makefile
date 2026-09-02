@@ -96,9 +96,13 @@ test: ## Unit tests only (no Zabbix server needed)
 #
 # The Go version is pinned in three places and they have to stay consistent:
 #
-#   go.mod `go 1.25.8`          the floor we advertise -- the minimum the SDK
-#                               needs, and what a consumer building from source
-#                               must have
+#   go.mod `go 1.25.13`         the floor we advertise -- what a consumer
+#                               building from source must have. Usually the
+#                               minimum the SDK needs; raise it deliberately
+#                               above that to require a stdlib security fix,
+#                               as 1.25.13 does, and never lower it back to
+#                               the SDK floor on the grounds that the SDK is
+#                               happy with less
 #   .tool-versions `golang`     what we actually build, test and generate docs
 #                               with, and so >= the directive
 #   ci.yml/nightly.yml          `go-version-file: go.mod`, so CI follows the
@@ -140,7 +144,7 @@ check-toolchain: ## Fail if .tool-versions' Go pin is older than go.mod's direct
 # Pinned rather than floating: tfplugindocs output changes between releases,
 # so an unpinned version would make `docs-check` fail on somebody else's
 # machine for no reason. v0.25.0 needs go >= 1.25.8, which .tool-versions
-# satisfies (1.25.12); v0.24.0 and below are the fallback for an older
+# satisfies (1.25.13); v0.24.0 and below are the fallback for an older
 # toolchain, at the cost of a slightly different rendering.
 TFPLUGINDOCS_VERSION ?= v0.25.0
 TFPLUGINDOCS         := go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@$(TFPLUGINDOCS_VERSION)
