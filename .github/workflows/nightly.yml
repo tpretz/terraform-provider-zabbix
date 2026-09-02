@@ -40,13 +40,13 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       -
         name: Toolchain pins
         run: make check-toolchain
       -
         name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           # go.mod is the single source of the Go version in CI — see
           # .github/dependabot.yml. Never a literal here.
@@ -61,7 +61,7 @@ jobs:
         run: echo "version=$(awk '$1=="terraform" {print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
       -
         name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ steps.tfver.outputs.version }}
           terraform_wrapper: false
@@ -87,7 +87,7 @@ jobs:
       -
         name: Upload the acceptance log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: acc-${{ matrix.version }}
           path: provider/acc-${{ matrix.version }}.log
