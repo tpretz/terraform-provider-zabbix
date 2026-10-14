@@ -108,6 +108,11 @@ watched non-blocking via the `ubuntu-trunk` nightly until it reaches GA.
 - [MIGRATING.md](./MIGRATING.md), [TESTING.md](./TESTING.md),
   [DEVELOPMENT.md](./DEVELOPMENT.md), [CONTRIBUTING.md](./CONTRIBUTING.md),
   [RELEASING.md](./RELEASING.md) and [MAINTAINING.md](./MAINTAINING.md).
+- `zabbix_host_prototype` resource: the LLD auto-discovery gap the plan called
+  "notable". Covers `groupLinks`, `groupPrototypes`, `templates`, `tags`,
+  `enabled`/`status` and `discover`. Does not yet cover `inventory_mode`,
+  custom interfaces, macros, or proxy/`monitored_by` assignment on discovered
+  hosts. Verified on 6.0.48, 7.0.29 and 7.4.13.
 
 ### Changed
 

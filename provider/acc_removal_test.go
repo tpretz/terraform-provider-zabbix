@@ -138,6 +138,8 @@ var removalOwner = map[string]string{
 	"zabbix_host.proxyid":                                 "TestAccRemoveHostDefaults",
 	"zabbix_host.tls_accept":                              "TestAccRemoveHostDefaults",
 	"zabbix_host.tls_connect":                             "TestAccRemoveHostDefaults",
+	"zabbix_host_prototype.discover":                      "TestAccRemoveHostPrototypeDefaults",
+	"zabbix_host_prototype.enabled":                       "TestAccRemoveHostPrototypeDefaults",
 	"zabbix_item_agent.active":                            "TestAccRemoveItemDefaults",
 	"zabbix_item_agent.delay":                             "TestAccRemoveItemDefaults",
 	"zabbix_item_agent.history":                           "TestAccRemoveItemDefaults",
@@ -212,6 +214,8 @@ var removalComputed = map[string]string{
 		"be planned at all -- see the note at the end of acc_derived_test.go; TestAccRemoveHostInterfacePort",
 	"zabbix_template.name": "intended: the same derived visible name as zabbix_host.name, the same plan-time " +
 		"derivation and the same way back; TestAccRemoveTemplateName, TestAccDerivedTemplateName",
+	"zabbix_host_prototype.name": "intended: the same derived visible name as zabbix_host.name, reusing the same " +
+		"visibleNameCustomizeDiff; demonstrated at create in TestAccResourceHostPrototype",
 	"zabbix_item_agent.trends": "intended: the default is derived from `valuetype` -- \"0\" for text and log, " +
 		"\"365d\" otherwise -- which no single Default: can express, and from 7.0 Zabbix rejects any other value " +
 		"for text and log outright. The one of the five where a CustomizeDiff is safe, because the derivation " +

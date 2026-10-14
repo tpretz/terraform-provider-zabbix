@@ -124,6 +124,9 @@ var (
 	serverTemplate = serverObject("template.get", "templateids", zabbix.Params{
 		"selectMacros": "extend", "selectParentTemplates": "extend",
 	})
+	serverHostPrototype = serverObject("hostprototype.get", "hostids", zabbix.Params{
+		"selectGroupLinks": "extend", "selectGroupPrototypes": "extend", "selectTemplates": []string{"templateid"}, "selectTags": "extend",
+	})
 	serverHostGroup     = serverObject("hostgroup.get", "groupids", nil)
 	serverTemplateGroup = serverObject("templategroup.get", "groupids", nil)
 	serverGraph         = serverObject("graph.get", "graphids", zabbix.Params{"selectGraphItems": "extend"})
@@ -405,6 +408,14 @@ var updateOwner = map[string]string{
 	"zabbix_graph.ymin":                                   "TestAccUpdateGraph",
 	"zabbix_graph.ymin_itemid":                            "TestAccUpdateGraph",
 	"zabbix_graph.ymin_type":                              "TestAccUpdateGraph",
+	"zabbix_host_prototype.discover":                      "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.enabled":                       "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.group":                         "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.group_prototype":               "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.group_prototype.name":          "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.host":                          "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.name":                          "TestAccResourceHostPrototype",
+	"zabbix_host_prototype.template":                      "TestAccResourceHostPrototype",
 	"zabbix_proto_trigger.comments":                       "TestAccUpdateTrigger",
 	"zabbix_proto_trigger.correlation_mode":               "TestAccUpdateTrigger",
 	"zabbix_proto_trigger.correlation_tag":                "TestAccUpdateTrigger",
@@ -503,6 +514,7 @@ var updateForceNew = map[string]string{
 	"zabbix_item_agent.hostid":       "TestAccForceNewItemHostid; item.update rejects hostid on 6.0-8.0",
 	"zabbix_lld_agent.hostid":        "TestAccForceNewLLDHostid; discoveryrule.update rejects hostid on 6.0-8.0",
 	"zabbix_proto_item_agent.ruleid": "TestAccForceNewProtoItemRuleid; itemprototype.update rejects ruleid from 7.0 and ignores it on 6.0",
+	"zabbix_host_prototype.ruleid":   "TestAccForceNewHostPrototypeRuleid; hostprototype.update does not accept ruleid at all -- create-only on every version",
 }
 
 // updateExempt names the attributes that cannot be changed in life in any
