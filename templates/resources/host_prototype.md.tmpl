@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.RenderedProviderName}}"
+subcategory: "Hosts and Templates"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## `group` and `group_prototype` are sets
+
+Like a host's `interface` or `templates`, `group` and `group_prototype` are
+unordered `TypeSet` collections: writing them in a different order is not a
+change, and set elements cannot be indexed (`group[0]` does not parse).
+
+## Scope
+
+This resource does not cover `inventory_mode`, custom interfaces, macros, or
+proxy/`monitored_by` assignment on discovered hosts -- none of those are
+expressible here yet.
+
+## Example Usage
+
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+{{ codefile "shell" .ImportFile }}
