@@ -65,6 +65,12 @@ func resourceLLDTrapper() *schema.Resource {
 // Custom mod handler for item type
 func itemTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.Item) {
 	item.Type = zabbix.ZabbixTrapper
+	// Trapper items are not polled, so there is no interval to set. delay is
+	// not in this resource's schema (like resourceItemDependent), so Zabbix
+	// otherwise receives item.Delay's Go zero value (""), which it stores
+	// as-is -- a value the frontend's graph page rejects outright ("Incorrect
+	// value for delay: invalid delay"), unlike the "0" it expects and accepts.
+	item.Delay = "0"
 }
 func lldTrapperModFunc(d *schema.ResourceData, m interface{}, item *zabbix.LLDRule) {
 	item.Type = zabbix.ZabbixTrapper
