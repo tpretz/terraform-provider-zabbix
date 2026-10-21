@@ -49,7 +49,19 @@ func resourceTemplateV0() *schema.Resource {
 					ValidateFunc: validation.StringMatch(regexp.MustCompile("^[0-9]+$"), "must be a numeric string"),
 				},
 			},
-			"macro": macroSetSchema,
+			// frozen, not macroSetSchema: this has to describe the v0.17.0
+			// state shape, and the shared schema has grown since
+			"macro": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id":    &schema.Schema{Type: schema.TypeString, Computed: true},
+						"name":  &schema.Schema{Type: schema.TypeString, Required: true},
+						"value": &schema.Schema{Type: schema.TypeString, Required: true},
+					},
+				},
+			},
 		},
 	}
 }
