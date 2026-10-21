@@ -1,7 +1,21 @@
 package zabbix
 
+// MacroType is the user macro "type" property.
+type MacroType int
+
+const (
+	// MacroText a plain text macro, the default
+	MacroText MacroType = 0
+	// MacroSecret a secret text macro. Its value is write-only: usermacro.get
+	// and selectMacros omit "value" entirely for one, on every supported
+	// version (measured on 6.0, 7.0, 7.4 and 8.0).
+	MacroSecret MacroType = 1
+	// MacroVault a vault secret; the value is a vault path, which is returned
+	MacroVault MacroType = 2
+)
+
 // Macro represent Zabbix User MAcro object
-// https://www.zabbix.com/documentation/3.2/manual/api/reference/usermacro/object
+// https://www.zabbix.com/documentation/6.0/en/manual/api/reference/usermacro/object
 type Macro struct {
 	// MacroID is the object's "hostmacroid" property. Note the singular: it
 	// was "hostmacroids" here, which is the *filter* name usermacro.get takes,
@@ -12,6 +26,12 @@ type Macro struct {
 	HostID    string `json:"hostid,omitempty"`
 	MacroName string `json:"macro"`
 	Value     string `json:"value"`
+	// Type and Description are deliberately not omitempty. Both apply to
+	// every macro and host.update leaves an absent property as it was, so
+	// returning a macro to text (0) or clearing its description ("") has to
+	// be sent explicitly or it never happens.
+	Type        MacroType `json:"type,string"`
+	Description string    `json:"description"`
 }
 
 // Macros is an array of Macro

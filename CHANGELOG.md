@@ -17,6 +17,22 @@ the module major and the Registry version all read the same.
 
 ## [Unreleased]
 
+### Added
+
+- **`macro` blocks take `type` and `description`** on `zabbix_host` and
+  `zabbix_template`. `type` is `text` (the default), `secret` or `vault`;
+  previously every macro was created as text, so a password set through the
+  provider was readable by anyone with frontend access. A `secret` value is
+  write-only in the Zabbix API, so the provider keeps it from configuration:
+  a change made to it outside Terraform is not detected, and an imported
+  secret macro reads back with an empty value until the configuration sets
+  it. `value` is not marked sensitive — doing so would make every expression
+  over a host's macros sensitive — so pass secrets from a sensitive variable
+  or data source to keep them out of plan output. Existing configurations
+  need no change, with one exception: **a macro made secret in the frontend
+  whose configuration has no `type` will be planned back to `text`**, since
+  that is the default. Add `type = "secret"` to it before applying.
+
 ### Security
 
 - Go directive raised to **1.25.13** (from 1.25.8), and the `.tool-versions`

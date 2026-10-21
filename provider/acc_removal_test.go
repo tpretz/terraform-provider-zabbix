@@ -135,6 +135,7 @@ var removalOwner = map[string]string{
 	"zabbix_host.inventory_mode":                          "TestAccRemoveHostDefaults",
 	"zabbix_host.ipmi_authtype":                           "TestAccRemoveHostDefaults",
 	"zabbix_host.ipmi_privilege":                          "TestAccRemoveHostDefaults",
+	"zabbix_host.macro.type":                              "TestAccMacroType",
 	"zabbix_host.proxyid":                                 "TestAccRemoveHostDefaults",
 	"zabbix_host.tls_accept":                              "TestAccRemoveHostDefaults",
 	"zabbix_host.tls_connect":                             "TestAccRemoveHostDefaults",

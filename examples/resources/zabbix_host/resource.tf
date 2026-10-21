@@ -1,3 +1,8 @@
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "zabbix_hostgroup" "linux_servers" {
   name = "Linux servers/production"
 }
@@ -28,6 +33,21 @@ resource "zabbix_host" "example" {
   macro {
     name  = "{$SNMP_COMMUNITY}"
     value = "public"
+  }
+
+  # A secret's value is write-only in Zabbix. Take it from a sensitive
+  # variable or data source so that Terraform masks it in plan output.
+  macro {
+    name        = "{$DB_PASSWORD}"
+    value       = var.db_password
+    type        = "secret"
+    description = "Monitoring user password"
+  }
+
+  macro {
+    name  = "{$API_TOKEN}"
+    value = "secret/zabbix:api_token"
+    type  = "vault"
   }
 
   tag {

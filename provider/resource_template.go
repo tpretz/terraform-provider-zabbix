@@ -297,7 +297,7 @@ func templateRead(d *schema.ResourceData, m interface{}, params zabbix.Params) e
 	d.Set("description", t.Description)
 	d.Set("host", t.Host)
 	d.Set("name", t.Name)
-	d.Set("macro", flattenMacros(t.UserMacros))
+	d.Set("macro", flattenMacros(t.UserMacros, d.Get("macro").(*schema.Set)))
 	d.Set("groups", flattenHostGroupIds(t.Groups))
 	d.Set("templates", flattenTemplateIds(t.ParentTemplates))
 	d.Set("uuid", t.UUID)

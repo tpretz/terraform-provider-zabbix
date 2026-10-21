@@ -39,6 +39,11 @@ it, so they cannot be read back, cannot be imported, and are not refreshed.
 ## Example Usage
 
 ```terraform
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "zabbix_hostgroup" "linux_servers" {
   name = "Linux servers/production"
 }
@@ -69,6 +74,21 @@ resource "zabbix_host" "example" {
   macro {
     name  = "{$SNMP_COMMUNITY}"
     value = "public"
+  }
+
+  # A secret's value is write-only in Zabbix. Take it from a sensitive
+  # variable or data source so that Terraform masks it in plan output.
+  macro {
+    name        = "{$DB_PASSWORD}"
+    value       = var.db_password
+    type        = "secret"
+    description = "Monitoring user password"
+  }
+
+  macro {
+    name  = "{$API_TOKEN}"
+    value = "secret/zabbix:api_token"
+    type  = "vault"
   }
 
   tag {
@@ -233,7 +253,12 @@ Optional:
 Required:
 
 - `name` (String) Macro name, in Zabbix's `{$NAME}` form
-- `value` (String) Macro value
+- `value` (String) Macro value. For `type = "vault"` this is the vault path, `path/to/secret:key`. A `secret` value is write-only in the Zabbix API: it is kept from configuration, a change made to it outside Terraform is not detected, and an imported secret macro reads back with an empty value. The attribute is not marked sensitive; pass a secret from a sensitive variable or data source and Terraform masks it in plan output
+
+Optional:
+
+- `description` (String) Macro description
+- `type` (String) Macro type, one of: secret, text, vault
 
 Read-Only:
 

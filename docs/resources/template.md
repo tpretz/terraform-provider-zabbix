@@ -79,7 +79,12 @@ resource "zabbix_template" "example" {
 Required:
 
 - `name` (String) Macro name, in Zabbix's `{$NAME}` form
-- `value` (String) Macro value
+- `value` (String) Macro value. For `type = "vault"` this is the vault path, `path/to/secret:key`. A `secret` value is write-only in the Zabbix API: it is kept from configuration, a change made to it outside Terraform is not detected, and an imported secret macro reads back with an empty value. The attribute is not marked sensitive; pass a secret from a sensitive variable or data source and Terraform masks it in plan output
+
+Optional:
+
+- `description` (String) Macro description
+- `type` (String) Macro type, one of: secret, text, vault
 
 Read-Only:
 

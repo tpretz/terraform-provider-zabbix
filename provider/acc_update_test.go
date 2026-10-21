@@ -66,7 +66,7 @@ import (
 //	itemPreprocessorSchema    common_item.go           TestAccUpdateItemAgent
 //	itemPrototypeSchema       common_item.go           TestAccForceNewProtoItemRuleid
 //	tagSetSchema              common_tag.go            TestAccUpdateItemAgent
-//	macroSetSchema            common_macro.go          TestAccUpdateTemplate
+//	macroSetSchema            common_macro.go          TestAccUpdateTemplate (type, description: TestAccMacroType)
 //	lldCommonSchema           common_lld.go            TestAccUpdateLLDAgent
 //	lldDelaySchema            common_lld.go            TestAccUpdateLLDAgent
 //	lldZeroDelaySchema        common_lld.go            exempt -- one valid value
@@ -405,6 +405,8 @@ var updateOwner = map[string]string{
 	"zabbix_graph.ymin":                                   "TestAccUpdateGraph",
 	"zabbix_graph.ymin_itemid":                            "TestAccUpdateGraph",
 	"zabbix_graph.ymin_type":                              "TestAccUpdateGraph",
+	"zabbix_host.macro.description":                       "TestAccMacroType",
+	"zabbix_host.macro.type":                              "TestAccMacroType",
 	"zabbix_proto_trigger.comments":                       "TestAccUpdateTrigger",
 	"zabbix_proto_trigger.correlation_mode":               "TestAccUpdateTrigger",
 	"zabbix_proto_trigger.correlation_tag":                "TestAccUpdateTrigger",

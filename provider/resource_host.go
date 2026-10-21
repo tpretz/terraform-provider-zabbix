@@ -1167,7 +1167,7 @@ func hostRead(d *schema.ResourceData, m interface{}, params zabbix.Params, owned
 	d.Set("templates", flattenTemplateIds(host.ParentTemplateIDs))
 	d.Set("inventory", flattenInventory(host, d, owned))
 	d.Set("groups", flattenHostGroupIds(host.GroupIds))
-	d.Set("macro", flattenMacros(host.UserMacros))
+	d.Set("macro", flattenMacros(host.UserMacros, d.Get("macro").(*schema.Set)))
 	d.Set("tag", flattenTags(host.Tags))
 
 	return nil
